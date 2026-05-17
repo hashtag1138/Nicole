@@ -1,0 +1,614 @@
+# EXAMPLES.md
+
+# Exemples de programme pour Nicole
+
+Ce document illustre la manière d’écrire des programmes en Nicole.
+
+Il ne redéfinit pas le langage.
+
+Les seules sources normatives sont :
+
+- `SYNTAXE.md`
+- `SEMANTIQUE.md`
+- `HOST_ABI.md`
+
+Les exemples ci-dessous servent à lire le langage, à apprendre sa forme idiomatique, et à préparer plus tard des tests de conformité.
+
+---
+
+## 1. Mots simples
+
+### Addition simple
+
+```sorte
+: add-one { x:Int -- y:Int }
+  x 1 +
+;
+```
+
+Explication :
+- lit `x`
+- pousse `1`
+- applique `+`
+
+Effet de pile :
+- entrée `3`
+- sortie `4`
+
+Pourquoi :
+- forme minimale claire pour illustrer les variables locales
+
+### Carré d’un entier
+
+```sorte
+: square { x:Int -- y:Int }
+  x x *
+;
+```
+
+Explication :
+- lit `x` deux fois
+- applique `*`
+
+Effet de pile :
+- entrée `4`
+- sortie `16`
+
+Pourquoi :
+- montre une réutilisation simple d’une variable locale
+
+### Chaînes simples
+
+```sorte
+: greet { excited:Bool -- msg:String }
+  excited case
+    true => "hello"
+    false => "hi"
+  end
+;
+```
+
+Explication :
+- choisit une chaîne littérale selon un booléen
+
+Effet de pile :
+- entrée `true`
+- sortie `"hello"`
+
+Pourquoi :
+- illustre un `case` simple qui retourne une chaîne littérale
+
+---
+
+## 2. Variables locales
+
+### Réutilisation d’un input
+
+```sorte
+: double { x:Int -- y:Int }
+  x x +
+;
+```
+
+Explication :
+- lit la variable locale `x`
+- la réutilise sans mutation
+
+Effet de pile :
+- entrée `5`
+- sortie `10`
+
+Pourquoi :
+- montre que les variables locales sont lues, pas modifiées
+
+### Valeur de départ et calcul
+
+```sorte
+: add-five { x:Int -- y:Int }
+  x 5 +
+;
+```
+
+Explication :
+- lit `x`
+- ajoute `5`
+
+Effet de pile :
+- entrée `7`
+- sortie `12`
+
+Pourquoi :
+- exemple simple pour relire la règle “la lecture pousse la valeur locale”
+
+---
+
+## 3. Sous-mots privés
+
+### Sous-mot local explicite
+
+```sorte
+: invoice { price:Int qty:Int -- total:Int }
+
+  : subtotal { price:Int qty:Int -- amount:Int }
+    price qty *
+  ;
+
+  price qty subtotal
+;
+```
+
+Explication :
+- `subtotal` est local au mot parent
+- les valeurs nécessaires sont passées explicitement
+- le sous-mot ne capture pas les variables du parent
+
+Effet de pile :
+- entrée `12 3`
+- sortie `36`
+
+Pourquoi :
+- montre la visibilité limitée d’un sous-mot privé
+
+---
+
+## 4. Surcharge
+
+### Surcharge valide
+
+```sorte
+: id { x:Int -- y:Int }
+  x
+;
+
+: id { x:String -- y:String }
+  x
+;
+```
+
+Explication :
+- la résolution se fait par nom, nombre d’arguments et types d’entrée
+- la sortie ne participe pas à la résolution
+
+Utilisation :
+- `42 id` retourne `42`
+- `"hello" id` retourne `"hello"`
+
+Pourquoi :
+- montre une surcharge statique simple et valide
+
+---
+
+## 5. Retours multiples
+
+### Paire de sortie
+
+```sorte
+: pair { -- a:Int b:String }
+  1 "ok"
+;
+```
+
+Explication :
+- produit deux valeurs
+- d’abord `1`
+- puis `"ok"`
+
+Effet de pile :
+- sortie `[..., 1, "ok"]`
+
+Pourquoi :
+- montre l’ordre des sorties dans la signature
+
+### Deux entiers
+
+```sorte
+: dimensions { -- width:Int height:Int }
+  800 600
+;
+```
+
+Explication :
+- produit deux entiers de manière explicite
+
+Effet de pile :
+- sortie `[..., 800, 600]`
+
+Pourquoi :
+- montre un retour multiple lisible et direct
+
+---
+
+## 6. `if`
+
+### Valeur absolue
+
+```sorte
+: abs { x:Int -- y:Int }
+  x 0 < if
+    0 x -
+  else
+    x
+  end
+;
+```
+
+Explication :
+- teste si `x` est négatif
+- choisit une branche ou l’autre
+
+Effet de pile :
+- entrée `-7`
+- sortie `7`
+
+Pourquoi :
+- montre un `if` idiomatique et clair
+
+### Booléen simple
+
+```sorte
+: choose-yes { flag:Bool -- text:String }
+  flag if
+    "yes"
+  else
+    "no"
+  end
+;
+```
+
+Explication :
+- consomme un booléen
+- produit un texte selon la branche
+
+Effet de pile :
+- entrée `true`
+- sortie `"yes"`
+
+Pourquoi :
+- montre la forme minimale d’un `if`
+
+---
+
+## 7. `case`
+
+### `Result` avec valeur par défaut
+
+```sorte
+: timeout-or-default { cfg:Map<String,Int> -- n:Int }
+  cfg "timeout" map.get case
+    Ok(v) => v
+    Err(MissingKey) => 30
+  end
+;
+```
+
+Explication :
+- lit un entier dans une map
+- retourne `30` si la clé manque
+
+Effet de pile :
+- clé présente : valeur lue
+- clé absente : `30`
+
+Pourquoi :
+- montre un `case` idiomatique sur `Result`
+
+### `Bool` exhaustif
+
+```sorte
+: bool-label { b:Bool -- text:String }
+  b case
+    true => "true"
+    false => "false"
+  end
+;
+```
+
+Explication :
+- distingue les deux cas possibles
+
+Effet de pile :
+- entrée `true`
+- sortie `"true"`
+
+Pourquoi :
+- montre un `case` exhaustif sur `Bool`
+
+---
+
+## 8. Collections
+
+### Carte avec timeout
+
+```sorte
+: cfg-with-timeout { -- cfg:Map<String,Int> }
+  map.empty
+  "timeout" 30 map.set
+;
+```
+
+Explication :
+- construit une carte vide
+- ajoute une clé `"timeout"`
+- `map.set` retourne une nouvelle carte
+
+Pourquoi :
+- montre l’immuabilité des maps
+
+### Présence d’une clé
+
+```sorte
+: has-timeout { cfg:Map<String,Int> -- ok:Bool }
+  cfg "timeout" map.contains
+;
+```
+
+Explication :
+- teste la présence d’une clé
+
+Effet de pile :
+- entrée une carte
+- sortie `true` ou `false`
+
+Pourquoi :
+- montre une vérification simple et lisible
+
+### Lecture dans une liste
+
+```sorte
+: first { xs:List<Int> -- n:Int }
+  xs 0 list.get case
+    Ok(v) => v
+    Err(OutOfBounds) => 0
+  end
+;
+```
+
+Explication :
+- lit le premier élément si possible
+- retourne `0` sinon
+
+Effet de pile :
+- entrée `[10, 20]`
+- sortie `10`
+
+Pourquoi :
+- montre un accès de liste avec erreur explicite
+
+### Transformation avec `list.map`
+
+```sorte
+: inc-all { xs:List<Int> -- ys:List<Int> }
+  xs :[ | x:Int -- y:Int | x 1 + ] list.map
+;
+```
+
+Explication :
+- applique `x 1 +` à chaque élément
+
+Effet de pile :
+- entrée `[1, 2, 3]`
+- sortie `[2, 3, 4]`
+
+Pourquoi :
+- exemple direct de transformation de liste
+
+### Réduction simple
+
+```sorte
+: sum { xs:List<Int> -- n:Int }
+  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ] list.fold
+;
+```
+
+Explication :
+- additionne tous les éléments
+- part d’un accumulateur initial `0`
+
+Effet de pile :
+- entrée `[1, 2, 3]`
+- sortie `6`
+
+Pourquoi :
+- montre un usage simple et lisible de `list.fold`
+
+### Réduction sans valeur initiale
+
+```sorte
+: sum-non-empty { xs:List<Int> -- n:Int }
+  xs :[ | a:Int b:Int -- c:Int | a b + ] list.reduce
+;
+```
+
+Explication :
+- réduit une liste non vide en additionnant les éléments
+
+Effet de pile :
+- entrée `[1, 2, 3]`
+- sortie `6`
+
+Pourquoi :
+- montre la forme idiomatique de `list.reduce`
+
+---
+
+## 9. Quotations
+
+### Quotation simple
+
+```sorte
+: plus-one { x:Int -- y:Int }
+  x :[ | n:Int -- m:Int | n 1 + ] call
+;
+```
+
+Explication :
+- construit une quotation
+- l’appelle immédiatement
+
+Effet de pile :
+- entrée `4`
+- sortie `5`
+
+Pourquoi :
+- montre le cycle complet quotation + `call`
+
+### Quotations avec capture
+
+```sorte
+: add-captured { x:Int y:Int -- z:Int }
+  x y :[ a:Int | n:Int -- m:Int | n a + ] call
+;
+```
+
+Explication :
+- `y` est capturé comme `a`
+- `x` reste sous la quotation et devient l’input `n` au moment du `call`
+- entrée `3 4` produit `7`
+
+Effet de pile :
+- entrée `3 4`
+- sortie `7`
+
+Pourquoi :
+- montre la capture par valeur de manière lisible
+
+### Quotation passée à `list.map`
+
+```sorte
+: inc-all-quoted { xs:List<Int> -- ys:List<Int> }
+  xs :[ | x:Int -- y:Int | x 1 + ] list.map
+;
+```
+
+Explication :
+- la quotation est passée comme valeur
+- `list.map` l’applique à chaque élément
+
+Effet de pile :
+- entrée `[2, 4]`
+- sortie `[3, 5]`
+
+Pourquoi :
+- montre l’usage naturel des quotations comme valeurs
+
+---
+
+## 10. `host.*`
+
+Contrat hôte supposé dans cette section :
+
+```text
+host.log { msg:String -- }
+```
+
+### Avertir l’hôte
+
+```sorte
+: warn { msg:String -- }
+  msg host.log
+;
+```
+
+Explication :
+- transmet une chaîne à l’hôte
+- `host.log` est ici un mot fourni par le contrat hôte supposé, pas une primitive standard du langage
+
+Effet de pile :
+- entrée `"attention"`
+- aucune sortie
+
+Pourquoi :
+- exemple minimal d’appel à un mot fourni par l’hôte
+
+---
+
+## 11. `export`
+
+### Handler de message
+
+```sorte
+export : app.on-message { msg:String -- }
+  msg host.log
+;
+```
+
+Explication :
+- expose un mot du programme à l’hôte
+- `host.log` reste ici un mot fourni par le contrat hôte supposé
+- l’hôte peut l’appeler comme point d’entrée ou handler
+
+Effet de pile :
+- entrée `"hello"`
+- aucune sortie
+
+Pourquoi :
+- montre un export clair et idiomatique
+
+### Handler sans retour
+
+```sorte
+export : app.tick { -- }
+  "tick" host.log
+;
+```
+
+Explication :
+- expose un mot sans entrée ni sortie
+- `host.log` reste ici un mot fourni par le contrat hôte supposé
+
+Effet de pile :
+- aucune entrée
+- aucune sortie
+
+Pourquoi :
+- montre un export événementiel minimal
+
+---
+
+## 12. Exemple complet court
+
+Contrat hôte supposé :
+
+```text
+host.log { msg:String -- }
+```
+
+```sorte
+export : app.on-message { msg:String -- }
+  msg host.log
+;
+
+: greeting { excited:Bool -- text:String }
+  excited case
+    true => "hello"
+    false => "hi"
+  end
+;
+
+: demo { -- }
+  true greeting host.log
+;
+```
+
+Explication :
+- `greeting` choisit un message simple
+- `demo` utilise un mot local puis un mot hôte
+
+Pourquoi :
+- combine les formes de base sans ajouter de complexité inutile
+
+---
+
+## 13. Quotation retournée comme valeur
+
+```sorte
+: make-increment { -- q:Quote<{ | x:Int -- y:Int }> }
+  :[ | x:Int -- y:Int | x 1 + ]
+;
+```
+
+Explication :
+- construit une quotation et la renvoie comme valeur
+
+Pourquoi :
+- montre qu’une quotation peut être produite par un mot comme n’importe quelle autre valeur
