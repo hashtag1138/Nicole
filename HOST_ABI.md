@@ -214,7 +214,13 @@ Son absence constitue une erreur d’intégration.
 
 Un mot `host.*` optionnel peut être absent sans invalider le contrat en lui-même.
 
-Le programme ne peut pas supposer la disponibilité d’un mot optionnel sans règle explicite du contrat d’intégration.
+En v1, un appel direct à un mot `host.*` dans le code source suppose que ce mot est requis pour le programme considéré.
+
+Le programme ne peut donc pas appeler directement un mot `host.*` optionnel comme s’il était garanti présent.
+
+La v1 ne définit aucun mécanisme standard de test de présence, de fallback ou d’appel conditionnel d’un mot hôte optionnel.
+
+Le statut “optionnel” peut exister dans le contrat d’intégration comme information conceptuelle ou comme base d’extensions futures, mais il n’autorise pas à lui seul un appel direct en Nicole v1.
 
 Si ces informations sont insuffisantes ou ambiguës, le contrat n’est pas valable pour la v1.
 

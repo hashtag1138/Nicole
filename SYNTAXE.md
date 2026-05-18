@@ -40,6 +40,25 @@ Les noms d’entrée créent des variables locales immuables.
 
 Les noms de sortie sont documentaires : ils décrivent les valeurs produites, mais ne créent pas de variables.
 
+## Lexique minimal v1
+
+Identifiants :
+
+- un identifiant commence par une lettre ASCII (`a-z`, `A-Z`) ou `_`
+- après le premier caractère, il peut contenir des lettres, des chiffres, `_`, `-` et `.`
+- `-` peut apparaître dans un identifiant comme `add-one`
+- `-` seul reste l’opérateur arithmétique de soustraction
+- `.` peut faire partie d’un nom qualifié comme `host.log`, `map.empty` ou `app.on-message`
+- `.` n’est pas un opérateur autonome en v1
+- le préfixe `host.` est réservé aux mots fournis par l’hôte
+
+Chaînes :
+
+- une chaîne est délimitée par `"`
+- la chaîne vide `""` est autorisée
+- les retours à la ligne bruts dans une chaîne ne sont pas autorisés en v1
+- les échappements supportés en v1 sont `\"`, `\\`, `\n` et `\t`
+
 ---
 
 # 2. Visibilité interne, export et contrats hôte
@@ -498,8 +517,24 @@ Leur corps est fourni par l’hôte, hors du langage source.
 Règles :
 
 - un programme utilisateur ne peut pas définir un mot `host.*`
-- un mot `host.*` absent de l’environnement d’exécution produit une erreur d’intégration
+- tout mot `host.*` appelé directement par le programme est requis pour ce programme en v1
+- si un mot `host.*` appelé directement est absent du contrat d’intégration, cela constitue une erreur d’intégration statique avant exécution lorsque le contrat est connu
+- si l’environnement hôte est dynamique et que cette liaison requise n’est pas disponible au moment de l’appel, cela constitue une erreur d’intégration à l’exécution
 - la résolution statique traite `host.*` comme des mots connus du même espace nominal ; chaque nom visible doit désigner une seule définition fournie par le contrat hôte
+
+En v1, il n’existe aucun mécanisme standard de test de présence, de fallback ou d’appel conditionnel pour un mot `host.*` optionnel.
+
+Par conséquent, un programme ne peut pas appeler directement un mot `host.*` comme s’il était requis tout en admettant qu’il pourrait être absent.
+
+Exemple invalide :
+
+```sorte
+: show-config { key:String -- value:String }
+  key host.read-config
+;
+```
+
+Ce programme est invalide si le contrat hôte ne déclare pas `host.read-config`.
 
 Exemple conceptuel futur :
 
@@ -776,8 +811,11 @@ Opérations arithmétiques et booléennes prévues :
 -   # soustraction
 *   # multiplication
 div # division entière
-/   # division flottante
 mod # modulo entier
++.
+-.
+*.
+/.
 <
 <=
 >
@@ -791,9 +829,15 @@ not
 
 Règles :
 
-- `div` produit une division entière
-- `/` produit une division flottante
-- les comparateurs produisent un `Bool`
+- `+`, `-` et `*` sont définis uniquement pour `Int Int -> Int`
+- `div` et `mod` sont définis uniquement pour `Int Int -> Int`
+- `+.`, `-.`, `*.` et `/.` sont définis uniquement pour `Float Float -> Float`
+- `/` nu n’est pas un opérateur arithmétique v1
+- aucune coercion implicite entre `Int` et `Float` n’est autorisée
+- `<`, `<=`, `>`, `>=` sont définis pour `Int Int -> Bool` et `Float Float -> Bool`
+- ces comparaisons ne sont pas définies pour des types mélangés
+- `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`
+- les opérateurs booléens produisent un `Bool`
 
 Exemples :
 
@@ -804,7 +848,13 @@ Exemples :
 produit `3`.
 
 ```sorte
-7.0 2.0 /
+7.0 2.0 /.
+```
+
+produit `3.5`.
+
+```sorte
+1.5 2.0 +.
 ```
 
 produit `3.5`.
@@ -814,6 +864,14 @@ Exemple de TVA :
 ```sorte
 : vat { amount:Int -- tax:Int }
   amount 20 * 100 div
+;
+```
+
+Exemple Float :
+
+```sorte
+: circle-area { r:Float -- area:Float }
+  r r *. 3.14159 *.
 ;
 ```
 
@@ -1577,7 +1635,7 @@ export : app.event { payload:String -- }
 ;
 
 : circle-area { r:Float -- area:Float }
-  r r * PI *
+  r r *. PI *.
 ;
 
 pub : helper { n:Int -- m:Int }

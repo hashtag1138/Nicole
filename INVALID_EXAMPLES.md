@@ -186,6 +186,60 @@ Pourquoi c’est invalide :
 Règle violée :
 - Nicole v1 ne possède aucun mécanisme de garde sur `case`
 
+### Pattern `MissingKey` sur un scrutinee `Bool`
+
+```sorte
+: bad-case-bool-variant { b:Bool -- n:Int }
+  b case
+    MissingKey => 0
+    _ => 1
+  end
+;
+```
+
+Pourquoi c’est invalide :
+- `MissingKey` n’est pas un variant de `Bool`
+- ce pattern n’est compatible qu’avec un type d’erreur approprié comme `MapError`
+
+Règle violée :
+- les patterns d’un `case` doivent être compatibles avec le type du scrutinee
+
+### Mauvais variant d’erreur sur `Result<Int,ListError>`
+
+```sorte
+: bad-case-listerror { r:Result<Int,ListError> -- n:Int }
+  r case
+    Ok(v) => v
+    Err(MissingKey) => 0
+  end
+;
+```
+
+Pourquoi c’est invalide :
+- `MissingKey` appartient à `MapError`
+- `Result<Int,ListError>` ne peut pas être matché avec `Err(MissingKey)`
+
+Règle violée :
+- un pattern `Err(...)` doit utiliser une variante compatible avec le type d’erreur du `Result`
+
+### Mauvais variant d’erreur sur `Result<Int,MapError>`
+
+```sorte
+: bad-case-maperror { r:Result<Int,MapError> -- n:Int }
+  r case
+    Ok(v) => v
+    Err(OutOfBounds) => 0
+  end
+;
+```
+
+Pourquoi c’est invalide :
+- `OutOfBounds` appartient à `ListError`
+- `Result<Int,MapError>` ne peut pas être matché avec `Err(OutOfBounds)`
+
+Règle violée :
+- un pattern `Err(...)` doit utiliser une variante compatible avec le type d’erreur du `Result`
+
 ---
 
 ## 4. Quotations invalides
@@ -243,6 +297,32 @@ Règle violée :
 
 Pourquoi c’est invalide :
 - la capture `x` et l’input `x` appartiennent à la même frame de quotation
+- le nom local `x` y serait déclaré deux fois
+
+Règle violée :
+- les noms locaux doivent être uniques dans une même frame de quotation
+
+### Captures dupliquées dans une quotation
+
+```sorte
+:[ x:Int x:Int | -- y:Int | x ;]
+```
+
+Pourquoi c’est invalide :
+- les deux captures appartiennent à la même frame de quotation
+- le nom local `x` y serait déclaré deux fois
+
+Règle violée :
+- les noms locaux doivent être uniques dans une même frame de quotation
+
+### Inputs dupliqués dans une quotation
+
+```sorte
+:[ | x:Int x:Int -- y:Int | x ;]
+```
+
+Pourquoi c’est invalide :
+- les deux inputs appartiennent à la même frame de quotation
 - le nom local `x` y serait déclaré deux fois
 
 Règle violée :
@@ -314,7 +394,30 @@ Règle violée :
 
 ---
 
-## 6. `host.*`
+## 6. Collections invalides
+
+### `list.reduce` sur liste vide prouvable
+
+```sorte
+: bad-reduce-empty { -- n:Int }
+  []:List<Int>
+  :[ | a:Int b:Int -- c:Int |
+    a b +
+  ;]
+  list.reduce
+;
+```
+
+Pourquoi c’est invalide :
+- `list.reduce` exige une liste non vide
+- ici, la vacuité de la liste est prouvable statiquement
+
+Règle violée :
+- `list.reduce` sur une liste vide prouvable doit être rejeté statiquement
+
+---
+
+## 7. `host.*`
 
 ### Mot hôte absent du contrat
 
@@ -346,7 +449,7 @@ Règle violée :
 
 ---
 
-## 7. Collisions de noms visibles
+## 8. Collisions de noms visibles
 
 ### Deux mots top-level de même nom avec types différents
 
@@ -448,7 +551,7 @@ Règle violée :
 
 ---
 
-## 8. Syntaxes explicitement interdites
+## 9. Syntaxes explicitement interdites
 
 ### `let`
 
