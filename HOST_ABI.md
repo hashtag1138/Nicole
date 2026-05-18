@@ -72,9 +72,38 @@ Au niveau de l’interface hôte, un nom d’export désigne un seul point d’e
 
 Deux mots exportés ne peuvent jamais partager le même nom d’export.
 
-La surcharge par types d’entrée ne s’applique pas aux mots `export`.
+Plus généralement, un nom d’export doit désigner un seul mot exporté.
 
 Toute collision de noms d’export est invalide et doit être rejetée comme une erreur de contrat détectable statiquement.
+
+Exemple invalide :
+
+```sorte
+export : entry { -- n:Int }
+  1
+;
+
+export : entry { -- text:String }
+  "hello"
+;
+```
+
+Ce programme est invalide :
+
+- `entry` est un seul nom public côté hôte
+- l’hôte ne peut pas lier un même nom d’export à deux définitions distinctes
+
+Alternative valide :
+
+```sorte
+export : entry.int { -- n:Int }
+  1
+;
+
+export : entry.text { -- text:String }
+  "hello"
+;
+```
 
 Le programme exécute alors le mot dans sa frame propre et renvoie exactement les sorties déclarées.
 
@@ -111,6 +140,7 @@ Le mot ne renvoie aucune valeur.
 
 Un mot `host.*` garantit :
 
+- un nom unique dans le contrat d’intégration
 - une signature connue ou déclarée par le contrat d’intégration
 - des entrées typées
 - des sorties typées si le mot en déclare

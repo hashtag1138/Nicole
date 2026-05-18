@@ -140,17 +140,27 @@ Règles :
 
 La résolution des appels est statique.
 
-Un mot est résolu par :
+La collecte des signatures précède l’analyse des corps.
 
-- son nom
-- son arité
-- les types de ses entrées
+Elle sert à :
 
-La sortie ne participe pas à la résolution.
+- connaître les mots visibles avant validation des appels
+- permettre la récursion et la récursion mutuelle
+- détecter tôt les collisions de noms visibles
 
-Si plusieurs mots sont compatibles avec le même appel, l’ambiguïté est une erreur de compilation.
+Dans un même espace de résolution, un nom visible doit désigner une seule définition.
 
-Exemple :
+La résolution d’un appel se fait donc par le nom dans l’espace donné.
+
+Les modificateurs de visibilité comme `pub` et `export` n’introduisent pas d’espace nominal séparé.
+
+Toute collision visible est une erreur de compilation.
+
+Cette règle évite qu’un appel dépende de valeurs résiduelles présentes sur la pile pour sélectionner une définition.
+
+Les signatures de sortie ne servent jamais à distinguer deux mots, car deux définitions de même nom sont interdites quelles que soient leurs signatures.
+
+Exemple invalide :
 
 ```sorte
 : id { x:Int -- y:Int }
@@ -162,21 +172,41 @@ Exemple :
 ;
 ```
 
-Ces deux définitions sont valides parce que leurs types d’entrée diffèrent.
+Ces deux définitions sont interdites parce qu’un même nom visible ne peut désigner qu’un seul mot.
 
 Exemple interdit :
 
 ```sorte
-: foo { x:Int -- y:Int }
-  x
+: foo { a:Int b:Int -- r:Int }
+  a b +
 ;
 
-: foo { x:Int -- y:String }
-  "bad"
+: foo { a:Int b:Int c:Int -- r:Int }
+  a b + c +
 ;
 ```
 
-L’appel `12 foo` serait ambigu, donc la deuxième définition doit être rejetée.
+Ces deux définitions sont interdites, même si leurs arités diffèrent.
+
+Formes recommandées :
+
+```sorte
+: id-int { x:Int -- y:Int }
+  x
+;
+
+: id-string { x:String -- y:String }
+  x
+;
+
+: foo2 { a:Int b:Int -- r:Int }
+  a b +
+;
+
+: foo3 { a:Int b:Int c:Int -- r:Int }
+  a b + c +
+;
+```
 
 ---
 
@@ -230,6 +260,7 @@ Les deux branches laissent la pile locale dans le même état de sortie.
 # 5. `case`
 
 `case` consomme la valeur à matcher depuis le sommet de la pile locale.
+Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent sur les patterns.
 
 Syntaxe de surface :
 
@@ -269,11 +300,19 @@ Patterns v1 retenus :
 - `OutOfBounds`
 - `_`
 
-Pour les types somme fermés comme `Result`, `ListError` et `MapError`, le compilateur doit pouvoir vérifier l’exhaustivité quand c’est possible.
+Règles de liaison :
 
-- un `case` exhaustif est valide sans `_`
-- un `case` non exhaustif sur un type somme fermé doit être rejeté si l’absence de couverture est prouvable
-- pour des valeurs ouvertes comme `Int` ou `String`, l’absence de `_` peut rester une erreur de contrat d’exécution si aucune branche ne matche
+- `Ok(v)` crée un binding local `v`
+- `Err(e)` crée un binding local `e`
+- `Err(MissingKey)` ne crée aucun binding local
+- `Err(OutOfBounds)` ne crée aucun binding local
+- `MissingKey` et `OutOfBounds` seuls ne créent aucun binding local
+- `_` ne crée aucun binding local
+
+Pour les types somme fermés comme `Result`, `ListError` et `MapError`, l’exhaustivité doit être vérifiée statiquement quand le type du scrutinee est connu.
+
+- pour des valeurs ouvertes comme `Int` ou `String`, `_` est nécessaire si le programme veut garantir qu’aucune valeur non couverte ne provoquera d’échec de matching
+- en l’absence de `_`, si aucune branche ne matche à l’exécution, cela relève d’une erreur de contrat d’exécution
 - `Bool` peut être vérifié exhaustivement si les deux littéraux `true` et `false` sont couverts ; sinon, l’absence de `_` peut rester une erreur de contrat d’exécution
 
 Pour les motifs imbriqués sur `Result` :
@@ -283,6 +322,17 @@ Pour les motifs imbriqués sur `Result` :
 - `Ok(v)` couvre tous les cas `Ok`
 - pour `Result<V,MapError>`, si `MapError` ne contient que `MissingKey`, alors `Ok(v)` et `Err(MissingKey)` suffisent pour l’exhaustivité
 - pour `Result<V,E>`, si `E` n’est pas couvert exhaustivement, il faut un motif plus général comme `Err(e)` ou `_`
+
+Exemple de liaison :
+
+```sorte
+: unwrap-result { r:Result<Int,MapError> -- n:Int }
+  r case
+    Ok(v) => v
+    Err(e) => 0
+  end
+;
+```
 
 Exemple :
 
@@ -301,6 +351,7 @@ Exemple :
 # 6. Quotations et `call`
 
 Une quotation est une valeur exécutable de première classe.
+Elle se comporte comme un mot anonyme : elle a sa propre frame, une pile locale vide au départ, des variables locales immuables, et un retour exact conforme à sa signature.
 
 Elle peut :
 
@@ -314,12 +365,14 @@ Elle peut :
 Les captures sont prises au moment de la construction de la quotation.
 Elles sont capturées par valeur.
 Elles deviennent des données internes immuables de la quotation.
+Les captures ne sont pas prises au moment du `call`.
 
 L’ordre des captures suit l’ordre de déclaration.
 
 ## `call`
 
 `call` consomme d’abord la quotation placée au sommet de la pile.
+La quotation n'est pas un bloc qui réutilise la pile courante : les inputs ne deviennent des variables locales qu'au moment du `call`, dans la frame propre de la quotation.
 
 La convention de pile est :
 
@@ -380,7 +433,7 @@ Dans le corps d’une quotation :
 Pour une quotation avec captures :
 
 ```sorte
-:[ a:Int b:Int | x:Int -- y:Int | x a + b + ]
+:[ a:Int b:Int | x:Int -- y:Int | x a + b + ;]
 ```
 
 les captures sont prises à la construction depuis une pile de forme :
@@ -394,7 +447,7 @@ les captures sont prises à la construction depuis une pile de forme :
 Exemples conceptuels :
 
 ```sorte
-3 :[ | x:Int -- y:Int | x 1 + ] call
+3 :[ | x:Int -- y:Int | x 1 + ;] call
 ```
 
 Résultat conceptuel :
@@ -402,7 +455,7 @@ Résultat conceptuel :
 - `4`
 
 ```sorte
-3 4 :[ a:Int | x:Int -- y:Int | x a + ] call
+3 4 :[ a:Int | x:Int -- y:Int | x a + ;] call
 ```
 
 Résultat conceptuel :
@@ -460,6 +513,15 @@ Utilisation attendue :
 
 - `map.get`
 
+## Constructions vides typées
+
+En v1, les constructions vides ne reposent pas sur une déduction implicite depuis le contexte.
+
+- `[]:List<T>` est une liste vide typée explicitement
+- `map.empty:Map<K,V>` est une map vide typée explicitement
+- `[]` non annoté doit être rejeté
+- `map.empty` non annoté doit être rejeté
+
 ## `list.reduce`
 
 `list.reduce` est défini uniquement sur une liste non vide.
@@ -497,8 +559,10 @@ Ce n’est pas une exception implicite métier.
 
 ## Doit être rejeté à la compilation quand c’est prouvable
 
-- ambiguïtés de résolution
+- collision de noms visibles dans un même espace de résolution
 - incompatibilité de types d’entrée
+- liste vide sans annotation de type explicite
+- map vide sans annotation de type explicite
 - branches de `if` ou `case` qui n’ont pas le même effet de pile
 - retour qui ne peut pas satisfaire la signature
 - capture non typée dans une quotation
@@ -514,7 +578,7 @@ Exemple :
 
 ```sorte
 : reduce-safely { xs:List<Int> -- n:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ] list.reduce
+  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
 ```
 
@@ -569,7 +633,7 @@ Règles :
 - dans les deux cas, l’absence du mot est une erreur de contrat d’exécution observée à la frontière hôte
 - `Result` ne s’applique qu’au contrat de retour d’un mot `host.*` qui existe effectivement
 - le mécanisme de liaison lui-même n’est jamais modélisé comme un `Result`
-- la résolution statique traite `host.*` comme des mots connus, avec signatures connues
+- la résolution statique traite `host.*` comme des mots connus, avec signatures connues et noms visibles uniques
 
 `host.file.open` n’est pas un mot de v1.
 S’il est documenté plus tard, ce sera comme extension future du contrat hôte.
@@ -593,14 +657,11 @@ Le but de ce fichier est de définir le comportement du langage, pas de rouvrir 
 
 # Points ouverts
 
-## Surcharge des sous-mots locaux
+## Nom identique entre sous-mot et mot top-level
 
 POINT OUVERT :
-la surcharge des sous-mots locaux reste à spécifier.
+la règle exacte entre un sous-mot et un mot top-level de même nom reste à préciser quand le système de modules et de visibilité inter-modules sera fixé.
 
-Deux options sont possibles :
+En revanche, la règle suivante est déjà normative en v1 :
 
-1. appliquer les mêmes règles que pour les mots normaux ;
-2. interdire la surcharge locale en v1 pour simplifier la résolution.
-
-Tant que ce point n’est pas décidé, les exemples normatifs doivent éviter les sous-mots locaux surchargés.
+- dans un même parent, deux sous-mots ne peuvent pas partager le même nom

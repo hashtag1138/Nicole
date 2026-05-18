@@ -151,30 +151,61 @@ Pourquoi :
 
 ---
 
-## 4. Surcharge
+## 4. Noms explicites et récursion mutuelle
 
-### Surcharge valide
+### Noms explicites
 
 ```sorte
-: id { x:Int -- y:Int }
+: id-int { x:Int -- y:Int }
   x
 ;
 
-: id { x:String -- y:String }
+: id-string { x:String -- y:String }
   x
 ;
 ```
 
 Explication :
-- la résolution se fait par nom, nombre d’arguments et types d’entrée
-- la sortie ne participe pas à la résolution
+- chaque nom visible désigne une seule définition
+- des comportements voisins doivent utiliser des noms distincts
 
 Utilisation :
-- `42 id` retourne `42`
-- `"hello" id` retourne `"hello"`
+- `42 id-int` retourne `42`
+- `"hello" id-string` retourne `"hello"`
 
 Pourquoi :
-- montre une surcharge statique simple et valide
+- montre la forme recommandée en Nicole v1 après suppression de la surcharge implicite
+
+### Récursion mutuelle
+
+```sorte
+: even { n:Int -- result:Bool }
+  n 0 = if
+    true
+  else
+    n 1 - odd
+  end
+;
+
+: odd { n:Int -- result:Bool }
+  n 0 = if
+    false
+  else
+    n 1 - even
+  end
+;
+```
+
+Explication :
+- `even` et `odd` ont chacun un nom distinct
+- la collecte préalable des signatures permet leurs appels réciproques
+
+Utilisation :
+- `0 even` retourne `true`
+- `1 odd` retourne `true`
+
+Pourquoi :
+- montre que la récursion mutuelle reste naturelle sans aucun mécanisme de surcharge
 
 ---
 
@@ -317,11 +348,16 @@ Pourquoi :
 
 ## 8. Collections
 
+Note pédagogique :
+- `[]:List<T>` est une liste vide typée explicitement
+- `map.empty:Map<K,V>` est une construction vide typée explicitement
+- dans les deux cas, Nicole v1 privilégie la clarté locale plutôt qu’une déduction implicite du type
+
 ### Carte avec timeout
 
 ```sorte
 : cfg-with-timeout { -- cfg:Map<String,Int> }
-  map.empty
+  map.empty:Map<String,Int>
   "timeout" 30 map.set
 ;
 ```
@@ -378,7 +414,7 @@ Pourquoi :
 
 ```sorte
 : inc-all { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ] list.map
+  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
 ```
 
@@ -396,7 +432,7 @@ Pourquoi :
 
 ```sorte
 : sum { xs:List<Int> -- n:Int }
-  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ] list.fold
+  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ;
 ```
 
@@ -415,7 +451,7 @@ Pourquoi :
 
 ```sorte
 : sum-non-empty { xs:List<Int> -- n:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ] list.reduce
+  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
 ```
 
@@ -437,7 +473,7 @@ Pourquoi :
 
 ```sorte
 : plus-one { x:Int -- y:Int }
-  x :[ | n:Int -- m:Int | n 1 + ] call
+  x :[ | n:Int -- m:Int | n 1 + ;] call
 ;
 ```
 
@@ -456,7 +492,7 @@ Pourquoi :
 
 ```sorte
 : add-captured { x:Int y:Int -- z:Int }
-  x y :[ a:Int | n:Int -- m:Int | n a + ] call
+  x y :[ a:Int | n:Int -- m:Int | n a + ;] call
 ;
 ```
 
@@ -476,7 +512,7 @@ Pourquoi :
 
 ```sorte
 : inc-all-quoted { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ] list.map
+  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
 ```
 
@@ -527,7 +563,7 @@ Pourquoi :
 ### Handler de message
 
 ```sorte
-export : app.on-message { msg:String -- }
+export : app.demo-message { msg:String -- }
   msg host.log
 ;
 ```
@@ -603,7 +639,7 @@ Pourquoi :
 
 ```sorte
 : make-increment { -- q:Quote<{ | x:Int -- y:Int }> }
-  :[ | x:Int -- y:Int | x 1 + ]
+  :[ | x:Int -- y:Int | x 1 + ;]
 ;
 ```
 

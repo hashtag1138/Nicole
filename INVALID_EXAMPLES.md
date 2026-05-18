@@ -30,6 +30,38 @@ Pourquoi c’est invalide :
 Règle violée :
 - les entrées d’un mot doivent respecter les types attendus
 
+### Liste vide sans annotation
+
+```sorte
+: bad-empty-list { -- xs:List<Int> }
+  []
+;
+```
+
+Pourquoi c’est invalide :
+- l’annotation de type de la liste vide est absente
+- le contexte de retour n’est pas utilisé pour deviner le type par choix de design v1
+- la clarté locale prime sur l’inférence implicite
+
+Règle violée :
+- `[]` non annoté est invalide en v1
+
+### Map vide sans annotation
+
+```sorte
+: bad-empty-map { -- cfg:Map<String,Int> }
+  map.empty
+;
+```
+
+Pourquoi c’est invalide :
+- l’annotation de type de la map vide est absente
+- le contexte de retour n’est pas utilisé pour deviner le type par choix de design v1
+- la clarté locale prime sur l’inférence implicite
+
+Règle violée :
+- `map.empty` non annoté est invalide en v1
+
 ---
 
 ## 2. Mauvais retours
@@ -121,6 +153,24 @@ Pourquoi c’est invalide :
 Règle violée :
 - toutes les branches d’un `case` doivent produire le même effet de pile
 
+### Garde conditionnelle interdite
+
+```sorte
+: bad-case-guard { r:Result<Int,MapError> -- n:Int }
+  r case
+    Err(e) when e => 0
+    _ => 1
+  end
+;
+```
+
+Pourquoi c’est invalide :
+- `when` n’existe pas en v1
+- les gardes conditionnelles sur pattern ne font pas partie du langage
+
+Règle violée :
+- Nicole v1 ne possède aucun mécanisme de garde sur `case`
+
 ---
 
 ## 4. Quotations invalides
@@ -128,7 +178,7 @@ Règle violée :
 ### Capture non typée
 
 ```sorte
-:[ a | x:Int -- y:Int | x 1 + ]
+:[ a | x:Int -- y:Int | x 1 + ;]
 ```
 
 Pourquoi c’est invalide :
@@ -137,11 +187,24 @@ Pourquoi c’est invalide :
 Règle violée :
 - les captures d’une quotation doivent être typées
 
+### Quotation fermée avec `]` seul
+
+```sorte
+:[ | x:Int -- y:Int | x 1 + ]
+```
+
+Pourquoi c’est invalide :
+- le corps concaténatif de la quotation n’est pas terminé par `;`
+- `]` seul ne suffit plus à fermer une quotation de valeur en v1
+
+Règle violée :
+- une quotation de valeur doit être fermée par `;]`
+
 ### `call` avec mauvais type d’input
 
 ```sorte
 : bad-call { s:String -- y:Int }
-  s :[ | x:Int -- y:Int | x 1 + ] call
+  s :[ | x:Int -- y:Int | x 1 + ;] call
 ;
 ```
 
@@ -231,26 +294,105 @@ Règle violée :
 
 ---
 
-## 7. Surcharge
+## 7. Collisions de noms visibles
 
-### Deux définitions avec les mêmes entrées
+### Deux mots top-level de même nom avec types différents
 
 ```sorte
 : id { x:Int -- y:Int }
   x
 ;
 
-: id { x:Int -- y:String }
-  "bad"
+: id { x:String -- y:String }
+  x
 ;
 ```
 
 Pourquoi c’est invalide :
-- la résolution ne peut pas distinguer ces deux définitions
+- `id` est un seul nom visible
+- Nicole v1 n’autorise pas plusieurs définitions visibles portant ce même nom
 
 Règle violée :
-- la sortie ne participe pas à la résolution
-- une ambiguïté de résolution doit être rejetée
+- un nom visible doit désigner une seule définition
+
+### Deux mots top-level de même nom avec arités différentes
+
+```sorte
+: foo { a:Int b:Int -- r:Int }
+  a b +
+;
+
+: foo { a:Int b:Int c:Int -- r:Int }
+  a b + c +
+;
+```
+
+Pourquoi c’est invalide :
+- la différence d’arité ne crée pas une nouvelle identité nominale
+- `foo` reste un seul nom visible
+
+Règle violée :
+- un nom visible doit désigner une seule définition
+
+### Deux sous-mots frères de même nom
+
+```sorte
+: parent { -- }
+
+  : child { -- n:Int }
+    1
+  ;
+
+  : child { -- text:String }
+    "x"
+  ;
+;
+```
+
+Pourquoi c’est invalide :
+- les deux sous-mots appartiennent au même parent
+- dans ce scope local, `child` est un seul nom visible
+
+Règle violée :
+- dans un même parent, deux sous-mots ne peuvent pas partager le même nom
+
+### Deux exports de même nom
+
+```sorte
+export : entry { -- n:Int }
+  1
+;
+
+export : entry { -- text:String }
+  "hello"
+;
+```
+
+Pourquoi c’est invalide :
+- `entry` est un seul nom public côté hôte
+- un nom d’export doit désigner un seul mot exporté
+
+Règle violée :
+- deux exports ne peuvent pas partager le même nom visible
+
+### Collision entre `pub` et `export`
+
+```sorte
+pub : foo { -- n:Int }
+  1
+;
+
+export : foo { -- n:Int }
+  2
+;
+```
+
+Pourquoi c’est invalide :
+- la visibilité ne crée pas un second namespace
+- `foo` reste un seul nom visible dans le programme
+
+Règle violée :
+- `pub` et `export` n’autorisent pas deux définitions visibles de même nom
 
 ---
 

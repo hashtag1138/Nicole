@@ -52,6 +52,9 @@ En v1, un module peut être compris comme une unité de compilation.
 `export` rend un mot visible à l’hôte et implique `pub`.
 Tout mot exporté est appelable par l’hôte.
 
+Les modificateurs de visibilité ne créent pas d’espace nominal séparé.
+Un nom visible doit rester unique même si une définition est `pub` et l’autre `export`.
+
 Règle :
 
 ```text
@@ -73,6 +76,35 @@ pub : shared-helper { x:Int -- y:Int }
 
 export : entry { args:List<String> -- code:Int }
   0
+;
+```
+
+Exemple invalide :
+
+```sorte
+pub : foo { -- n:Int }
+  1
+;
+
+export : foo { -- n:Int }
+  2
+;
+```
+
+Ces deux définitions sont interdites :
+
+- `pub` et `export` ne créent pas deux namespaces distincts
+- `foo` reste un seul nom visible
+
+Alternative valide :
+
+```sorte
+pub : internal-foo { -- n:Int }
+  1
+;
+
+export : app.foo { -- n:Int }
+  2
 ;
 ```
 
@@ -210,6 +242,8 @@ Ils peuvent être appelés par nom court depuis leur parent, mais ne sont pas vi
 
 Le compilateur peut utiliser un nom qualifié interne comme `invoice.subtotal`, mais ce nom n’implique pas une API publique.
 
+Dans un même parent, deux sous-mots ne peuvent pas avoir le même nom.
+
 Exemple :
 
 ```sorte
@@ -232,6 +266,44 @@ Exemple :
 Le parent reste un mot exécutable.
 
 Le sous-mot `subtotal` est appelable depuis `invoice` par son nom court, mais `invoice.subtotal` ne fait pas partie de l’API publique v1.
+
+Exemple invalide :
+
+```sorte
+: parent { -- }
+
+  : child { -- n:Int }
+    1
+  ;
+
+  : child { -- text:String }
+    "x"
+  ;
+;
+```
+
+Ces deux sous-mots sont interdits :
+
+- ils appartiennent au même parent
+- `child` est un seul nom visible dans ce scope local
+
+Alternative valide :
+
+```sorte
+: parent { -- }
+
+  : child-int { -- n:Int }
+    1
+  ;
+
+  : child-string { -- text:String }
+    "x"
+  ;
+
+  child-int drop
+  child-string drop
+;
+```
 
 ---
 
@@ -277,9 +349,19 @@ Chaque mot, parent ou enfant, possède sa propre frame isolée.
 
 ---
 
-# 9. Surcharge statique
+# 9. Unicité des noms visibles
 
-Plusieurs mots peuvent avoir le même nom si leurs signatures d’entrée sont différentes.
+Dans un même espace de visibilité / résolution, deux mots ne peuvent pas avoir le même nom.
+
+La résolution statique se fait par le nom dans l’espace donné.
+
+Ce nom doit désigner une seule définition visible.
+
+Toute collision visible est une erreur de compilation.
+
+Les signatures de sortie ne servent jamais à distinguer deux mots, car deux définitions de même nom sont interdites quelles que soient leurs signatures.
+
+Exemple invalide :
 
 ```sorte
 : id { x:Int -- y:Int }
@@ -291,30 +373,40 @@ Plusieurs mots peuvent avoir le même nom si leurs signatures d’entrée sont d
 ;
 ```
 
-La résolution se fait par :
+Ces deux définitions sont interdites, même si leurs types d’entrée diffèrent.
 
-```text
-nom + nombre d’arguments + types d’entrée
-```
-
-La sortie ne participe pas à la résolution.
-
-Interdit :
+Exemple invalide :
 
 ```sorte
-: foo { x:Int -- y:Int }
+: foo { a:Int b:Int -- r:Int }
+  a b +
+;
+
+: foo { a:Int b:Int c:Int -- r:Int }
+  a b + c +
+;
+```
+
+Ces deux définitions sont interdites, même si leurs arités diffèrent.
+
+Formes recommandées :
+
+```sorte
+: id-int { x:Int -- y:Int }
   x
 ;
 
-: foo { x:Int -- y:String }
-  "bad"
+: id-string { x:String -- y:String }
+  x
 ;
-```
 
-Car l’appel suivant serait ambigu :
+: foo2 { a:Int b:Int -- r:Int }
+  a b +
+;
 
-```sorte
-12 foo
+: foo3 { a:Int b:Int c:Int -- r:Int }
+  a b + c +
+;
 ```
 
 ---
@@ -349,6 +441,7 @@ non-zéro = erreur
 `entry` n’est qu’un exemple de mot exporté.
 Le langage n’impose aucun nom spécial comme point d’entrée.
 L’hôte peut choisir n’importe quel mot exporté compatible avec sa convention d’intégration.
+Mais deux mots exportés ne peuvent jamais partager le même nom visible.
 
 ---
 
@@ -376,7 +469,7 @@ Règles :
 
 - un programme utilisateur ne peut pas définir un mot `host.*`
 - un mot `host.*` absent de l’environnement d’exécution produit une erreur d’intégration
-- la résolution statique traite `host.*` comme des mots du même espace nominal, avec signatures connues
+- la résolution statique traite `host.*` comme des mots connus du même espace nominal ; chaque nom visible doit désigner une seule définition fournie par le contrat hôte
 
 Exemple conceptuel futur :
 
@@ -433,6 +526,7 @@ Exemple :
 # 13. `case`
 
 `case` consomme la valeur à matcher depuis le sommet de la pile locale.
+Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent sur les patterns.
 
 Syntaxe retenue :
 
@@ -456,7 +550,8 @@ Exemple :
 ;
 ```
 
-Toutes les branches doivent produire le même nombre de valeurs et les mêmes types.
+Toutes les branches doivent produire le même nombre de valeurs, les mêmes types et le même effet de pile.
+Cette égalité doit pouvoir être vérifiée statiquement.
 
 Patterns v1 :
 
@@ -471,7 +566,27 @@ OutOfBounds
 _
 ```
 
-Le pattern matching avancé est hors v1.
+Règles de liaison :
+
+- `Ok(v)` crée un binding local `v`
+- `Err(e)` crée un binding local `e`
+- `Err(MissingKey)` ne crée aucun binding local
+- `Err(OutOfBounds)` ne crée aucun binding local
+- `MissingKey` et `OutOfBounds` seuls ne créent aucun binding local
+- `_` ne crée aucun binding local
+
+Exemple de branche liant :
+
+```sorte
+: unwrap-result { r:Result<Int,MapError> -- n:Int }
+  r case
+    Ok(v) => v
+    Err(e) => 0
+  end
+;
+```
+
+Le pattern matching avancé et les guards conditionnels sont hors v1.
 
 ---
 
@@ -489,6 +604,37 @@ La récursion est autorisée.
 ```
 
 La récursion mutuelle est possible si les signatures sont connues avant analyse.
+
+La collecte préalable des signatures reste nécessaire pour :
+
+- connaître tous les mots avant analyse des corps
+- permettre la récursion mutuelle
+- détecter tôt les collisions de noms visibles
+
+Exemple de récursion mutuelle valide :
+
+```sorte
+: even { n:Int -- result:Bool }
+  n 0 = if
+    true
+  else
+    n 1 - odd
+  end
+;
+
+: odd { n:Int -- result:Bool }
+  n 0 = if
+    false
+  else
+    n 1 - even
+  end
+;
+```
+
+Cet exemple reste valide sans surcharge :
+
+- `even` et `odd` ont chacun un nom distinct
+- la collecte préalable des signatures suffit à permettre leurs appels réciproques
 
 La profondeur d’appel doit pouvoir être bornée par l’environnement d’exécution, mais ce point relève de l’intégration hôte, pas de la syntaxe.
 
@@ -647,13 +793,24 @@ Exemple de TVA :
 
 Les listes sont immuables.
 
-`[]` est polymorphe.
-Son type `List<T>` doit être déduit depuis un contexte explicite.
+Les listes non vides peuvent être typées depuis leurs éléments.
+
+La liste vide doit être annotée explicitement :
+
+```sorte
+[]:List<Int>
+[]:List<String>
+[]:List<Map<String,Int>>
+```
+
+`[]:List<T>` est une liste vide typée explicitement.
+
+`[]` non annoté est invalide en v1.
 
 Littéraux de liste :
 
 ```sorte
-[]
+[]:List<Int>
 [1]
 [1, 2, 3]
 ["a", "b"]
@@ -662,34 +819,41 @@ Littéraux de liste :
 
 Règles :
 
-- `[]` désigne la liste vide
-- les listes sont typées par contexte
+- `[]:List<T>` désigne une liste vide de type `List<T>`
+- `[]` non annoté est invalide, même si un contexte voisin pourrait suggérer un type
+- les listes non vides sont typées depuis leurs éléments
 - la notation `,` sépare les éléments dans un littéral
 - les listes peuvent être imbriquées
+
+Note syntaxique :
+
+- dans une expression, `:` peut servir à annoter explicitement une construction vide
+- en v1, cette annotation est introduite uniquement pour `[]:List<T>` et `map.empty:Map<K,V>`
+- cette annotation est distincte du `:` qui ouvre une définition de mot
 
 Exemples valides :
 
 ```sorte
 : empty-names { -- xs:List<String> }
-  []
+  []:List<String>
 ;
 ```
 
 ```sorte
 : empty-ints { -- xs:List<Int> }
-  []
+  []:List<Int>
 ;
 ```
 
-Exemple ambigu à rejeter :
+Exemple invalide :
 
 ```sorte
-: ambiguous-empty { -- }
+: bad-empty-list { -- xs:List<Int> }
   []
 ;
 ```
 
-car la liste vide reste sur la pile alors que la signature ne déclare aucune sortie.
+Car l’annotation de type de la liste vide est manquante.
 
 Opérations canoniques v1 :
 
@@ -748,19 +912,19 @@ Exemples :
 
 ```sorte
 : inc-all { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ] list.map
+  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
 ```
 
 ```sorte
 : sum { xs:List<Int> -- total:Int }
-  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ] list.fold
+  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ;
 ```
 
 ```sorte
 : sum-nonempty { xs:List<Int> -- total:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ] list.reduce
+  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
 ```
 
@@ -804,8 +968,16 @@ Exemple :
 
 `Map<K,V>` est une collection associative immuable.
 
-`map.empty` est polymorphe.
-Son type `Map<K,V>` doit être déduit depuis un contexte explicite.
+La map vide doit être annotée explicitement :
+
+```sorte
+map.empty:Map<String,Int>
+map.empty:Map<Int,String>
+```
+
+`map.empty:Map<K,V>` est une construction vide typée explicitement.
+
+`map.empty` non annoté est invalide en v1.
 
 Règles :
 
@@ -814,6 +986,8 @@ Règles :
 - `Handle<T>` peut être ajouté plus tard si l’égalité par identité est retenue
 - les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>` et `Map<K,V>`
 - toute opération de mise à jour retourne une nouvelle map
+- `map.empty:Map<K,V>` construit une map vide de type `Map<K,V>`
+- `map.empty` non annoté est invalide, même si un contexte voisin pourrait suggérer un type
 
 Opérations prévues :
 
@@ -831,7 +1005,7 @@ map.values
 Signatures conceptuelles :
 
 ```text
-map.empty   { -- m:Map<K,V> }
+map.empty:Map<K,V> { -- m:Map<K,V> }
 map.get     { m:Map<K,V> k:K -- r:Result<V,MapError> }
 map.contains{ m:Map<K,V> k:K -- ok:Bool }
 map.set     { m:Map<K,V> k:K v:V -- m2:Map<K,V> }
@@ -843,7 +1017,7 @@ map.values  { m:Map<K,V> -- vs:List<V> }
 
 Sémantique attendue :
 
-- `map.empty` construit une map vide
+- `map.empty:Map<K,V>` construit une map vide
 - `m k map.get` lit la valeur associée à `k` et renvoie un `Result<V,MapError>`
 - `m k map.contains` teste la présence d’une clé
 - `m k v map.set` renvoie une nouvelle map avec association mise à jour
@@ -856,13 +1030,13 @@ Exemples :
 
 ```sorte
 : empty-cfg { -- cfg:Map<String,Int> }
-  map.empty
+  map.empty:Map<String,Int>
 ;
 ```
 
 ```sorte
 : cfg-with-timeout { -- cfg:Map<String,Int> }
-  map.empty
+  map.empty:Map<String,Int>
   "timeout" 30 map.set
 ;
 ```
@@ -884,8 +1058,8 @@ Exemples :
 
 ```sorte
 : store-action { -- actions:Map<String,Quote<{ | x:Int -- y:Int }>> }
-  map.empty
-  "inc" :[ | x:Int -- y:Int | x 1 + ] map.set
+  map.empty:Map<String,Quote<{ | x:Int -- y:Int }>>
+  "inc" :[ | x:Int -- y:Int | x 1 + ;] map.set
 ;
 ```
 
@@ -968,6 +1142,7 @@ Exemples :
 # 24. Quotations et fonctions comme valeurs
 
 Une quotation est une valeur exécutable de première classe.
+Elle se comporte comme un mot anonyme : elle a sa propre frame, une pile locale vide au départ, des variables locales immuables, et un retour exact conforme à sa signature.
 
 Type canonique :
 
@@ -997,28 +1172,32 @@ Règles :
 
 ## Syntaxe
 
-La quotation est terminée par `]`.
+La quotation est fermée par `;]`.
 
-Le mot `;` termine un mot.
+Le `;` termine le corps concaténatif de la quotation.
+
+Le `]` ferme la structure de quotation.
+
+Le mot `;` continue par ailleurs à terminer un mot.
 
 La forme canonique est :
 
 ```sorte
-:[ captures | inputs -- outputs | body ]
+:[ captures | inputs -- outputs | body ;]
 ```
 
 Exemples :
 
 ```sorte
-:[ | -- | ]
+:[ | -- | ;]
 ```
 
 ```sorte
-:[ | x:Int -- y:Int | x 1 + ]
+:[ | x:Int -- y:Int | x 1 + ;]
 ```
 
 ```sorte
-:[ a:Int | x:Int -- y:Int | x a + ]
+:[ a:Int | x:Int -- y:Int | x a + ;]
 ```
 
 La forme explicite est la seule forme canonique en v1.
@@ -1026,11 +1205,11 @@ La forme explicite est la seule forme canonique en v1.
 Exemples explicites liés à l’hôte :
 
 ```sorte
-:[ | msg:String -- | msg host.log ]
+:[ | msg:String -- | msg host.log ;]
 ```
 
 ```sorte
-"hello" :[ msg:String | -- | msg host.log ]
+"hello" :[ msg:String | -- | msg host.log ;]
 ```
 
 ## Sémantique de construction
@@ -1051,7 +1230,7 @@ L’ordre des captures suit la même convention que les arguments de mots :
 Exemple :
 
 ```sorte
-2 3 :[ x:Int y:Int | -- r:Int | x y + ]
+2 3 :[ x:Int y:Int | -- r:Int | x y + ;]
 ```
 
 signifie :
@@ -1068,11 +1247,15 @@ Convention de pile :
 ```
 
 `call` consomme d’abord la quotation au sommet de pile, puis consomme les inputs attendus par cette quotation sous elle, puis pousse les outputs.
+`call` ne donne pas à la quotation un accès direct à la pile courante.
+La quotation consomme uniquement les inputs déclarés par son type, situés sous la quotation sur la pile appelante.
+Ces inputs deviennent des variables locales immuables dans la frame propre de la quotation.
+La pile locale de la quotation commence vide.
 
 Exemple sans capture :
 
 ```sorte
-3 :[ | x:Int -- y:Int | x 1 + ] call
+3 :[ | x:Int -- y:Int | x 1 + ;] call
 ```
 
 Résultat :
@@ -1084,7 +1267,7 @@ Résultat :
 Exemple avec capture :
 
 ```sorte
-3 4 :[ a:Int | x:Int -- y:Int | x a + ] call
+3 4 :[ a:Int | x:Int -- y:Int | x a + ;] call
 ```
 
 Résultat :
@@ -1126,7 +1309,7 @@ Quote<{ | x:T -- y:U }>
 Exemple :
 
 ```sorte
-[1, 2, 3] :[ | x:Int -- y:Int | x 1 + ] list.map
+[1, 2, 3] :[ | x:Int -- y:Int | x 1 + ;] list.map
 ```
 
 Résultat attendu :
@@ -1146,7 +1329,7 @@ Quote<{ | acc:Acc x:T -- out:Acc }>
 Exemple conceptuel :
 
 ```sorte
-[1, 2, 3] 0 :[ | acc:Int x:Int -- out:Int | acc x + ] list.fold
+[1, 2, 3] 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ```
 
 ## Intégration avec `list.reduce`
@@ -1160,7 +1343,7 @@ Quote<{ | a:T b:T -- c:T }>
 Exemple conceptuel :
 
 ```sorte
-[1, 2, 3] :[ | a:Int b:Int -- c:Int | a b + ] list.reduce
+[1, 2, 3] :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ```
 
 ## Retour et pile résiduelle
@@ -1180,7 +1363,7 @@ Les quotations doivent suivre la même discipline de pile que les mots normaux.
 Capture non typée :
 
 ```sorte
-:[ a | -- r:Int | a 1 + ]
+:[ a | -- r:Int | a 1 + ;]
 ```
 
 Ici, `a` est placé dans la zone des captures, mais aucun type n’est fourni.
@@ -1192,7 +1375,7 @@ Erreur attendue :
 Valeur de capture incompatible :
 
 ```sorte
-"hello" :[ a:Int | -- r:Int | a 1 + ] call
+"hello" :[ a:Int | -- r:Int | a 1 + ;] call
 ```
 
 Erreur attendue :
@@ -1381,7 +1564,7 @@ end
 Quotation :
 
 ```sorte
-:[ a:Int | x:Int -- y:Int | x a + ]
+:[ a:Int | x:Int -- y:Int | x a + ;]
 ```
 
 Appel d’une quotation :
@@ -1393,6 +1576,7 @@ Appel d’une quotation :
 Listes :
 
 ```sorte
+[]:List<Int>
 xs 0 list.get
 xs 0 42 list.set
 xs ys list.concat
@@ -1402,6 +1586,7 @@ xs quote list.map
 Maps :
 
 ```sorte
+map.empty:Map<String,Int>
 m k map.get
 m k v map.set
 ```
@@ -1423,5 +1608,5 @@ Pour l’instant, les informations restent regroupées ici.
 # Points ouverts pour la v1
 
 - le littéral concret de `Unit` : `unit` n’est pas encore définitivement fixé
-- POINT OUVERT : surcharge des sous-mots locaux, à préciser probablement selon les mêmes règles que les mots normaux
+- POINT OUVERT : interaction exacte entre un sous-mot et un mot top-level de même nom si le futur système de modules/visibilité l’autorise ; en revanche, dans un même parent, deux sous-mots de même nom sont interdits
 - POINT OUVERT : système de modules, visibilité inter-modules, collisions de noms, imports et résolution restent à spécifier
