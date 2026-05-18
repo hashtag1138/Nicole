@@ -28,7 +28,7 @@ Le langage recherché est un langage :
 - avec variables locales immuables
 - avec stack frames isolées
 - avec sous-mots privés, éventuellement nommés de façon qualifiée en interne
-- avec surcharge par types d’entrée
+- avec résolution statique par nom visible unique
 - uniquement embarqué
 - pensé autour d’un modèle d’exécution en bytecode
 - éventuellement compatible avec un JIT plus tard, sans que cela fasse partie de la v1
@@ -76,6 +76,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 
 - définition des mots
 - signatures
+- constructions vides typées explicitement : `[]:List<T>` et `map.empty:Map<K,V>`
 - visibilité par défaut privée
 - visibilité interne `pub`
 - exposition à l’hôte `export`
@@ -85,18 +86,22 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - listes immuables, concaténation et décomposition
 - opérations de liste `list.len`, `list.get`, `list.set`, `list.concat`, `list.map`, `list.fold`, `list.reduce`
 - quotations et fonctions comme valeurs
+- quotations de valeur fermées par `;]`
 - quotations typées `Quote<{ captures | inputs -- outputs }>`
 - handlers d’événements
 
 ### Sémantique
 
 - pile locale
+- pile locale vide au début d’un mot
 - stack frame isolée
 - portée des variables
+- inputs de signature = variables locales immuables
 - retours multiples
-- surcharge
+- un nom visible désigne une seule définition
 - récursion
 - if / case
+- `case` sans guards en v1
 - structures de contrôle retenues
 - exécution embarquée sur bytecode
 - extension possible vers un JIT futur, sans promesse de stabilité d’implémentation

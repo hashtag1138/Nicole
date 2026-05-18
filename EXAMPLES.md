@@ -174,7 +174,7 @@ Utilisation :
 - `"hello" id-string` retourne `"hello"`
 
 Pourquoi :
-- montre la forme recommandée en Nicole v1 après suppression de la surcharge implicite
+- montre la forme recommandée en Nicole v1 avec des noms explicites
 
 ### Récursion mutuelle
 
@@ -205,7 +205,7 @@ Utilisation :
 - `1 odd` retourne `true`
 
 Pourquoi :
-- montre que la récursion mutuelle reste naturelle sans aucun mécanisme de surcharge
+- montre que la récursion mutuelle reste naturelle avec des noms distincts
 
 ---
 

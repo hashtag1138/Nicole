@@ -631,7 +631,7 @@ Exemple de récursion mutuelle valide :
 ;
 ```
 
-Cet exemple reste valide sans surcharge :
+Cet exemple reste valide avec des noms visibles uniques :
 
 - `even` et `odd` ont chacun un nom distinct
 - la collecte préalable des signatures suffit à permettre leurs appels réciproques
@@ -1001,6 +1001,10 @@ map.len
 map.keys
 map.values
 ```
+
+Ici, `map.empty` désigne le nom canonique de l'opération.
+Dans le code source v1, la construction vide doit être écrite avec annotation explicite : `map.empty:Map<K,V>`.
+La forme nue `map.empty` est invalide en expression.
 
 Signatures conceptuelles :
 
