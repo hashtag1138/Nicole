@@ -62,6 +62,21 @@ Pourquoi c’est invalide :
 Règle violée :
 - `map.empty` non annoté est invalide en v1
 
+### Noms locaux dupliqués dans une même signature
+
+```sorte
+: bad { x:Int x:Int -- y:Int }
+  x
+;
+```
+
+Pourquoi c’est invalide :
+- les deux inputs appartiennent à la même frame
+- `x` serait déclaré deux fois comme nom local dans ce mot
+
+Règle violée :
+- les noms locaux doivent être uniques dans une même frame
+
 ---
 
 ## 2. Mauvais retours
@@ -215,6 +230,24 @@ Pourquoi c’est invalide :
 Règle violée :
 - `call` doit recevoir les inputs déclarés par le type de la quotation
 
+### Capture et input de même nom dans une quotation
+
+```sorte
+: bad { x:Int -- q:Quote<{ x:Int | x:Int -- y:Int }> }
+  x
+  :[ x:Int | x:Int -- y:Int |
+    x
+  ;]
+;
+```
+
+Pourquoi c’est invalide :
+- la capture `x` et l’input `x` appartiennent à la même frame de quotation
+- le nom local `x` y serait déclaré deux fois
+
+Règle violée :
+- les noms locaux doivent être uniques dans une même frame de quotation
+
 ---
 
 ## 5. Sous-mots privés
@@ -256,6 +289,25 @@ Règle violée :
 Pourquoi c’est invalide :
 - `a` n’existe pas dans la frame de `add-a`
 - les sous-mots ne capturent pas lexicalement les variables du parent
+
+Règle violée :
+- les sous-mots privés n’ont pas de capture lexicale implicite
+
+### Sous-mot qui tente de lire un local du parent
+
+```sorte
+: bad { x:Int -- y:Int }
+  : child { z:Int -- r:Int }
+    z x +
+  ;
+
+  1 child
+;
+```
+
+Pourquoi c’est invalide :
+- `x` n’existe pas dans la frame de `child`
+- `child` ne peut pas lire implicitement le local du parent
 
 Règle violée :
 - les sous-mots privés n’ont pas de capture lexicale implicite

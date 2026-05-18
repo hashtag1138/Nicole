@@ -153,6 +153,12 @@ Les variables locales :
 - n’existent que dans le mot courant
 - ne sont pas visibles dans les sous-mots
 
+Les noms locaux doivent être uniques dans une même frame.
+
+Dans un mot donné, deux inputs de signature ne peuvent pas partager le même nom local.
+
+En revanche, des frames différentes peuvent réutiliser le même nom local sans ambiguïté.
+
 ---
 
 # 5. Stack frame isolée et règle de retour
@@ -346,6 +352,30 @@ Interdit :
 ```
 
 Chaque mot, parent ou enfant, possède sa propre frame isolée.
+
+Des frames différentes peuvent réutiliser les mêmes noms locaux.
+
+Exemple valide :
+
+```sorte
+: foo { x:Int -- y:Int }
+
+  : bar { x:Int -- y:Int }
+    1 x +
+  ;
+
+  3 bar
+  x
+  +
+;
+```
+
+Ici :
+
+- `foo.x` et `bar.x` sont deux variables locales distinctes
+- `bar` ne lit jamais implicitement `foo.x`
+- `x` dans `bar` désigne l’input local de `bar`
+- `x` dans le corps de `foo` désigne l’input local de `foo`
 
 ---
 
@@ -884,6 +914,16 @@ list.fold   { xs:List<T> init:Acc q:Quote<{ | acc:Acc x:T -- out:Acc }> -- out:A
 list.reduce { xs:List<T> q:Quote<{ | a:T b:T -- c:T }> -- out:T }
 ```
 
+Ces signatures décrivent la partie appelable exigée par chaque builtin higher-order.
+
+Le `|` vide dans `Quote<{ | ... }>` signifie que l’appel de `list.map`, `list.fold` ou `list.reduce` ne fournit aucune capture supplémentaire au moment du builtin.
+
+Il ne signifie pas que la quotation passée doit avoir été construite sans captures internes.
+
+Ces builtins consomment une quotation déjà construite.
+
+La compatibilité est vérifiée sur la partie appelable `inputs -- outputs`.
+
 Exemples :
 
 ```sorte
@@ -917,8 +957,31 @@ Exemples :
 ```
 
 ```sorte
+: add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
+  xs
+  offset
+  :[ captured-offset:Int | x:Int -- y:Int |
+    x captured-offset +
+  ;]
+  list.map
+;
+```
+
+```sorte
 : sum { xs:List<Int> -- total:Int }
   xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
+;
+```
+
+```sorte
+: sum-with-offset { xs:List<Int> offset:Int -- n:Int }
+  xs
+  0
+  offset
+  :[ captured-offset:Int | acc:Int x:Int -- out:Int |
+    acc x + captured-offset +
+  ;]
+  list.fold
 ;
 ```
 
@@ -1302,6 +1365,14 @@ Dans le corps d’une quotation :
 - aucune capture par référence implicite n’est autorisée
 - aucune mutation des captures n’est autorisée
 
+Les noms locaux doivent être uniques dans la frame de la quotation.
+
+Une capture et un input de `call` ne peuvent donc pas partager le même nom dans une même quotation.
+
+En revanche, une quotation peut réutiliser le nom d’un local du mot qui la construit, car il s’agit d’une autre frame.
+
+Cette réutilisation est valide mais un nom distinct reste souvent plus lisible.
+
 ## Intégration avec `list.map`
 
 Une quotation de transformation pour `list.map` a une forme du genre :
@@ -1310,10 +1381,20 @@ Une quotation de transformation pour `list.map` a une forme du genre :
 Quote<{ | x:T -- y:U }>
 ```
 
+Ici, le `|` vide décrit la partie appelable requise par `list.map`.
+
+Il n’interdit pas qu’une quotation déjà construite contienne des captures internes.
+
+`list.map` consomme une quotation déjà construite et vérifie la compatibilité sur `x:T -- y:U`.
+
 Exemple :
 
 ```sorte
 [1, 2, 3] :[ | x:Int -- y:Int | x 1 + ;] list.map
+```
+
+```sorte
+[1, 2, 3] 10 :[ offset:Int | x:Int -- y:Int | x offset + ;] list.map
 ```
 
 Résultat attendu :
@@ -1330,6 +1411,10 @@ La quotation de `list.fold` a typiquement une forme du genre :
 Quote<{ | acc:Acc x:T -- out:Acc }>
 ```
 
+Là encore, cette écriture décrit la partie appelable exigée par `list.fold`.
+
+Une quotation capturante déjà construite reste valide si sa partie appelable correspond à `acc:Acc x:T -- out:Acc`.
+
 Exemple conceptuel :
 
 ```sorte
@@ -1343,6 +1428,10 @@ La quotation de `list.reduce` a typiquement une forme du genre :
 ```text
 Quote<{ | a:T b:T -- c:T }>
 ```
+
+Cette forme décrit la partie appelable exigée par `list.reduce`.
+
+Une quotation capturante déjà construite peut être utilisée si sa partie appelable reste `a:T b:T -- c:T`.
 
 Exemple conceptuel :
 

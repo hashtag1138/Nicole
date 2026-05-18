@@ -149,6 +149,33 @@ Effet de pile :
 Pourquoi :
 - montre la visibilité limitée d’un sous-mot privé
 
+### Réutilisation d’un nom local dans une autre frame
+
+```sorte
+: foo { x:Int -- y:Int }
+
+  : bar { x:Int -- y:Int }
+    1 x +
+  ;
+
+  3 bar
+  x
+  +
+;
+```
+
+Explication :
+- `foo.x` et `bar.x` sont deux locals distincts
+- `bar` ne capture pas `foo.x`
+- le même nom peut être réutilisé dans une autre frame
+
+Effet de pile :
+- entrée `10`
+- sortie `14`
+
+Pourquoi :
+- montre que l’unicité des noms locaux est une règle par frame, pas globale au programme
+
 ---
 
 ## 4. Noms explicites et récursion mutuelle
@@ -428,6 +455,32 @@ Effet de pile :
 Pourquoi :
 - exemple direct de transformation de liste
 
+### Transformation avec `list.map` et capture explicite
+
+```sorte
+: add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
+  xs
+  offset
+  :[ captured-offset:Int | x:Int -- y:Int |
+    x captured-offset +
+  ;]
+  list.map
+;
+```
+
+Explication :
+- `offset` du mot parent est lu explicitement
+- sa valeur est capturée dans la quotation
+- `list.map` reçoit une quotation déjà construite
+- la partie appelable pertinente pour `list.map` reste `x:Int -- y:Int`
+
+Effet de pile :
+- entrée `[1, 2, 3] 10`
+- sortie `[11, 12, 13]`
+
+Pourquoi :
+- montre qu’une quotation capturante reste compatible avec `list.map`
+
 ### Réduction simple
 
 ```sorte
@@ -446,6 +499,32 @@ Effet de pile :
 
 Pourquoi :
 - montre un usage simple et lisible de `list.fold`
+
+### Réduction avec `list.fold` et capture explicite
+
+```sorte
+: sum-with-offset { xs:List<Int> offset:Int -- n:Int }
+  xs
+  0
+  offset
+  :[ captured-offset:Int | acc:Int x:Int -- out:Int |
+    acc x + captured-offset +
+  ;]
+  list.fold
+;
+```
+
+Explication :
+- la quotation capture explicitement `offset`
+- `list.fold` utilise ensuite uniquement sa partie appelable
+- l’accumulateur et l’élément courant restent les deux inputs de la réduction
+
+Effet de pile :
+- entrée `[1, 2, 3] 10`
+- sortie `36`
+
+Pourquoi :
+- montre qu’une quotation capturante reste compatible avec `list.fold`
 
 ### Réduction sans valeur initiale
 
@@ -507,6 +586,31 @@ Effet de pile :
 
 Pourquoi :
 - montre la capture par valeur de manière lisible
+
+### Quotation avec réutilisation d’un nom dans une autre frame
+
+```sorte
+: add-offset { x:Int offset:Int -- y:Int }
+  x
+  offset
+  :[ offset:Int | value:Int -- out:Int |
+    value offset +
+  ;]
+  call
+;
+```
+
+Explication :
+- `offset` du mot et `offset` de la quotation appartiennent à deux frames différentes
+- la quotation ne lit pas implicitement le local du parent
+- la valeur est d’abord lue explicitement, puis capturée
+
+Effet de pile :
+- entrée `3 4`
+- sortie `7`
+
+Pourquoi :
+- montre qu’un même nom peut être réutilisé entre frames distinctes
 
 ### Quotation passée à `list.map`
 

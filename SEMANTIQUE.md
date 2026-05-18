@@ -134,6 +134,12 @@ Règles :
 - elles n’existent que dans le mot courant
 - elles ne sont pas visibles dans les sous-mots
 
+Les noms locaux doivent être uniques dans une même frame.
+
+Deux entrées d’une même signature ne peuvent donc pas partager le même nom local.
+
+En revanche, des frames différentes peuvent réutiliser le même nom local sans ambiguïté.
+
 ---
 
 # 3. Résolution des appels
@@ -360,6 +366,12 @@ Elle peut :
 - être passée à `list.map`, `list.fold`, `list.reduce`
 - être appelée plus tard avec `call`
 
+Quand une quotation est passée à `list.map`, `list.fold` ou `list.reduce`, le builtin consomme une quotation déjà construite.
+
+Les captures sont donc déjà vérifiées au moment de la construction de cette quotation.
+
+La compatibilité avec le builtin higher-order se fait ensuite sur la seule partie appelable `inputs -- outputs`.
+
 ## Captures
 
 Les captures sont prises au moment de la construction de la quotation.
@@ -429,6 +441,12 @@ Dans le corps d’une quotation :
 - les inputs du `call` sont accessibles en lecture seule
 - aucune capture par référence implicite n’existe
 - aucune mutation des captures n’existe
+
+Les noms locaux doivent être uniques dans la frame de la quotation.
+
+Une capture et un input de `call` ne peuvent donc pas partager le même nom dans une même quotation.
+
+Une quotation peut toutefois réutiliser le nom d’un local du mot qui la construit, car il s’agit d’une autre frame.
 
 Pour une quotation avec captures :
 
