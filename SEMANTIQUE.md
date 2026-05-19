@@ -441,6 +441,8 @@ Dans le corps d’une quotation :
 - les inputs du `call` sont accessibles en lecture seule
 - aucune capture par référence implicite n’existe
 - aucune mutation des captures n’existe
+- si `?` apparaît dans le corps, la quotation doit elle-même déclarer une sortie compatible avec `Result<_,E>`
+- dans une quotation, `?` quitte uniquement cette quotation
 
 Les noms locaux doivent être uniques dans la frame de la quotation.
 
@@ -494,6 +496,80 @@ Le langage évite les erreurs implicites quand une erreur normale et attendue pe
 - `Err(e)` pour un échec explicite
 
 `case` est la manière normale d’inspecter un `Result`.
+
+Dans `case`, les motifs de `Result` s’écrivent `Ok(v)` et `Err(e)`.
+
+Hors `case`, la construction d’une valeur `Result` utilise les mots postfixes `Ok!` et `Err!`.
+
+Sémantique de construction :
+
+- `Ok!` a l’effet de pile `T -- Result<T,E>`
+- `Ok!` consomme la valeur au sommet de pile et produit `Ok(value)`
+- `Err!` a l’effet de pile `E -- Result<T,E>`
+- `Err!` consomme la valeur d’erreur au sommet de pile et produit `Err(error)`
+- `Ok(v)` et `Err(e)` ne sont pas des formes de construction par expression en v1
+
+## Helpers retenus en v1
+
+Les helpers suivants sont retenus :
+
+- `result.is-ok`
+- `result.is-err`
+- `result.unwrap-or`
+
+Sémantique :
+
+- `result.is-ok` a l’effet de pile `Result<T,E> -- Bool`
+- `result.is-ok` retourne `true` pour `Ok(_)` et `false` pour `Err(_)`
+- `result.is-err` a l’effet de pile `Result<T,E> -- Bool`
+- `result.is-err` retourne `true` pour `Err(_)` et `false` pour `Ok(_)`
+- `result.unwrap-or` a l’effet de pile `Result<T,E> T -- T`
+- `result.unwrap-or` retourne la valeur de `Ok(v)` dans le cas `Ok(v)`
+- `result.unwrap-or` retourne la valeur de repli fournie dans le cas `Err(_)`
+
+Ils restent ergonomiques.
+
+Ils ne remplacent pas `case` pour l’inspection structurée.
+
+## Propagation avec `?`
+
+L’opérateur `?` agit sur une valeur de type `Result<V,E>`.
+
+Son comportement est :
+
+- `Ok(v) ?` pousse `v` et l’exécution continue dans la même frame
+- `Err(e) ?` retourne immédiatement `Err(e)` depuis la frame courante
+
+La portée de cette propagation est strictement locale :
+
+- dans un mot, `?` quitte ce mot
+- dans une quotation, `?` quitte cette quotation
+- `?` ne traverse jamais implicitement une frame parente
+- `?` ne provoque jamais de sortie implicite spéciale de `list.map`, `list.fold` ou `list.reduce`
+
+Le type-checker doit rejeter toute frame contenant `?` si cette frame ne déclare pas une sortie compatible avec `Result<_,E>`.
+
+## Interaction avec les builtins d’ordre supérieur
+
+Quand une quotation passée à `list.map` retourne `Result<U,E>`, le résultat est `List<Result<U,E>>`.
+
+Ce n’est pas `Result<List<U>,E>`.
+
+Le même principe de non-propagation implicite s’applique à `list.fold` et `list.reduce`.
+
+Toute opération future qui court-circuite explicitement sur `Result` devra être distincte.
+
+## Différé
+
+Les éléments suivants restent hors de cette phase :
+
+- `result.unwrap`
+- `result.map`
+- `result.map-err`
+- `result.and-then`
+- `result.match`
+- `list.try-map`
+- `list.try-fold`
 
 Exemple :
 

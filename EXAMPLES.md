@@ -350,6 +350,53 @@ Effet de pile :
 Pourquoi :
 - montre un `case` idiomatique sur `Result`
 
+### Helpers `Result`
+
+```sorte
+: has-timeout-result { cfg:Map<String,Int> -- b:Bool }
+  cfg "timeout" map.get result.is-ok
+;
+
+: timeout-or-30 { cfg:Map<String,Int> -- n:Int }
+  cfg "timeout" map.get 30 result.unwrap-or
+;
+```
+
+Explication :
+- `result.is-ok` teste la forme du `Result`
+- `result.unwrap-or` fournit une valeur de repli explicite
+
+Effet de pile :
+- `has-timeout-result` retourne `true` si la clé est présente
+- `timeout-or-30` retourne la valeur lue ou `30`
+
+Pourquoi :
+- montre les helpers ergonomiques retenus sans remplacer `case`
+
+### Propagation locale avec `?`
+
+```sorte
+: require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+  cfg "timeout" map.get ?
+  drop
+  1 Ok!
+;
+```
+
+Explication :
+- `map.get` peut retourner `Err(MissingKey)`
+- `?` quitte immédiatement le mot dans ce cas
+- si la lecture réussit, le mot continue dans la même frame
+- la valeur lue est ignorée explicitement avec `drop`, puis le mot retourne `1 Ok!`
+
+Effet de pile :
+- clé présente : sortie `Ok(1)`
+- clé absente : sortie `Err(MissingKey)`
+
+Pourquoi :
+- montre que `?` propage localement sans exception implicite
+- montre qu’un mot contenant `?` doit déjà retourner un `Result`
+
 ### `Bool` exhaustif
 
 ```sorte
@@ -481,6 +528,33 @@ Effet de pile :
 Pourquoi :
 - montre qu’une quotation capturante reste compatible avec `list.map`
 
+### Transformation avec `list.map` et quotation retournant `Result`
+
+```sorte
+: mark-timeouts { cfgs:List<Map<String,Int>> -- ys:List<Result<Int,MapError>> }
+  cfgs
+  :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
+    cfg "timeout" map.get ?
+    drop
+    1 Ok!
+  ;]
+  list.map
+;
+```
+
+Explication :
+- la quotation retourne elle-même un `Result`
+- `?` ne quitte que la frame de la quotation courante
+- `list.map` collecte donc une liste de `Result`
+
+Effet de pile :
+- entrée `[cfg1, cfg2]`
+- sortie du genre `[Ok(1), Err(MissingKey)]`
+
+Pourquoi :
+- montre que `list.map` ne court-circuite pas implicitement sur `Result`
+- montre la forme `List<Result<...>>` retenue en v1
+
 ### Réduction simple
 
 ```sorte
@@ -586,6 +660,32 @@ Effet de pile :
 
 Pourquoi :
 - montre la capture par valeur de manière lisible
+
+### Quotation avec propagation locale
+
+```sorte
+: call-timeout-check { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+  cfg
+  :[ | current:Map<String,Int> -- r:Result<Int,MapError> |
+    current "timeout" map.get ?
+    drop
+    1 Ok!
+  ;]
+  call
+;
+```
+
+Explication :
+- `?` agit dans la frame de la quotation
+- en cas d’échec, la quotation retourne immédiatement `Err(MissingKey)`
+- `call` restitue simplement ce `Result` au mot appelant
+
+Effet de pile :
+- clé présente : sortie `Ok(1)`
+- clé absente : sortie `Err(MissingKey)`
+
+Pourquoi :
+- montre que `?` ne traverse pas implicitement les frames parentes
 
 ### Quotation avec réutilisation d’un nom dans une autre frame
 

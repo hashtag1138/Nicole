@@ -240,6 +240,51 @@ Pourquoi c’est invalide :
 Règle violée :
 - un pattern `Err(...)` doit utiliser une variante compatible avec le type d’erreur du `Result`
 
+### `?` dans une frame qui ne retourne pas `Result`
+
+```sorte
+: bad-propagate { cfg:Map<String,Int> -- n:Int }
+  cfg "timeout" map.get ?
+;
+```
+
+Pourquoi c’est invalide :
+- `?` peut retourner `Err(MissingKey)`
+- le mot promet pourtant une sortie simple `Int`
+
+Règle violée :
+- une frame contenant `?` doit déclarer une sortie compatible avec `Result<_,E>`
+
+### Construction invalide par forme expressionnelle `Ok(...)`
+
+```sorte
+: bad-ok-expression { -- r:Result<Int,String> }
+  Ok(1)
+;
+```
+
+Pourquoi c’est invalide :
+- `Ok(v)` est une forme de motif pour `case`
+- la construction d’une valeur `Result` doit utiliser le mot postfixe `Ok!`
+
+Règle violée :
+- `Ok(v)` n’est pas une forme de construction par expression en v1
+
+### Construction invalide par forme expressionnelle `Err(...)`
+
+```sorte
+: bad-err-expression { -- r:Result<Int,String> }
+  Err("bad")
+;
+```
+
+Pourquoi c’est invalide :
+- `Err(e)` est une forme de motif pour `case`
+- la construction d’une valeur `Result` doit utiliser le mot postfixe `Err!`
+
+Règle violée :
+- `Err(e)` n’est pas une forme de construction par expression en v1
+
 ---
 
 ## 4. Quotations invalides
@@ -301,6 +346,67 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - les noms locaux doivent être uniques dans une même frame de quotation
+
+### Quotation avec `?` mais sortie non `Result`
+
+```sorte
+: bad-quote-propagate { xs:List<Map<String,Int>> -- ys:List<Int> }
+  xs
+  :[ | cfg:Map<String,Int> -- y:Int |
+    cfg "timeout" map.get ?
+    1
+  ;]
+  list.map
+;
+```
+
+Pourquoi c’est invalide :
+- `?` peut quitter la quotation avec `Err(MissingKey)`
+- la quotation annonce pourtant une sortie simple `Int`
+
+Règle violée :
+- une quotation contenant `?` doit déclarer une sortie compatible avec `Result<_,E>`
+
+### Tentative de propagation implicite à travers `list.map`
+
+```sorte
+: bad-try-map { cfgs:List<Map<String,Int>> -- r:Result<List<Int>,MapError> }
+  cfgs
+  :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
+    cfg "timeout" map.get ?
+    drop
+    1 Ok!
+  ;]
+  list.map
+;
+```
+
+Pourquoi c’est invalide :
+- la quotation retourne `Result<Int,MapError>`
+- `list.map` renvoie donc `List<Result<Int,MapError>>`
+- aucun court-circuit implicite ne transforme ce résultat en `Result<List<Int>,MapError>`
+
+Règle violée :
+- `list.map` ne propage pas implicitement les erreurs hors de la quotation
+- une tentative d’utiliser `list.map` comme `list.try-map` doit être rejetée
+
+### Utilisation invalide de `Ok!` comme pattern de `case`
+
+```sorte
+: bad-case-constructor-pattern { r:Result<Int,MapError> -- n:Int }
+  r case
+    Ok! => 1
+    Err(MissingKey) => 0
+  end
+;
+```
+
+Pourquoi c’est invalide :
+- `Ok!` est un constructeur postfixe
+- les patterns de `case` pour `Result` restent `Ok(v)` et `Err(e)`
+
+Règle violée :
+- la syntaxe de construction et la syntaxe de pattern sont distinctes en v1
 
 ### Captures dupliquées dans une quotation
 

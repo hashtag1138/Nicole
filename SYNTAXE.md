@@ -1245,6 +1245,89 @@ Règles :
 - `Result` ne remplace pas `Unit`, il sert aux opérations qui peuvent échouer de façon normale
 - `case` doit pouvoir matcher `Ok(v)` et `Err(e)` directement
 
+Formes explicites :
+
+- dans `case`, les motifs de `Result` s’écrivent `Ok(v)` et `Err(e)`
+- hors `case`, la construction d’une valeur `Result` utilise les mots postfixes `Ok!` et `Err!`
+
+Constructeurs postfixes :
+
+```text
+Ok!  { value:T -- r:Result<T,E> }
+Err! { error:E -- r:Result<T,E> }
+```
+
+Sémantique :
+
+- `Ok!` consomme la valeur au sommet de pile et produit `Ok(value)`
+- `Err!` consomme la valeur d’erreur au sommet de pile et produit `Err(error)`
+- `Ok(v)` et `Err(e)` ne sont pas des formes de construction par expression en v1
+
+Helpers retenus en v1 :
+
+```text
+result.is-ok     { r:Result<T,E> -- b:Bool }
+result.is-err    { r:Result<T,E> -- b:Bool }
+result.unwrap-or { r:Result<T,E> fallback:T -- value:T }
+```
+
+Ces helpers sont ergonomiques.
+
+`case` reste le mécanisme officiel d’inspection structurée d’un `Result`.
+
+## Propagation avec `?`
+
+L’opérateur `?` est autorisé sur une valeur de type `Result<V,E>`.
+
+Sémantique :
+
+```text
+Ok(v)  ? -> pousse v et continue
+Err(e) ? -> retourne immédiatement Err(e) depuis la frame courante
+```
+
+Règles :
+
+- `?` propage uniquement depuis la frame d’exécution courante
+- dans un mot, `?` quitte ce mot
+- dans une quotation, `?` quitte cette quotation
+- `?` ne saute jamais directement hors d’un mot appelant, d’un `export` appelant, d’une quotation extérieure, ni d’un builtin de collection
+- la frame qui contient `?` doit déclarer une sortie compatible avec `Result<_,E>`
+
+Exemple valide :
+
+```sorte
+: require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+  cfg "timeout" map.get ?
+  drop
+  1 Ok!
+;
+```
+
+Exemple invalide :
+
+```sorte
+: bad-timeout { cfg:Map<String,Int> -- n:Int }
+  cfg "timeout" map.get ?
+;
+```
+
+Le second exemple est invalide parce que `?` peut produire `Err(MissingKey)` alors que le mot promet une sortie simple `Int`.
+
+## Différé
+
+Les éléments suivants restent hors de cette phase :
+
+```text
+result.unwrap
+result.map
+result.map-err
+result.and-then
+result.match
+list.try-map
+list.try-fold
+```
+
 Exemples :
 
 ```sorte
@@ -1422,6 +1505,8 @@ Dans le corps d’une quotation :
 - les inputs du `call` sont visibles comme des variables locales en lecture seule
 - aucune capture par référence implicite n’est autorisée
 - aucune mutation des captures n’est autorisée
+- si `?` apparaît dans le corps, la quotation doit elle-même déclarer une sortie compatible avec `Result<_,E>`
+- dans une quotation, `?` quitte uniquement cette quotation
 
 Les noms locaux doivent être uniques dans la frame de la quotation.
 
@@ -1444,6 +1529,12 @@ Ici, le `|` vide décrit la partie appelable requise par `list.map`.
 Il n’interdit pas qu’une quotation déjà construite contienne des captures internes.
 
 `list.map` consomme une quotation déjà construite et vérifie la compatibilité sur `x:T -- y:U`.
+
+Si la quotation renvoie `Result<U,E>`, alors `list.map` renvoie `List<Result<U,E>>`.
+
+Il ne renvoie pas implicitement `Result<List<U>,E>`.
+
+`list.map` n’introduit aucun court-circuit implicite.
 
 Exemple :
 
