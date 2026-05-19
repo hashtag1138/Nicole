@@ -381,6 +381,9 @@ Les captures ne sont pas prises au moment du `call`.
 
 L’ordre des captures suit l’ordre de déclaration.
 
+- la première capture déclarée correspond à la valeur la plus profonde du groupe capturé
+- la dernière capture déclarée correspond à la valeur la plus proche du sommet au moment de la construction
+
 ## `call`
 
 `call` consomme d’abord la quotation placée au sommet de la pile.
@@ -420,6 +423,8 @@ Précisions :
 Ensuite, il consomme les inputs attendus par cette quotation depuis la pile courante, selon la même convention de lecture qu’un mot normal.
 
 Enfin, il exécute le corps de la quotation dans sa propre frame et pousse ses outputs sur la pile courante.
+
+La pile locale de la quotation reste distincte de la pile du caller pendant toute son exécution.
 
 Le type-checker vérifie trois moments distincts :
 
@@ -556,6 +561,10 @@ Quand une quotation passée à `list.map` retourne `Result<U,E>`, le résultat e
 Ce n’est pas `Result<List<U>,E>`.
 
 Le même principe de non-propagation implicite s’applique à `list.fold` et `list.reduce`.
+
+Ces builtins consomment une quotation déjà construite.
+
+Ils n’introduisent aucune propagation spéciale qui traverserait la frame de cette quotation.
 
 Toute opération future qui court-circuite explicitement sur `Result` devra être distincte.
 

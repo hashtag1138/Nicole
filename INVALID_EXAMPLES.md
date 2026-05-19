@@ -329,6 +329,37 @@ Pourquoi c’est invalide :
 Règle violée :
 - `call` doit recevoir les inputs déclarés par le type de la quotation
 
+### `call` avec ordre d’inputs incorrect
+
+```sorte
+: bad-call-order { -- n:Int }
+  "oops" 3 :[ | x:Int y:String -- r:Int | x ;] call
+;
+```
+
+Pourquoi c’est invalide :
+- `call` attend les inputs sous la quotation dans l’ordre de la signature
+- l’input le plus profond devrait correspondre à `x:Int`
+- ici la valeur la plus profonde est `"oops"`, qui ne peut pas satisfaire `x:Int`
+
+Règle violée :
+- `call` doit recevoir ses inputs dans l’ordre de la signature de la quotation
+
+### `call` avec nombre d’inputs insuffisant
+
+```sorte
+: bad-call-arity { x:Int -- y:Int }
+  x :[ | a:Int b:Int -- r:Int | a b + ;] call
+;
+```
+
+Pourquoi c’est invalide :
+- la quotation attend deux inputs
+- la pile n’en fournit qu’un seul au moment de `call`
+
+Règle violée :
+- `call` doit recevoir exactement les inputs déclarés par le type de la quotation
+
 ### Capture et input de même nom dans une quotation
 
 ```sorte
@@ -366,6 +397,41 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - une quotation contenant `?` doit déclarer une sortie compatible avec `Result<_,E>`
+
+### Quotation qui retourne trop peu de valeurs
+
+```sorte
+: bad-quote-too-few { -- q:Quote<{ | x:Int -- y:Int z:Int }> }
+  :[ | x:Int -- y:Int z:Int |
+    x
+  ;]
+;
+```
+
+Pourquoi c’est invalide :
+- la quotation déclare deux sorties
+- son corps n’en produit qu’une seule
+
+Règle violée :
+- une quotation doit retourner exactement les sorties déclarées dans sa signature
+
+### Quotation qui retourne trop de valeurs
+
+```sorte
+: bad-quote-too-many { -- q:Quote<{ | x:Int -- y:Int }> }
+  :[ | x:Int -- y:Int |
+    x
+    1
+  ;]
+;
+```
+
+Pourquoi c’est invalide :
+- la quotation déclare une seule sortie
+- son corps laisse deux valeurs sur sa pile locale au retour
+
+Règle violée :
+- une quotation doit retourner exactement les sorties déclarées dans sa signature
 
 ### Tentative de propagation implicite à travers `list.map`
 

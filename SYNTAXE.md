@@ -1445,6 +1445,8 @@ signifie :
 
 - `x = 2`
 - `y = 3`
+- `x` est la valeur la plus profonde du groupe capturé
+- `y` est la valeur la plus proche du sommet au moment de la construction
 
 ## Sémantique de `call`
 
@@ -1496,6 +1498,7 @@ Dans cet exemple :
 - utilise les captures figées stockées dans la quotation
 - consomme les inputs attendus sur la pile courante
 - pousse les outputs déclarés sur la pile courante
+- ne réutilise jamais la pile du caller comme pile locale de la quotation
 
 ## Portée
 
@@ -1564,6 +1567,10 @@ Là encore, cette écriture décrit la partie appelable exigée par `list.fold`.
 
 Une quotation capturante déjà construite reste valide si sa partie appelable correspond à `acc:Acc x:T -- out:Acc`.
 
+`list.fold` consomme lui aussi une quotation déjà construite.
+
+Il n’introduit aucun mécanisme spécial de propagation hors de la frame de cette quotation.
+
 Exemple conceptuel :
 
 ```sorte
@@ -1581,6 +1588,10 @@ Quote<{ | a:T b:T -- c:T }>
 Cette forme décrit la partie appelable exigée par `list.reduce`.
 
 Une quotation capturante déjà construite peut être utilisée si sa partie appelable reste `a:T b:T -- c:T`.
+
+`list.reduce` consomme lui aussi une quotation déjà construite.
+
+Il n’introduit aucun mécanisme spécial de propagation hors de la frame de cette quotation.
 
 Exemple conceptuel :
 

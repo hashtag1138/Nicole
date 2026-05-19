@@ -661,6 +661,46 @@ Effet de pile :
 Pourquoi :
 - montre la capture par valeur de manière lisible
 
+### Ordre des captures
+
+```sorte
+: capture-order { -- n:Int }
+  2 3 :[ a:Int b:Int | -- r:Int | a b - ;] call
+;
+```
+
+Explication :
+- `a` capture la valeur la plus profonde du groupe capturé
+- `b` capture la valeur la plus proche du sommet au moment de la construction
+- ici `a=2` et `b=3`
+
+Effet de pile :
+- entrée aucune
+- sortie `-1`
+
+Pourquoi :
+- rend explicite l’ordre de capture dans `:[ a:Int b:Int | ... ;]`
+
+### Ordre des inputs de `call`
+
+```sorte
+: call-order { -- n:Int }
+  2 3 :[ | x:Int y:Int -- r:Int | x y - ;] call
+;
+```
+
+Explication :
+- la quotation est au sommet de pile juste avant `call`
+- `y` est la valeur immédiatement sous la quotation
+- `x` est la valeur plus profonde parmi les inputs
+
+Effet de pile :
+- entrée aucune
+- sortie `-1`
+
+Pourquoi :
+- rend explicite la convention `x y quote call`
+
 ### Quotation avec propagation locale
 
 ```sorte
