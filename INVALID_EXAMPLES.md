@@ -49,7 +49,7 @@ Règle violée :
 ### Map vide sans annotation
 
 ```nicole
-: bad-empty-map { -- cfg:Map<String,Int> }
+: bad-empty { -- m:Map<String,Int> }
   map.empty
 ;
 ```
@@ -61,6 +61,24 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - `map.empty` non annoté est invalide en v1
+
+### Type de clé de map invalide
+
+```nicole
+: bad-map
+{
+  --
+  m:Map<List<Int>,String>
+}
+  map.empty:Map<List<Int>,String>
+;
+```
+
+Pourquoi c’est invalide :
+- `List<Int>` n’est pas un type de clé valide en v1
+
+Règle violée :
+- seules les clés `Int`, `String` et `Bool` sont définies pour `Map<K,V>` en v1
 
 ### Noms locaux dupliqués dans une même signature
 
@@ -455,6 +473,64 @@ Pourquoi c’est invalide :
 Règle violée :
 - `list.map` ne propage pas implicitement les erreurs hors de la quotation
 - une tentative d’utiliser `list.map` comme `list.try-map` doit être rejetée
+
+### Hypothèse invalide sur le retour de `map.remove`
+
+```nicole
+: bad-remove-return { users:Map<String,Int> -- out:Map<String,Int> }
+  users "alice" map.remove
+;
+```
+
+Pourquoi c’est invalide :
+- `map.remove` retourne `Result<Map<String,Int>,MapError>`
+- le mot annonce une sortie simple `Map<String,Int>`
+
+Règle violée :
+- `map.remove` ne retourne pas une map simple en v1
+- le retour doit correspondre exactement à la signature déclarée
+
+### Utilisation invalide de `map.keys`
+
+```nicole
+: bad-map-keys { users:Map<String,Int> -- xs:List<String> }
+  users map.keys
+;
+```
+
+Pourquoi c’est invalide :
+- `map.keys` ne fait pas partie de `Map` v1
+
+Règle violée :
+- `map.keys` est différé et n’est pas défini en v1
+
+### Utilisation invalide de `map.values`
+
+```nicole
+: bad-map-values { users:Map<String,Int> -- xs:List<Int> }
+  users map.values
+;
+```
+
+Pourquoi c’est invalide :
+- `map.values` ne fait pas partie de `Map` v1
+
+Règle violée :
+- `map.values` est différé et n’est pas défini en v1
+
+### Utilisation invalide de `map.items`
+
+```nicole
+: bad-map-items { users:Map<String,Int> -- xs:List<String> }
+  users map.items
+;
+```
+
+Pourquoi c’est invalide :
+- `map.items` ne fait pas partie de `Map` v1
+
+Règle violée :
+- `map.items` est différé et n’est pas défini en v1
 
 ### Utilisation invalide de `Ok!` comme pattern de `case`
 

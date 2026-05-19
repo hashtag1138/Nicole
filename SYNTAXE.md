@@ -1111,11 +1111,15 @@ Règles :
 
 - les clés v1 sont `Int`, `String` ou `Bool`
 - `Float` n’est pas autorisé comme clé en v1
-- `Handle<T>` peut être ajouté plus tard si l’égalité par identité est retenue
+- les types de clé définis par l’utilisateur ne sont pas supportés en v1
+- l’extensibilité future des clés est différée
+- cette extensibilité future peut inclure des handles hôte ou des valeurs de type identité, mais v1 ne définit aucun tel mécanisme
 - les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>` et `Map<K,V>`
 - toute opération de mise à jour retourne une nouvelle map
 - `map.empty:Map<K,V>` construit une map vide de type `Map<K,V>`
 - `map.empty` non annoté est invalide, même si un contexte voisin pourrait suggérer un type
+- l’ordre d’une map n’est pas observable en v1, car v1 ne définit aucune API d’itération de map
+- aucun programme v1 ne doit supposer un ordre particulier des entrées d’une map
 
 Opérations prévues :
 
@@ -1126,8 +1130,6 @@ map.contains
 map.set
 map.remove
 map.len
-map.keys
-map.values
 ```
 
 Ici, `map.empty` désigne le nom canonique de l'opération.
@@ -1141,22 +1143,34 @@ map.empty:Map<K,V> { -- m:Map<K,V> }
 map.get     { m:Map<K,V> k:K -- r:Result<V,MapError> }
 map.contains{ m:Map<K,V> k:K -- ok:Bool }
 map.set     { m:Map<K,V> k:K v:V -- m2:Map<K,V> }
-map.remove  { m:Map<K,V> k:K -- m2:Map<K,V> }
+map.remove  { m:Map<K,V> k:K -- r:Result<Map<K,V>,MapError> }
 map.len     { m:Map<K,V> -- n:Int }
-map.keys    { m:Map<K,V> -- ks:List<K> }
-map.values  { m:Map<K,V> -- vs:List<V> }
 ```
 
 Sémantique attendue :
 
 - `map.empty:Map<K,V>` construit une map vide
-- `m k map.get` lit la valeur associée à `k` et renvoie un `Result<V,MapError>`
-- `m k map.contains` teste la présence d’une clé
+- `m k map.get` lit la valeur associée à `k` et renvoie `Ok(value)` si la clé existe, sinon `Err(MissingKey)`
+- `m k map.contains` teste la présence d’une clé et renvoie `true` si elle existe, sinon `false`
 - `m k v map.set` renvoie une nouvelle map avec association mise à jour
-- `m k map.remove` renvoie une nouvelle map sans la clé ; si la clé est absente, la map est renvoyée inchangée
+- `map.set` ne mute jamais la map d’entrée sur place
+- `m k map.remove` renvoie `Ok(newMap)` si la clé existe et `Err(MissingKey)` sinon
+- `map.remove` ne mute jamais la map d’entrée sur place
 - `m map.len` renvoie le nombre d’entrées
-- `m map.keys` renvoie la liste des clés
-- `m map.values` renvoie la liste des valeurs
+
+Éléments explicitement différés :
+
+- types de clé définis par l’utilisateur
+- support des handles hôte comme clés
+- `Keyable`
+- `Hashable`
+- `map.keys`
+- `map.values`
+- `map.items`
+- `map.map`
+- `map.filter`
+- `map.fold`
+- garanties d’ordre d’itération des maps
 
 Exemples :
 
@@ -1196,6 +1210,8 @@ Exemples :
 ```
 
 `map.get` doit renvoyer un `Result<V,MapError>`. L’absence de clé est représentée par `Err(MissingKey)` plutôt que par une valeur implicite cachée.
+
+`map.remove` doit renvoyer un `Result<Map<K,V>,MapError>`. L’absence de clé est représentée par `Err(MissingKey)` plutôt que par une suppression silencieuse.
 
 ---
 

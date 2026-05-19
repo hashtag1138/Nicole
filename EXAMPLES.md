@@ -462,6 +462,69 @@ Effet de pile :
 Pourquoi :
 - montre une vérification simple et lisible
 
+### Présence d’un utilisateur
+
+```nicole
+: has-user { users:Map<String,Int> -- b:Bool }
+  users "alice" map.contains
+;
+```
+
+Explication :
+- teste la présence d’une clé précise
+
+Pourquoi :
+- montre `map.contains` sur un cas simple
+
+### Ajout ou remplacement dans une map
+
+```nicole
+: add-user { users:Map<String,Int> -- out:Map<String,Int> }
+  users "alice" 42 map.set
+;
+```
+
+Explication :
+- renvoie une nouvelle map avec la valeur associée à `"alice"`
+- la map d’entrée n’est jamais mutée sur place
+
+Pourquoi :
+- montre directement l’immuabilité de `map.set`
+
+### Suppression explicite dans une map
+
+```nicole
+: remove-user
+{
+  users:Map<String,Int>
+  --
+  r:Result<Map<String,Int>,MapError>
+}
+  users "alice" map.remove
+;
+```
+
+Explication :
+- renvoie `Ok(newMap)` si la clé existe
+- renvoie `Err(MissingKey)` si la clé est absente
+
+Pourquoi :
+- montre que `map.remove` ne supprime jamais silencieusement une clé absente
+
+### Nombre d’entrées d’une map
+
+```nicole
+: user-count { users:Map<String,Int> -- n:Int }
+  users map.len
+;
+```
+
+Explication :
+- retourne le nombre d’entrées de la map
+
+Pourquoi :
+- montre la primitive d’observation minimale conservée en v1
+
 ### Lecture dans une liste
 
 ```nicole

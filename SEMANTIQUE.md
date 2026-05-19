@@ -650,6 +650,44 @@ V1 retient :
 Utilisation attendue :
 
 - `map.get`
+- `map.remove`
+
+## Sémantique des maps v1
+
+Les maps sont immuables en v1.
+
+- `map.empty:Map<K,V>` construit une map vide explicitement typée
+- `map.empty` non annoté doit être rejeté
+- `map.get` a l’effet `Map<K,V> K -- Result<V,MapError>`
+- `map.get` retourne `Ok(value)` si la clé existe et `Err(MissingKey)` sinon
+- `map.contains` a l’effet `Map<K,V> K -- Bool`
+- `map.contains` retourne `true` si la clé existe et `false` sinon
+- `map.set` a l’effet `Map<K,V> K V -- Map<K,V>`
+- `map.set` retourne une nouvelle map avec insertion ou remplacement de la valeur
+- `map.set` ne mute jamais la map d’entrée
+- `map.remove` a l’effet `Map<K,V> K -- Result<Map<K,V>,MapError>`
+- `map.remove` retourne `Ok(newMap)` si la clé existe et `Err(MissingKey)` sinon
+- `map.remove` ne mute jamais la map d’entrée
+- `map.len` a l’effet `Map<K,V> -- Int`
+- `map.len` retourne le nombre d’entrées
+- seules les clés `Int`, `String` et `Bool` sont définies en v1
+- les types de clé définis par l’utilisateur ne sont pas supportés en v1
+- l’ordre d’une map n’est pas observable en v1, car v1 ne définit aucune API d’itération de map
+- un programme Nicole ne doit donc supposer aucun ordre de map
+
+Éléments différés :
+
+- types de clé définis par l’utilisateur
+- support des handles hôte comme clés
+- `Keyable`
+- `Hashable`
+- `map.keys`
+- `map.values`
+- `map.items`
+- `map.map`
+- `map.filter`
+- `map.fold`
+- garanties d’ordre d’itération des maps
 
 ## Constructions vides typées
 
