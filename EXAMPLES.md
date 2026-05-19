@@ -555,6 +555,25 @@ Pourquoi :
 - montre que `list.map` ne court-circuite pas implicitement sur `Result`
 - montre la forme `List<Result<...>>` retenue en v1
 
+### Filtrage avec `list.filter`
+
+```sorte
+: keep-positive { xs:List<Int> -- ys:List<Int> }
+  xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
+;
+```
+
+Explication :
+- conserve uniquement les éléments pour lesquels la quotation retourne `true`
+- l’ordre relatif des éléments conservés est préservé
+
+Effet de pile :
+- entrée `[-2, 3, 0, 5]`
+- sortie `[3, 5]`
+
+Pourquoi :
+- montre la forme de base de `list.filter`
+
 ### Réduction simple
 
 ```sorte
@@ -573,6 +592,25 @@ Effet de pile :
 
 Pourquoi :
 - montre un usage simple et lisible de `list.fold`
+
+### Réduction sur liste vide avec accumulateur initial
+
+```sorte
+: sum-or-zero { xs:List<Int> -- n:Int }
+  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
+;
+```
+
+Explication :
+- `list.fold` retourne l’accumulateur initial si la liste est vide
+- la quotation n’est appliquée que sur les éléments présents
+
+Effet de pile :
+- entrée `[]:List<Int>`
+- sortie `0`
+
+Pourquoi :
+- rend explicite le comportement de `list.fold` sur liste vide
 
 ### Réduction avec `list.fold` et capture explicite
 
@@ -610,6 +648,8 @@ Pourquoi :
 
 Explication :
 - réduit une liste non vide en additionnant les éléments
+- le premier élément devient l’accumulateur implicite initial
+- le parcours conceptuel est de gauche à droite
 
 Effet de pile :
 - entrée `[1, 2, 3]`

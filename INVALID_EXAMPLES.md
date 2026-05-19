@@ -568,6 +568,51 @@ Règle violée :
 
 ## 6. Collections invalides
 
+### `list.filter` avec quotation non booléenne
+
+```sorte
+: bad-filter-type { xs:List<Int> -- ys:List<Int> }
+  xs :[ | x:Int -- keep:Int | x 1 + ;] list.filter
+;
+```
+
+Pourquoi c’est invalide :
+- `list.filter` exige une quotation de forme `x:T -- keep:Bool`
+- ici la quotation retourne `Int`
+
+Règle violée :
+- la quotation passée à `list.filter` doit retourner `Bool`
+
+### `list.fold` avec ordre d’inputs incorrect
+
+```sorte
+: bad-fold-order { xs:List<Int> -- n:Int }
+  xs 0 :[ | x:Int acc:Int -- out:Int | acc x + ;] list.fold
+;
+```
+
+Pourquoi c’est invalide :
+- `list.fold` exige une quotation de forme `acc:Acc x:T -- out:Acc`
+- ici l’élément et l’accumulateur sont déclarés dans l’ordre inverse
+
+Règle violée :
+- la quotation passée à `list.fold` doit respecter l’ordre `acc x`
+
+### `list.reduce` avec type de retour incompatible
+
+```sorte
+: bad-reduce-type { xs:List<Int> -- n:Int }
+  xs :[ | a:Int b:Int -- c:Bool | a b = ;] list.reduce
+;
+```
+
+Pourquoi c’est invalide :
+- `list.reduce` exige une quotation de forme `a:T b:T -- c:T`
+- ici la quotation retourne `Bool` au lieu de `Int`
+
+Règle violée :
+- la quotation passée à `list.reduce` doit retourner le même type que les éléments réduits
+
 ### `list.reduce` sur liste vide prouvable
 
 ```sorte

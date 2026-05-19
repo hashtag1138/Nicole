@@ -968,13 +968,14 @@ list.get    { xs:List<T> index:Int -- r:Result<T,ListError> }
 list.set    { xs:List<T> index:Int value:T -- r:Result<List<T>,ListError> }
 list.concat { xs:List<T> ys:List<T> -- zs:List<T> }
 list.map    { xs:List<T> q:Quote<{ | x:T -- y:U }> -- ys:List<U> }
+list.filter { xs:List<T> q:Quote<{ | x:T -- keep:Bool }> -- ys:List<T> }
 list.fold   { xs:List<T> init:Acc q:Quote<{ | acc:Acc x:T -- out:Acc }> -- out:Acc }
 list.reduce { xs:List<T> q:Quote<{ | a:T b:T -- c:T }> -- out:T }
 ```
 
 Ces signatures décrivent la partie appelable exigée par chaque builtin higher-order.
 
-Le `|` vide dans `Quote<{ | ... }>` signifie que l’appel de `list.map`, `list.fold` ou `list.reduce` ne fournit aucune capture supplémentaire au moment du builtin.
+Le `|` vide dans `Quote<{ | ... }>` signifie que l’appel de `list.map`, `list.filter`, `list.fold` ou `list.reduce` ne fournit aucune capture supplémentaire au moment du builtin.
 
 Il ne signifie pas que la quotation passée doit avoir été construite sans captures internes.
 
@@ -1022,6 +1023,12 @@ Exemples :
     x captured-offset +
   ;]
   list.map
+;
+```
+
+```sorte
+: keep-positive { xs:List<Int> -- ys:List<Int> }
+  xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
 ;
 ```
 
@@ -1325,6 +1332,7 @@ result.map-err
 result.and-then
 result.match
 list.try-map
+list.try-filter
 list.try-fold
 ```
 
@@ -1533,11 +1541,47 @@ Il n’interdit pas qu’une quotation déjà construite contienne des captures 
 
 `list.map` consomme une quotation déjà construite et vérifie la compatibilité sur `x:T -- y:U`.
 
+`list.map` préserve l’ordre des éléments.
+
+Le parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, `list.map` retourne une liste vide.
+
 Si la quotation renvoie `Result<U,E>`, alors `list.map` renvoie `List<Result<U,E>>`.
 
 Il ne renvoie pas implicitement `Result<List<U>,E>`.
 
 `list.map` n’introduit aucun court-circuit implicite.
+
+## Intégration avec `list.filter`
+
+Une quotation de prédicat pour `list.filter` a une forme du genre :
+
+```text
+Quote<{ | x:T -- keep:Bool }>
+```
+
+Cette écriture décrit la partie appelable exigée par `list.filter`.
+
+Une quotation capturante déjà construite reste valide si sa partie appelable correspond à `x:T -- keep:Bool`.
+
+`list.filter` consomme une quotation déjà construite et vérifie la compatibilité sur `x:T -- keep:Bool`.
+
+`list.filter` préserve l’ordre relatif des éléments retenus.
+
+Le parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, `list.filter` retourne une liste vide.
+
+La quotation doit retourner `Bool`.
+
+`list.filter` n’introduit aucun court-circuit implicite sur `Result`.
+
+Exemple :
+
+```sorte
+[1, 2, 3, 4] :[ | x:Int -- keep:Bool | x 2 % 0 = ;] list.filter
+```
 
 Exemple :
 
@@ -1569,6 +1613,12 @@ Une quotation capturante déjà construite reste valide si sa partie appelable c
 
 `list.fold` consomme lui aussi une quotation déjà construite.
 
+L’accumulateur est le premier input de la quotation et l’élément courant le second.
+
+Le parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, `list.fold` retourne l’accumulateur initial.
+
 Il n’introduit aucun mécanisme spécial de propagation hors de la frame de cette quotation.
 
 Exemple conceptuel :
@@ -1590,6 +1640,12 @@ Cette forme décrit la partie appelable exigée par `list.reduce`.
 Une quotation capturante déjà construite peut être utilisée si sa partie appelable reste `a:T b:T -- c:T`.
 
 `list.reduce` consomme lui aussi une quotation déjà construite.
+
+Le premier élément de la liste sert d’accumulateur implicite initial.
+
+Le parcours conceptuel est de gauche à droite.
+
+La liste doit être non vide.
 
 Il n’introduit aucun mécanisme spécial de propagation hors de la frame de cette quotation.
 

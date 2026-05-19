@@ -363,10 +363,10 @@ Elle peut :
 
 - capturer des valeurs au moment de sa construction
 - être stockée
-- être passée à `list.map`, `list.fold`, `list.reduce`
+- être passée à `list.map`, `list.filter`, `list.fold`, `list.reduce`
 - être appelée plus tard avec `call`
 
-Quand une quotation est passée à `list.map`, `list.fold` ou `list.reduce`, le builtin consomme une quotation déjà construite.
+Quand une quotation est passée à `list.map`, `list.filter`, `list.fold` ou `list.reduce`, le builtin consomme une quotation déjà construite.
 
 Les captures sont donc déjà vérifiées au moment de la construction de cette quotation.
 
@@ -560,11 +560,45 @@ Quand une quotation passée à `list.map` retourne `Result<U,E>`, le résultat e
 
 Ce n’est pas `Result<List<U>,E>`.
 
-Le même principe de non-propagation implicite s’applique à `list.fold` et `list.reduce`.
+Le même principe de non-propagation implicite s’applique à `list.filter`, `list.fold` et `list.reduce`.
 
 Ces builtins consomment une quotation déjà construite.
 
 Ils n’introduisent aucune propagation spéciale qui traverserait la frame de cette quotation.
+
+## `list.map`
+
+`list.map` préserve l’ordre des éléments.
+
+Son parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, il retourne une liste vide.
+
+## `list.filter`
+
+`list.filter` consomme une quotation compatible avec `x:T -- keep:Bool`.
+
+Il préserve l’ordre relatif des éléments retenus.
+
+Son parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, il retourne une liste vide.
+
+La quotation de `list.filter` doit retourner `Bool`.
+
+Si une quotation retourne `Result<Bool,E>`, cela ne devient pas un comportement spécial de `list.filter` en v1.
+
+## `list.fold`
+
+`list.fold` consomme une quotation compatible avec `acc:Acc x:T -- out:Acc`.
+
+L’accumulateur courant est le premier input de la quotation.
+
+L’élément courant est le second input de la quotation.
+
+Son parcours conceptuel est de gauche à droite.
+
+Sur une liste vide, il retourne l’accumulateur initial fourni à l’appel.
 
 Toute opération future qui court-circuite explicitement sur `Result` devra être distincte.
 
@@ -578,6 +612,7 @@ Les éléments suivants restent hors de cette phase :
 - `result.and-then`
 - `result.match`
 - `list.try-map`
+- `list.try-filter`
 - `list.try-fold`
 
 Exemple :
@@ -629,6 +664,8 @@ En v1, les constructions vides ne reposent pas sur une déduction implicite depu
 
 `list.reduce` est défini uniquement sur une liste non vide.
 
+- le premier élément sert d’accumulateur implicite initial
+- le parcours conceptuel est de gauche à droite
 - si la liste vide est prouvable statiquement, l’appel doit être rejeté à la compilation
 - si la liste vide n’est découverte qu’à l’exécution, c’est une erreur de contrat d’exécution
 - ce n’est pas un `Err(...)` parce que `list.reduce` ne retourne pas un `Result` en v1
