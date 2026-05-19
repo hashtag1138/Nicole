@@ -26,7 +26,7 @@ Le langage n’est pas un Forth pur :
 
 Un mot se définit avec `:` et se termine par `;`.
 
-```sorte
+```nicole
 : add { a:Int b:Int -- result:Int }
   a b +
 ;
@@ -84,7 +84,7 @@ export = visibilité hôte + visibilité interne
 
 Exemples :
 
-```sorte
+```nicole
 : helper { x:Int -- y:Int }
   x 1 +
 ;
@@ -100,7 +100,7 @@ export : entry { args:List<String> -- code:Int }
 
 Exemple invalide :
 
-```sorte
+```nicole
 pub : foo { -- n:Int }
   1
 ;
@@ -117,7 +117,7 @@ Ces deux définitions sont interdites :
 
 Alternative valide :
 
-```sorte
+```nicole
 pub : internal-foo { -- n:Int }
   1
 ;
@@ -144,7 +144,7 @@ Lire une variable locale pousse sa valeur sur la pile locale courante.
 
 Exemple :
 
-```sorte
+```nicole
 : square { x:Int -- y:Int }
   x x *
 ;
@@ -159,7 +159,7 @@ Ici, `x` ne désigne pas une variable mutable.
 
 Les arguments d’entrée deviennent des variables locales.
 
-```sorte
+```nicole
 : square { x:Int -- y:Int }
   x x *
 ;
@@ -205,7 +205,7 @@ Règles :
 
 Exemple valide :
 
-```sorte
+```nicole
 : ok { -- x:Int }
   1
 ;
@@ -213,7 +213,7 @@ Exemple valide :
 
 Exemple invalide :
 
-```sorte
+```nicole
 : bad { -- x:Int }
   1 2
 ;
@@ -223,7 +223,7 @@ Ce dernier exemple doit être rejeté, pas corrigé silencieusement en gardant s
 
 Exemple de valeur ignorée explicitement :
 
-```sorte
+```nicole
 : ignore { n:Int -- }
   n drop
 ;
@@ -231,13 +231,13 @@ Exemple de valeur ignorée explicitement :
 
 Appel conceptuel :
 
-```sorte
+```nicole
 100 3 4 compute
 ```
 
 Avec :
 
-```sorte
+```nicole
 : compute { a:Int b:Int -- result:Int }
   a b + 2 *
 ;
@@ -271,7 +271,7 @@ Dans un même parent, deux sous-mots ne peuvent pas avoir le même nom.
 
 Exemple :
 
-```sorte
+```nicole
 : invoice { price:Int qty:Int -- total:Int }
 
   : subtotal { price:Int qty:Int -- amount:Int }
@@ -294,7 +294,7 @@ Le sous-mot `subtotal` est appelable depuis `invoice` par son nom court, mais `i
 
 Exemple invalide :
 
-```sorte
+```nicole
 : parent { -- }
 
   : child { -- n:Int }
@@ -314,7 +314,7 @@ Ces deux sous-mots sont interdits :
 
 Alternative valide :
 
-```sorte
+```nicole
 : parent { -- }
 
   : child-int { -- n:Int }
@@ -336,7 +336,7 @@ Alternative valide :
 
 Depuis l’intérieur du parent, les sous-mots sont appelés par leur nom court.
 
-```sorte
+```nicole
 price qty subtotal
 dup vat
 ```
@@ -345,7 +345,7 @@ Depuis l’extérieur, ils ne sont pas visibles comme API publique en v1.
 
 Exemple non retenu comme API publique v1 :
 
-```sorte
+```nicole
 12 3 invoice.subtotal
 ```
 
@@ -359,7 +359,7 @@ Un sous-mot ne voit pas les variables du parent.
 
 Interdit :
 
-```sorte
+```nicole
 : outer { a:Int -- result:Int }
 
   : add-a { x:Int -- y:Int }
@@ -376,7 +376,7 @@ Des frames différentes peuvent réutiliser les mêmes noms locaux.
 
 Exemple valide :
 
-```sorte
+```nicole
 : foo { x:Int -- y:Int }
 
   : bar { x:Int -- y:Int }
@@ -412,7 +412,7 @@ Les signatures de sortie ne servent jamais à distinguer deux mots, car deux dé
 
 Exemple invalide :
 
-```sorte
+```nicole
 : id { x:Int -- y:Int }
   x
 ;
@@ -426,7 +426,7 @@ Ces deux définitions sont interdites, même si leurs types d’entrée diffère
 
 Exemple invalide :
 
-```sorte
+```nicole
 : foo { a:Int b:Int -- r:Int }
   a b +
 ;
@@ -440,7 +440,7 @@ Ces deux définitions sont interdites, même si leurs arités diffèrent.
 
 Formes recommandées :
 
-```sorte
+```nicole
 : id-int { x:Int -- y:Int }
   x
 ;
@@ -466,7 +466,7 @@ En mode embarqué, l’hôte choisit quel mot exporté sert de point d’entrée
 
 Exemple de convention d’intégration :
 
-```sorte
+```nicole
 export : entry { args:List<String> -- code:Int }
   0
 ;
@@ -503,7 +503,7 @@ Deux directions coexistent :
 
 Tout mot dont le nom commence par `host.` est réservé à l’hôte.
 
-```sorte
+```nicole
 host.log { msg:String -- }
 host.time { -- seconds:Float }
 ```
@@ -528,7 +528,7 @@ Par conséquent, un programme ne peut pas appeler directement un mot `host.*` co
 
 Exemple invalide :
 
-```sorte
+```nicole
 : show-config { key:String -- value:String }
   key host.read-config
 ;
@@ -538,7 +538,7 @@ Ce programme est invalide si le contrat hôte ne déclare pas `host.read-config`
 
 Exemple conceptuel futur :
 
-```sorte
+```nicole
 # extension future possible
 # host.file.open { path:String -- r:Result<Handle<File>,HostError> }
 ```
@@ -553,7 +553,7 @@ POINT OUVERT : `host.file.open` suppose encore des types hôte futurs comme `Han
 
 Syntaxe retenue :
 
-```sorte
+```nicole
 condition if
   ...
 else
@@ -576,7 +576,7 @@ après if : S'
 
 Exemple :
 
-```sorte
+```nicole
 : abs { x:Int -- y:Int }
   x 0 < if
     0 x -
@@ -595,7 +595,7 @@ Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent
 
 Syntaxe retenue :
 
-```sorte
+```nicole
 value case
   pattern => expression
   pattern => expression
@@ -605,7 +605,7 @@ end
 
 Exemple :
 
-```sorte
+```nicole
 : sign-label { n:Int -- text:String }
   n case
     0 => "zero"
@@ -642,7 +642,7 @@ Règles de liaison :
 
 Exemple de branche liant :
 
-```sorte
+```nicole
 : unwrap-result { r:Result<Int,MapError> -- n:Int }
   r case
     Ok(v) => v
@@ -659,7 +659,7 @@ Le pattern matching avancé et les guards conditionnels sont hors v1.
 
 La récursion est autorisée.
 
-```sorte
+```nicole
 : fact { n:Int -- result:Int }
   n case
     0 => 1
@@ -678,7 +678,7 @@ La collecte préalable des signatures reste nécessaire pour :
 
 Exemple de récursion mutuelle valide :
 
-```sorte
+```nicole
 : even { n:Int -- result:Bool }
   n 0 = if
     true
@@ -760,7 +760,7 @@ Ces deux notions ne doivent pas être confondues.
 
 Exemples :
 
-```sorte
+```nicole
 : log-only { msg:String -- }
   msg host.log
 ;
@@ -790,7 +790,7 @@ Elles opèrent sur la pile locale du mot courant.
 
 Exemple :
 
-```sorte
+```nicole
 : between { x:Int min:Int max:Int -- ok:Bool }
   x min >=
   x max <=
@@ -841,19 +841,19 @@ Règles :
 
 Exemples :
 
-```sorte
+```nicole
 7 2 div
 ```
 
 produit `3`.
 
-```sorte
+```nicole
 7.0 2.0 /.
 ```
 
 produit `3.5`.
 
-```sorte
+```nicole
 1.5 2.0 +.
 ```
 
@@ -861,7 +861,7 @@ produit `3.5`.
 
 Exemple de TVA :
 
-```sorte
+```nicole
 : vat { amount:Int -- tax:Int }
   amount 20 * 100 div
 ;
@@ -869,7 +869,7 @@ Exemple de TVA :
 
 Exemple Float :
 
-```sorte
+```nicole
 : circle-area { r:Float -- area:Float }
   r r *. 3.14159 *.
 ;
@@ -885,7 +885,7 @@ Les listes non vides peuvent être typées depuis leurs éléments.
 
 La liste vide doit être annotée explicitement :
 
-```sorte
+```nicole
 []:List<Int>
 []:List<String>
 []:List<Map<String,Int>>
@@ -897,7 +897,7 @@ La liste vide doit être annotée explicitement :
 
 Littéraux de liste :
 
-```sorte
+```nicole
 []:List<Int>
 [1]
 [1, 2, 3]
@@ -921,13 +921,13 @@ Note syntaxique :
 
 Exemples valides :
 
-```sorte
+```nicole
 : empty-names { -- xs:List<String> }
   []:List<String>
 ;
 ```
 
-```sorte
+```nicole
 : empty-ints { -- xs:List<Int> }
   []:List<Int>
 ;
@@ -935,7 +935,7 @@ Exemples valides :
 
 Exemple invalide :
 
-```sorte
+```nicole
 : bad-empty-list { -- xs:List<Int> }
   []
 ;
@@ -985,7 +985,7 @@ La compatibilité est vérifiée sur la partie appelable `inputs -- outputs`.
 
 Exemples :
 
-```sorte
+```nicole
 : first { xs:List<String> -- s:String }
   xs 0 list.get case
     Ok(v) => v
@@ -994,7 +994,7 @@ Exemples :
 ;
 ```
 
-```sorte
+```nicole
 : replace-first { xs:List<Int> -- ys:List<Int> }
   xs 0 42 list.set case
     Ok(v) => v
@@ -1003,19 +1003,19 @@ Exemples :
 ;
 ```
 
-```sorte
+```nicole
 : concat-singletons { -- xs:List<Int> }
   [2] [4] list.concat
 ;
 ```
 
-```sorte
+```nicole
 : inc-all { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
 ```
 
-```sorte
+```nicole
 : add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
   xs
   offset
@@ -1026,19 +1026,19 @@ Exemples :
 ;
 ```
 
-```sorte
+```nicole
 : keep-positive { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
 ;
 ```
 
-```sorte
+```nicole
 : sum { xs:List<Int> -- total:Int }
   xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ;
 ```
 
-```sorte
+```nicole
 : sum-with-offset { xs:List<Int> offset:Int -- n:Int }
   xs
   0
@@ -1050,7 +1050,7 @@ Exemples :
 ;
 ```
 
-```sorte
+```nicole
 : sum-nonempty { xs:List<Int> -- total:Int }
   xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
@@ -1081,7 +1081,7 @@ Règles :
 
 Exemple :
 
-```sorte
+```nicole
 : first-or-empty { xs:List<String> -- s:String }
   xs 0 list.get case
     Ok(v) => v
@@ -1098,7 +1098,7 @@ Exemple :
 
 La map vide doit être annotée explicitement :
 
-```sorte
+```nicole
 map.empty:Map<String,Int>
 map.empty:Map<Int,String>
 ```
@@ -1160,20 +1160,20 @@ Sémantique attendue :
 
 Exemples :
 
-```sorte
+```nicole
 : empty-cfg { -- cfg:Map<String,Int> }
   map.empty:Map<String,Int>
 ;
 ```
 
-```sorte
+```nicole
 : cfg-with-timeout { -- cfg:Map<String,Int> }
   map.empty:Map<String,Int>
   "timeout" 30 map.set
 ;
 ```
 
-```sorte
+```nicole
 : timeout { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -1182,13 +1182,13 @@ Exemples :
 ;
 ```
 
-```sorte
+```nicole
 : has-timeout { cfg:Map<String,Int> -- ok:Bool }
   cfg "timeout" map.contains
 ;
 ```
 
-```sorte
+```nicole
 : store-action { -- actions:Map<String,Quote<{ | x:Int -- y:Int }>> }
   map.empty:Map<String,Quote<{ | x:Int -- y:Int }>>
   "inc" :[ | x:Int -- y:Int | x 1 + ;] map.set
@@ -1218,7 +1218,7 @@ Règles :
 
 Exemple :
 
-```sorte
+```nicole
 : timeout { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -1303,7 +1303,7 @@ Règles :
 
 Exemple valide :
 
-```sorte
+```nicole
 : require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
   cfg "timeout" map.get ?
   drop
@@ -1313,7 +1313,7 @@ Exemple valide :
 
 Exemple invalide :
 
-```sorte
+```nicole
 : bad-timeout { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get ?
 ;
@@ -1338,13 +1338,13 @@ list.try-fold
 
 Exemples :
 
-```sorte
+```nicole
 : parse-timeout { cfg:Map<String,Int> -- r:Result<Int,MapError> }
   cfg "timeout" map.get
 ;
 ```
 
-```sorte
+```nicole
 : timeout-or-default { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -1398,21 +1398,21 @@ Le mot `;` continue par ailleurs à terminer un mot.
 
 La forme canonique est :
 
-```sorte
+```nicole
 :[ captures | inputs -- outputs | body ;]
 ```
 
 Exemples :
 
-```sorte
+```nicole
 :[ | -- | ;]
 ```
 
-```sorte
+```nicole
 :[ | x:Int -- y:Int | x 1 + ;]
 ```
 
-```sorte
+```nicole
 :[ a:Int | x:Int -- y:Int | x a + ;]
 ```
 
@@ -1420,11 +1420,11 @@ La forme explicite est la seule forme canonique en v1.
 
 Exemples explicites liés à l’hôte :
 
-```sorte
+```nicole
 :[ | msg:String -- | msg host.log ;]
 ```
 
-```sorte
+```nicole
 "hello" :[ msg:String | -- | msg host.log ;]
 ```
 
@@ -1445,7 +1445,7 @@ L’ordre des captures suit la même convention que les arguments de mots :
 
 Exemple :
 
-```sorte
+```nicole
 2 3 :[ x:Int y:Int | -- r:Int | x y + ;]
 ```
 
@@ -1472,25 +1472,25 @@ La pile locale de la quotation commence vide.
 
 Exemple sans capture :
 
-```sorte
+```nicole
 3 :[ | x:Int -- y:Int | x 1 + ;] call
 ```
 
 Résultat :
 
-```sorte
+```nicole
 4
 ```
 
 Exemple avec capture :
 
-```sorte
+```nicole
 3 4 :[ a:Int | x:Int -- y:Int | x a + ;] call
 ```
 
 Résultat :
 
-```sorte
+```nicole
 7
 ```
 
@@ -1579,23 +1579,23 @@ La quotation doit retourner `Bool`.
 
 Exemple :
 
-```sorte
+```nicole
 [1, 2, 3, 4] :[ | x:Int -- keep:Bool | x 2 % 0 = ;] list.filter
 ```
 
 Exemple :
 
-```sorte
+```nicole
 [1, 2, 3] :[ | x:Int -- y:Int | x 1 + ;] list.map
 ```
 
-```sorte
+```nicole
 [1, 2, 3] 10 :[ offset:Int | x:Int -- y:Int | x offset + ;] list.map
 ```
 
 Résultat attendu :
 
-```sorte
+```nicole
 [2, 3, 4]
 ```
 
@@ -1623,7 +1623,7 @@ Il n’introduit aucun mécanisme spécial de propagation hors de la frame de ce
 
 Exemple conceptuel :
 
-```sorte
+```nicole
 [1, 2, 3] 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ```
 
@@ -1651,7 +1651,7 @@ Il n’introduit aucun mécanisme spécial de propagation hors de la frame de ce
 
 Exemple conceptuel :
 
-```sorte
+```nicole
 [1, 2, 3] :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ```
 
@@ -1671,7 +1671,7 @@ Les quotations doivent suivre la même discipline de pile que les mots normaux.
 
 Capture non typée :
 
-```sorte
+```nicole
 :[ a | -- r:Int | a 1 + ;]
 ```
 
@@ -1683,7 +1683,7 @@ Erreur attendue :
 
 Valeur de capture incompatible :
 
-```sorte
+```nicole
 "hello" :[ a:Int | -- r:Int | a 1 + ;] call
 ```
 
@@ -1718,7 +1718,7 @@ Tant qu’aucune sémantique canonique n’est fixée, il ne faut pas présenter
 
 Les commentaires de ligne utilisent `#`.
 
-```sorte
+```nicole
 : square { x:Int -- y:Int }
   x x *   # pousse x deux fois, puis multiplie
 ;
@@ -1732,7 +1732,7 @@ Les commentaires de bloc ne sont pas définis en v1.
 
 Ne pas proposer cette syntaxe :
 
-```sorte
+```nicole
 pub word add : Int Int -> Int
   +
 ;
@@ -1740,13 +1740,13 @@ pub word add : Int Int -> Int
 
 Ni :
 
-```sorte
+```nicole
 pub const pi : Float = 3.14159
 ```
 
 Ni :
 
-```sorte
+```nicole
 let name = "Ada"
 ```
 
@@ -1754,7 +1754,7 @@ Ni une syntaxe basée sur `->` pour les signatures.
 
 La syntaxe canonique provisoire est :
 
-```sorte
+```nicole
 : word-name { arg1:Type arg2:Type -- out1:Type }
   arg1 arg2 some-word
 ;
@@ -1762,7 +1762,7 @@ La syntaxe canonique provisoire est :
 
 Les variantes de visibilité sont :
 
-```sorte
+```nicole
 : private-word { x:Int -- y:Int }
   x
 ;
@@ -1780,7 +1780,7 @@ export : app.event { payload:String -- }
 
 # 28. Exemple complet valide
 
-```sorte
+```nicole
 # Contrat hôte supposé :
 # host.log { msg:String -- }
 
@@ -1816,7 +1816,7 @@ export : entry { args:List<String> -- code:Int }
 
 Mot privé :
 
-```sorte
+```nicole
 : private-name { x:Int -- y:Int }
   x 1 +
 ;
@@ -1824,7 +1824,7 @@ Mot privé :
 
 Mot public interne :
 
-```sorte
+```nicole
 pub : shared-name { x:Int -- y:Int }
   x 1 +
 ;
@@ -1832,7 +1832,7 @@ pub : shared-name { x:Int -- y:Int }
 
 Mot exporté à l’hôte :
 
-```sorte
+```nicole
 export : app.event { payload:String -- }
   payload host.log
 ;
@@ -1840,7 +1840,7 @@ export : app.event { payload:String -- }
 
 Sous-mot :
 
-```sorte
+```nicole
 : parent { x:Int -- y:Int }
 
   : child { z:Int -- r:Int }
@@ -1853,7 +1853,7 @@ Sous-mot :
 
 Conditionnel :
 
-```sorte
+```nicole
 condition if
   ...
 else
@@ -1863,7 +1863,7 @@ end
 
 Pattern matching :
 
-```sorte
+```nicole
 value case
   pattern => expression
   _ => expression
@@ -1872,19 +1872,19 @@ end
 
 Quotation :
 
-```sorte
+```nicole
 :[ a:Int | x:Int -- y:Int | x a + ;]
 ```
 
 Appel d’une quotation :
 
-```sorte
+```nicole
 [... input, quote] call
 ```
 
 Listes :
 
-```sorte
+```nicole
 []:List<Int>
 xs 0 list.get
 xs 0 42 list.set
@@ -1894,7 +1894,7 @@ xs quote list.map
 
 Maps :
 
-```sorte
+```nicole
 map.empty:Map<String,Int>
 m k map.get
 m k v map.set

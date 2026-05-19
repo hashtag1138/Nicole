@@ -18,7 +18,7 @@ Chaque exemple ci-dessous viole une règle déjà définie.
 
 ### Addition de types incompatibles
 
-```sorte
+```nicole
 : bad-add { x:Int -- y:Int }
   x "oops" +
 ;
@@ -32,7 +32,7 @@ Règle violée :
 
 ### Liste vide sans annotation
 
-```sorte
+```nicole
 : bad-empty-list { -- xs:List<Int> }
   []
 ;
@@ -48,7 +48,7 @@ Règle violée :
 
 ### Map vide sans annotation
 
-```sorte
+```nicole
 : bad-empty-map { -- cfg:Map<String,Int> }
   map.empty
 ;
@@ -64,7 +64,7 @@ Règle violée :
 
 ### Noms locaux dupliqués dans une même signature
 
-```sorte
+```nicole
 : bad { x:Int x:Int -- y:Int }
   x
 ;
@@ -83,7 +83,7 @@ Règle violée :
 
 ### Valeur supplémentaire au retour
 
-```sorte
+```nicole
 : bad-return { -- n:Int }
   1 "ok"
 ;
@@ -99,7 +99,7 @@ Règle violée :
 
 ### Valeur manquante au retour
 
-```sorte
+```nicole
 : missing-return { -- n:Int }
 ;
 ```
@@ -117,7 +117,7 @@ Règle violée :
 
 ### `if` avec branches de types différents
 
-```sorte
+```nicole
 : bad-if { flag:Bool -- n:Int }
   flag if
     1
@@ -135,7 +135,7 @@ Règle violée :
 
 ### `case` non exhaustif sur `Bool`
 
-```sorte
+```nicole
 : bad-case-non-exhaustive { b:Bool -- text:String }
   b case
     true => "true"
@@ -151,7 +151,7 @@ Règle violée :
 
 ### `case` avec branches incompatibles
 
-```sorte
+```nicole
 : bad-case-incompatible-branches { b:Bool -- n:Int }
   b case
     true => 1
@@ -170,7 +170,7 @@ Règle violée :
 
 ### Garde conditionnelle interdite
 
-```sorte
+```nicole
 : bad-case-guard { r:Result<Int,MapError> -- n:Int }
   r case
     Err(e) when e => 0
@@ -188,7 +188,7 @@ Règle violée :
 
 ### Pattern `MissingKey` sur un scrutinee `Bool`
 
-```sorte
+```nicole
 : bad-case-bool-variant { b:Bool -- n:Int }
   b case
     MissingKey => 0
@@ -206,7 +206,7 @@ Règle violée :
 
 ### Mauvais variant d’erreur sur `Result<Int,ListError>`
 
-```sorte
+```nicole
 : bad-case-listerror { r:Result<Int,ListError> -- n:Int }
   r case
     Ok(v) => v
@@ -224,7 +224,7 @@ Règle violée :
 
 ### Mauvais variant d’erreur sur `Result<Int,MapError>`
 
-```sorte
+```nicole
 : bad-case-maperror { r:Result<Int,MapError> -- n:Int }
   r case
     Ok(v) => v
@@ -242,7 +242,7 @@ Règle violée :
 
 ### `?` dans une frame qui ne retourne pas `Result`
 
-```sorte
+```nicole
 : bad-propagate { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get ?
 ;
@@ -257,7 +257,7 @@ Règle violée :
 
 ### Construction invalide par forme expressionnelle `Ok(...)`
 
-```sorte
+```nicole
 : bad-ok-expression { -- r:Result<Int,String> }
   Ok(1)
 ;
@@ -272,7 +272,7 @@ Règle violée :
 
 ### Construction invalide par forme expressionnelle `Err(...)`
 
-```sorte
+```nicole
 : bad-err-expression { -- r:Result<Int,String> }
   Err("bad")
 ;
@@ -291,7 +291,7 @@ Règle violée :
 
 ### Capture non typée
 
-```sorte
+```nicole
 :[ a | x:Int -- y:Int | x 1 + ;]
 ```
 
@@ -303,7 +303,7 @@ Règle violée :
 
 ### Quotation fermée avec `]` seul
 
-```sorte
+```nicole
 :[ | x:Int -- y:Int | x 1 + ]
 ```
 
@@ -316,7 +316,7 @@ Règle violée :
 
 ### `call` avec mauvais type d’input
 
-```sorte
+```nicole
 : bad-call { s:String -- y:Int }
   s :[ | x:Int -- y:Int | x 1 + ;] call
 ;
@@ -331,7 +331,7 @@ Règle violée :
 
 ### `call` avec ordre d’inputs incorrect
 
-```sorte
+```nicole
 : bad-call-order { -- n:Int }
   "oops" 3 :[ | x:Int y:String -- r:Int | x ;] call
 ;
@@ -347,7 +347,7 @@ Règle violée :
 
 ### `call` avec nombre d’inputs insuffisant
 
-```sorte
+```nicole
 : bad-call-arity { x:Int -- y:Int }
   x :[ | a:Int b:Int -- r:Int | a b + ;] call
 ;
@@ -362,7 +362,7 @@ Règle violée :
 
 ### Capture et input de même nom dans une quotation
 
-```sorte
+```nicole
 : bad { x:Int -- q:Quote<{ x:Int | x:Int -- y:Int }> }
   x
   :[ x:Int | x:Int -- y:Int |
@@ -380,7 +380,7 @@ Règle violée :
 
 ### Quotation avec `?` mais sortie non `Result`
 
-```sorte
+```nicole
 : bad-quote-propagate { xs:List<Map<String,Int>> -- ys:List<Int> }
   xs
   :[ | cfg:Map<String,Int> -- y:Int |
@@ -400,7 +400,7 @@ Règle violée :
 
 ### Quotation qui retourne trop peu de valeurs
 
-```sorte
+```nicole
 : bad-quote-too-few { -- q:Quote<{ | x:Int -- y:Int z:Int }> }
   :[ | x:Int -- y:Int z:Int |
     x
@@ -417,7 +417,7 @@ Règle violée :
 
 ### Quotation qui retourne trop de valeurs
 
-```sorte
+```nicole
 : bad-quote-too-many { -- q:Quote<{ | x:Int -- y:Int }> }
   :[ | x:Int -- y:Int |
     x
@@ -435,7 +435,7 @@ Règle violée :
 
 ### Tentative de propagation implicite à travers `list.map`
 
-```sorte
+```nicole
 : bad-try-map { cfgs:List<Map<String,Int>> -- r:Result<List<Int>,MapError> }
   cfgs
   :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
@@ -458,7 +458,7 @@ Règle violée :
 
 ### Utilisation invalide de `Ok!` comme pattern de `case`
 
-```sorte
+```nicole
 : bad-case-constructor-pattern { r:Result<Int,MapError> -- n:Int }
   r case
     Ok! => 1
@@ -476,7 +476,7 @@ Règle violée :
 
 ### Captures dupliquées dans une quotation
 
-```sorte
+```nicole
 :[ x:Int x:Int | -- y:Int | x ;]
 ```
 
@@ -489,7 +489,7 @@ Règle violée :
 
 ### Inputs dupliqués dans une quotation
 
-```sorte
+```nicole
 :[ | x:Int x:Int -- y:Int | x ;]
 ```
 
@@ -506,7 +506,7 @@ Règle violée :
 
 ### Appel hors du parent
 
-```sorte
+```nicole
 : invoice { price:Int qty:Int -- total:Int }
 
   : subtotal { price:Int qty:Int -- amount:Int }
@@ -527,7 +527,7 @@ Règle violée :
 
 ### Sous-mot qui tente de capturer une variable du parent
 
-```sorte
+```nicole
 : outer { a:Int -- result:Int }
 
   : add-a { x:Int -- y:Int }
@@ -547,7 +547,7 @@ Règle violée :
 
 ### Sous-mot qui tente de lire un local du parent
 
-```sorte
+```nicole
 : bad { x:Int -- y:Int }
   : child { z:Int -- r:Int }
     z x +
@@ -570,7 +570,7 @@ Règle violée :
 
 ### `list.filter` avec quotation non booléenne
 
-```sorte
+```nicole
 : bad-filter-type { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- keep:Int | x 1 + ;] list.filter
 ;
@@ -585,7 +585,7 @@ Règle violée :
 
 ### `list.fold` avec ordre d’inputs incorrect
 
-```sorte
+```nicole
 : bad-fold-order { xs:List<Int> -- n:Int }
   xs 0 :[ | x:Int acc:Int -- out:Int | acc x + ;] list.fold
 ;
@@ -600,7 +600,7 @@ Règle violée :
 
 ### `list.reduce` avec type de retour incompatible
 
-```sorte
+```nicole
 : bad-reduce-type { xs:List<Int> -- n:Int }
   xs :[ | a:Int b:Int -- c:Bool | a b = ;] list.reduce
 ;
@@ -615,7 +615,7 @@ Règle violée :
 
 ### `list.reduce` sur liste vide prouvable
 
-```sorte
+```nicole
 : bad-reduce-empty { -- n:Int }
   []:List<Int>
   :[ | a:Int b:Int -- c:Int |
@@ -638,7 +638,7 @@ Règle violée :
 
 ### Mot hôte absent du contrat
 
-```sorte
+```nicole
 : show-config { key:String -- value:String }
   key host.read-config
 ;
@@ -653,7 +653,7 @@ Règle violée :
 
 ### Définition directe d’un mot `host.*`
 
-```sorte
+```nicole
 : host.log { msg:String -- }
 ;
 ```
@@ -670,7 +670,7 @@ Règle violée :
 
 ### Deux mots top-level de même nom avec types différents
 
-```sorte
+```nicole
 : id { x:Int -- y:Int }
   x
 ;
@@ -689,7 +689,7 @@ Règle violée :
 
 ### Deux mots top-level de même nom avec arités différentes
 
-```sorte
+```nicole
 : foo { a:Int b:Int -- r:Int }
   a b +
 ;
@@ -708,7 +708,7 @@ Règle violée :
 
 ### Deux sous-mots frères de même nom
 
-```sorte
+```nicole
 : parent { -- }
 
   : child { -- n:Int }
@@ -730,7 +730,7 @@ Règle violée :
 
 ### Deux exports de même nom
 
-```sorte
+```nicole
 export : entry { -- n:Int }
   1
 ;
@@ -749,7 +749,7 @@ Règle violée :
 
 ### Collision entre `pub` et `export`
 
-```sorte
+```nicole
 pub : foo { -- n:Int }
   1
 ;
@@ -772,7 +772,7 @@ Règle violée :
 
 ### `let`
 
-```sorte
+```nicole
 let name = "Ada"
 ```
 
@@ -784,7 +784,7 @@ Règle violée :
 
 ### `const`
 
-```sorte
+```nicole
 pub const pi : Float = 3.14159
 ```
 
@@ -796,7 +796,7 @@ Règle violée :
 
 ### `extern`
 
-```sorte
+```nicole
 extern host.log { msg:String -- }
 ```
 
@@ -808,7 +808,7 @@ Règle violée :
 
 ### Signature avec `->`
 
-```sorte
+```nicole
 pub word add : Int Int -> Int
   +
 ;

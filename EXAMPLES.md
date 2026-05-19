@@ -20,7 +20,7 @@ Les exemples ci-dessous servent à lire le langage, à apprendre sa forme idioma
 
 ### Addition simple
 
-```sorte
+```nicole
 : add-one { x:Int -- y:Int }
   x 1 +
 ;
@@ -40,7 +40,7 @@ Pourquoi :
 
 ### Carré d’un entier
 
-```sorte
+```nicole
 : square { x:Int -- y:Int }
   x x *
 ;
@@ -59,7 +59,7 @@ Pourquoi :
 
 ### Chaînes simples
 
-```sorte
+```nicole
 : greet { excited:Bool -- msg:String }
   excited case
     true => "hello"
@@ -84,7 +84,7 @@ Pourquoi :
 
 ### Réutilisation d’un input
 
-```sorte
+```nicole
 : double { x:Int -- y:Int }
   x x +
 ;
@@ -103,7 +103,7 @@ Pourquoi :
 
 ### Valeur de départ et calcul
 
-```sorte
+```nicole
 : add-five { x:Int -- y:Int }
   x 5 +
 ;
@@ -126,7 +126,7 @@ Pourquoi :
 
 ### Sous-mot local explicite
 
-```sorte
+```nicole
 : invoice { price:Int qty:Int -- total:Int }
 
   : subtotal { price:Int qty:Int -- amount:Int }
@@ -151,7 +151,7 @@ Pourquoi :
 
 ### Réutilisation d’un nom local dans une autre frame
 
-```sorte
+```nicole
 : foo { x:Int -- y:Int }
 
   : bar { x:Int -- y:Int }
@@ -182,7 +182,7 @@ Pourquoi :
 
 ### Noms explicites
 
-```sorte
+```nicole
 : id-int { x:Int -- y:Int }
   x
 ;
@@ -205,7 +205,7 @@ Pourquoi :
 
 ### Récursion mutuelle
 
-```sorte
+```nicole
 : even { n:Int -- result:Bool }
   n 0 = if
     true
@@ -240,7 +240,7 @@ Pourquoi :
 
 ### Paire de sortie
 
-```sorte
+```nicole
 : pair { -- a:Int b:String }
   1 "ok"
 ;
@@ -259,7 +259,7 @@ Pourquoi :
 
 ### Deux entiers
 
-```sorte
+```nicole
 : dimensions { -- width:Int height:Int }
   800 600
 ;
@@ -280,7 +280,7 @@ Pourquoi :
 
 ### Valeur absolue
 
-```sorte
+```nicole
 : abs { x:Int -- y:Int }
   x 0 < if
     0 x -
@@ -303,7 +303,7 @@ Pourquoi :
 
 ### Booléen simple
 
-```sorte
+```nicole
 : choose-yes { flag:Bool -- text:String }
   flag if
     "yes"
@@ -330,7 +330,7 @@ Pourquoi :
 
 ### `Result` avec valeur par défaut
 
-```sorte
+```nicole
 : timeout-or-default { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -352,7 +352,7 @@ Pourquoi :
 
 ### Helpers `Result`
 
-```sorte
+```nicole
 : has-timeout-result { cfg:Map<String,Int> -- b:Bool }
   cfg "timeout" map.get result.is-ok
 ;
@@ -375,7 +375,7 @@ Pourquoi :
 
 ### Propagation locale avec `?`
 
-```sorte
+```nicole
 : require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
   cfg "timeout" map.get ?
   drop
@@ -399,7 +399,7 @@ Pourquoi :
 
 ### `Bool` exhaustif
 
-```sorte
+```nicole
 : bool-label { b:Bool -- text:String }
   b case
     true => "true"
@@ -429,7 +429,7 @@ Note pédagogique :
 
 ### Carte avec timeout
 
-```sorte
+```nicole
 : cfg-with-timeout { -- cfg:Map<String,Int> }
   map.empty:Map<String,Int>
   "timeout" 30 map.set
@@ -446,7 +446,7 @@ Pourquoi :
 
 ### Présence d’une clé
 
-```sorte
+```nicole
 : has-timeout { cfg:Map<String,Int> -- ok:Bool }
   cfg "timeout" map.contains
 ;
@@ -464,7 +464,7 @@ Pourquoi :
 
 ### Lecture dans une liste
 
-```sorte
+```nicole
 : first { xs:List<Int> -- n:Int }
   xs 0 list.get case
     Ok(v) => v
@@ -486,7 +486,7 @@ Pourquoi :
 
 ### Transformation avec `list.map`
 
-```sorte
+```nicole
 : inc-all { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
@@ -504,7 +504,7 @@ Pourquoi :
 
 ### Transformation avec `list.map` et capture explicite
 
-```sorte
+```nicole
 : add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
   xs
   offset
@@ -530,7 +530,7 @@ Pourquoi :
 
 ### Transformation avec `list.map` et quotation retournant `Result`
 
-```sorte
+```nicole
 : mark-timeouts { cfgs:List<Map<String,Int>> -- ys:List<Result<Int,MapError>> }
   cfgs
   :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
@@ -557,7 +557,7 @@ Pourquoi :
 
 ### Filtrage avec `list.filter`
 
-```sorte
+```nicole
 : keep-positive { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
 ;
@@ -576,7 +576,7 @@ Pourquoi :
 
 ### Réduction simple
 
-```sorte
+```nicole
 : sum { xs:List<Int> -- n:Int }
   xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ;
@@ -595,7 +595,7 @@ Pourquoi :
 
 ### Réduction sur liste vide avec accumulateur initial
 
-```sorte
+```nicole
 : sum-or-zero { xs:List<Int> -- n:Int }
   xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
 ;
@@ -614,7 +614,7 @@ Pourquoi :
 
 ### Réduction avec `list.fold` et capture explicite
 
-```sorte
+```nicole
 : sum-with-offset { xs:List<Int> offset:Int -- n:Int }
   xs
   0
@@ -640,7 +640,7 @@ Pourquoi :
 
 ### Réduction sans valeur initiale
 
-```sorte
+```nicole
 : sum-non-empty { xs:List<Int> -- n:Int }
   xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
@@ -664,7 +664,7 @@ Pourquoi :
 
 ### Quotation simple
 
-```sorte
+```nicole
 : plus-one { x:Int -- y:Int }
   x :[ | n:Int -- m:Int | n 1 + ;] call
 ;
@@ -683,7 +683,7 @@ Pourquoi :
 
 ### Quotations avec capture
 
-```sorte
+```nicole
 : add-captured { x:Int y:Int -- z:Int }
   x y :[ a:Int | n:Int -- m:Int | n a + ;] call
 ;
@@ -703,7 +703,7 @@ Pourquoi :
 
 ### Ordre des captures
 
-```sorte
+```nicole
 : capture-order { -- n:Int }
   2 3 :[ a:Int b:Int | -- r:Int | a b - ;] call
 ;
@@ -723,7 +723,7 @@ Pourquoi :
 
 ### Ordre des inputs de `call`
 
-```sorte
+```nicole
 : call-order { -- n:Int }
   2 3 :[ | x:Int y:Int -- r:Int | x y - ;] call
 ;
@@ -743,7 +743,7 @@ Pourquoi :
 
 ### Quotation avec propagation locale
 
-```sorte
+```nicole
 : call-timeout-check { cfg:Map<String,Int> -- r:Result<Int,MapError> }
   cfg
   :[ | current:Map<String,Int> -- r:Result<Int,MapError> |
@@ -769,7 +769,7 @@ Pourquoi :
 
 ### Quotation avec réutilisation d’un nom dans une autre frame
 
-```sorte
+```nicole
 : add-offset { x:Int offset:Int -- y:Int }
   x
   offset
@@ -794,7 +794,7 @@ Pourquoi :
 
 ### Quotation passée à `list.map`
 
-```sorte
+```nicole
 : inc-all-quoted { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- y:Int | x 1 + ;] list.map
 ;
@@ -823,7 +823,7 @@ host.log { msg:String -- }
 
 ### Avertir l’hôte
 
-```sorte
+```nicole
 : warn { msg:String -- }
   msg host.log
 ;
@@ -846,7 +846,7 @@ Pourquoi :
 
 ### Handler de message
 
-```sorte
+```nicole
 export : app.demo-message { msg:String -- }
   msg host.log
 ;
@@ -866,7 +866,7 @@ Pourquoi :
 
 ### Handler sans retour
 
-```sorte
+```nicole
 export : app.tick { -- }
   "tick" host.log
 ;
@@ -893,7 +893,7 @@ Contrat hôte supposé :
 host.log { msg:String -- }
 ```
 
-```sorte
+```nicole
 export : app.on-message { msg:String -- }
   msg host.log
 ;
@@ -921,7 +921,7 @@ Pourquoi :
 
 ## 13. Quotation retournée comme valeur
 
-```sorte
+```nicole
 : make-increment { -- q:Quote<{ | x:Int -- y:Int }> }
   :[ | x:Int -- y:Int | x 1 + ;]
 ;

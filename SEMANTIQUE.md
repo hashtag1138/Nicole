@@ -59,13 +59,13 @@ Une valeur ignorée doit être supprimée explicitement avec `drop`.
 
 Exemples conceptuels :
 
-```sorte
+```nicole
 : ok { -- x:Int }
   1
 ;
 ```
 
-```sorte
+```nicole
 : bad { -- x:Int }
   1 2
 ;
@@ -85,7 +85,7 @@ La forme `{ -- a:Int b:String }` pousse d’abord `a`, puis `b`, de sorte que `b
 
 Exemple :
 
-```sorte
+```nicole
 : pair { -- a:Int b:String }
   1 "ok"
 ;
@@ -93,7 +93,7 @@ Exemple :
 
 Après appel, la pile appelante reçoit :
 
-```sorte
+```nicole
 [..., 1, "ok"]
 ```
 
@@ -117,7 +117,7 @@ Lire une variable locale pousse sa valeur sur la pile locale courante.
 
 Exemple :
 
-```sorte
+```nicole
 : square { x:Int -- y:Int }
   x x *
 ;
@@ -168,7 +168,7 @@ Les signatures de sortie ne servent jamais à distinguer deux mots, car deux dé
 
 Exemple invalide :
 
-```sorte
+```nicole
 : id { x:Int -- y:Int }
   x
 ;
@@ -182,7 +182,7 @@ Ces deux définitions sont interdites parce qu’un même nom visible ne peut d�
 
 Exemple interdit :
 
-```sorte
+```nicole
 : foo { a:Int b:Int -- r:Int }
   a b +
 ;
@@ -196,7 +196,7 @@ Ces deux définitions sont interdites, même si leurs arités diffèrent.
 
 Formes recommandées :
 
-```sorte
+```nicole
 : id-int { x:Int -- y:Int }
   x
 ;
@@ -222,7 +222,7 @@ Formes recommandées :
 
 Syntaxe de surface :
 
-```sorte
+```nicole
 condition if
   ...
 else
@@ -249,7 +249,7 @@ Cette vérification doit être statique quand les branches sont écrites en Nico
 
 Exemple :
 
-```sorte
+```nicole
 : abs { x:Int -- y:Int }
   x 0 < if
     0 x -
@@ -270,7 +270,7 @@ Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent
 
 Syntaxe de surface :
 
-```sorte
+```nicole
 value case
   pattern => expression
   pattern => expression
@@ -331,7 +331,7 @@ Pour les motifs imbriqués sur `Result` :
 
 Exemple de liaison :
 
-```sorte
+```nicole
 : unwrap-result { r:Result<Int,MapError> -- n:Int }
   r case
     Ok(v) => v
@@ -342,7 +342,7 @@ Exemple de liaison :
 
 Exemple :
 
-```sorte
+```nicole
 : sign-label { n:Int -- text:String }
   n case
     0 => "zero"
@@ -391,7 +391,7 @@ La quotation n'est pas un bloc qui réutilise la pile courante : les inputs ne d
 
 La convention de pile est :
 
-```sorte
+```nicole
 [... input1, input2, quote] call
 ```
 
@@ -409,7 +409,7 @@ Pour une quotation de type `Quote<{ | x:Int y:Int -- r:Int }>`,
 
 `call` attend une pile de forme :
 
-```sorte
+```nicole
 [... x:Int, y:Int, quote] call
 ```
 
@@ -457,13 +457,13 @@ Une quotation peut toutefois réutiliser le nom d’un local du mot qui la const
 
 Pour une quotation avec captures :
 
-```sorte
+```nicole
 :[ a:Int b:Int | x:Int -- y:Int | x a + b + ;]
 ```
 
 les captures sont prises à la construction depuis une pile de forme :
 
-```sorte
+```nicole
 [... a:Int, b:Int]
 ```
 
@@ -471,7 +471,7 @@ les captures sont prises à la construction depuis une pile de forme :
 
 Exemples conceptuels :
 
-```sorte
+```nicole
 3 :[ | x:Int -- y:Int | x 1 + ;] call
 ```
 
@@ -479,7 +479,7 @@ Résultat conceptuel :
 
 - `4`
 
-```sorte
+```nicole
 3 4 :[ a:Int | x:Int -- y:Int | x a + ;] call
 ```
 
@@ -617,7 +617,7 @@ Les éléments suivants restent hors de cette phase :
 
 Exemple :
 
-```sorte
+```nicole
 : timeout-or-default { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -716,7 +716,7 @@ Ce n’est pas une exception implicite métier.
 
 Exemple :
 
-```sorte
+```nicole
 : reduce-safely { xs:List<Int> -- n:Int }
   xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
 ;
@@ -745,7 +745,7 @@ Il peut aussi être appelé dans le programme comme n’importe quel mot visible
 
 Exemple :
 
-```sorte
+```nicole
 export : app.on-message { msg:String -- }
   msg host.log
 ;
@@ -759,7 +759,7 @@ Le programme peut les appeler, mais ne peut pas les définir.
 
 Exemple :
 
-```sorte
+```nicole
 : save-log { msg:String -- }
   msg host.log
 ;

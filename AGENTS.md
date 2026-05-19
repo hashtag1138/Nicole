@@ -194,7 +194,7 @@ Il faut éviter les constructions inutilement complexes si une version plus simp
 
 Exemple : préférer
 
-```sorte
+```nicole
 : add-one { x:Int -- y:Int }
   x 1 +
 ;

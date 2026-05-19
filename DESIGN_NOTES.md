@@ -63,7 +63,7 @@ Ils ne remplacent pas `case`, qui reste la forme normale d’inspection détaill
 
 Exemple idiomatique :
 
-```sorte
+```nicole
 : timeout-or-default { cfg:Map<String,Int> -- n:Int }
   cfg "timeout" map.get case
     Ok(v) => v
@@ -121,7 +121,7 @@ Cette phase étend cette règle à `?` de manière explicite :
 
 Exemple valide :
 
-```sorte
+```nicole
 : run-check { x:Int -- r:Result<Int,MapError> }
   x :[ | n:Int -- r:Result<Int,MapError> |
     n maybe-fail ?
@@ -164,7 +164,7 @@ Result<List<U>,E>
 
 Exemple invalide :
 
-```sorte
+```nicole
 : bad-map-propagation { xs:List<Int> -- ys:List<Int> }
   xs :[ | x:Int -- y:Int |
     x maybe-fail ?
@@ -181,7 +181,7 @@ Cet exemple doit être rejeté :
 
 Exemple valide :
 
-```sorte
+```nicole
 : map-with-results { xs:List<Int> -- ys:List<Result<Int,MapError>> }
   xs :[ | x:Int -- r:Result<Int,MapError> |
     x maybe-fail ?

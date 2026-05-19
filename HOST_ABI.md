@@ -78,7 +78,7 @@ Toute collision de noms d’export est invalide et doit être rejetée comme une
 
 Exemple invalide :
 
-```sorte
+```nicole
 export : entry { -- n:Int }
   1
 ;
@@ -95,7 +95,7 @@ Ce programme est invalide :
 
 Alternative valide :
 
-```sorte
+```nicole
 export : entry.int { -- n:Int }
   1
 ;
@@ -121,7 +121,7 @@ Sa signature doit être respectée exactement.
 
 Exemple conceptuel :
 
-```sorte
+```nicole
 export : app.on-message { msg:String -- }
   msg host.log
 ;
@@ -164,7 +164,7 @@ Le programme ne doit pas supposer :
 
 Exemple conceptuel :
 
-```sorte
+```nicole
 : save-log { msg:String -- }
   msg host.log
 ;
