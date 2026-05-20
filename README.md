@@ -84,7 +84,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - noms qualifiés
 - mots fournis par l’hôte via le préfixe réservé `host.`
 - listes immuables, concaténation et décomposition
-- opérations de liste `list.len`, `list.get`, `list.set`, `list.concat`, `list.map`, `list.fold`, `list.reduce`
+- opérations de liste `list.len`, `list.get`, `list.set`, `list.concat`, `list.map`, `list.filter`, `list.fold`, `list.reduce`
 - quotations et fonctions comme valeurs
 - quotations de valeur fermées par `;]`
 - quotations typées `Quote<{ captures | inputs -- outputs }>`

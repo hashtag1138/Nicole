@@ -4,15 +4,23 @@
 
 ## Statut
 
-Cette note consolide une évolution compatible avec la spécification actuelle.
+Note historique :
+
+Cette note documente une discussion de design antérieure à plusieurs décisions désormais ratifiées dans la spécification normative.
 
 Elle ne remplace pas `SYNTAXE.md`, `SEMANTIQUE.md` ni `HOST_ABI.md`.
 
-Elle décrit une direction de spécification à intégrer explicitement dans les sources normatives quand cette évolution sera ratifiée.
+Le comportement normatif actuel est défini dans :
+
+- `SYNTAXE.md`
+- `SEMANTIQUE.md`
+- `HOST_ABI.md`
+
+Cette note conserve surtout le rationnel et le contexte de décision.
 
 ## Audit de compatibilité
 
-La spécification actuelle définit déjà :
+Au moment de cette note, la spécification définissait déjà :
 
 - `Result<V,E>` avec les variantes `Ok(v)` et `Err(e)`
 - `case` comme mécanisme normal d’inspection de `Result`
@@ -20,13 +28,13 @@ La spécification actuelle définit déjà :
 - `call` comme exécution d’une quotation dans sa propre frame
 - `list.map`, `list.fold` et `list.reduce` comme builtins consommant une quotation déjà construite
 
-La spécification actuelle ne définit pas encore :
+Au moment de cette note, la spécification ne définissait pas encore :
 
 - l’opérateur `?`
 - les helpers `result.is-ok`, `result.is-err`, `result.unwrap-or`
 - des builtins de collection à court-circuit implicite comme `list.try-map` ou `list.try-fold`
 
-Aucun conflit direct n’a été trouvé avec les règles déjà présentes dans la v1.
+Aucun conflit direct n’avait été trouvé avec les règles déjà présentes dans la v1.
 
 ## Décisions retenues maintenant
 
