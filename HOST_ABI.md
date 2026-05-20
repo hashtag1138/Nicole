@@ -119,6 +119,10 @@ Un mot Nicole défini dans le programme ne peut pas avoir un retour “opaque”
 
 Sa signature doit être respectée exactement.
 
+La signature d’un mot exporté fait partie du contrat ABI exposé à l’hôte.
+
+Le corps du mot exporté doit donc être entièrement vérifié avant toute exécution.
+
 Exemple conceptuel :
 
 ```nicole
@@ -147,6 +151,8 @@ Un mot `host.*` garantit :
 - une sémantique stable du point de vue du programme Nicole
 
 Le programme peut appeler un mot `host.*` comme il appelle un mot normal, mais le mot n’est pas défini dans le code Nicole.
+
+Le contrat de type d’un mot `host.*` fait partie du contrat ABI fourni par l’hôte.
 
 ## Appel conceptuel depuis le programme
 
@@ -224,6 +230,14 @@ Le statut “optionnel” peut exister dans le contrat d’intégration comme in
 
 Si ces informations sont insuffisantes ou ambiguës, le contrat n’est pas valable pour la v1.
 
+## Unicité des noms hôte
+
+Dans l’espace visible du programme, un nom `host.*` doit désigner un seul mot fourni par le contrat hôte.
+
+Le contrat hôte ne définit donc pas plusieurs bindings concurrents sous le même nom visible.
+
+La v1 ne définit aucun mécanisme de surcharge dynamique, de fallback implicite ou de sélection à l’exécution entre plusieurs bindings `host.*`.
+
 ---
 
 # 5. Obligations de contrat
@@ -255,6 +269,10 @@ L’hôte doit :
 - signaler toute absence ou tout échec de liaison comme une erreur d’intégration
 
 Le contrat hôte n’autorise pas de conversions implicites au niveau de la frontière.
+
+Il n’autorise pas non plus d’inférence de type dynamique au moment de l’appel.
+
+Le binding hôte doit satisfaire une signature déjà connue et déjà vérifiée.
 
 ---
 
@@ -289,7 +307,43 @@ Dans ce cas, le `Result` fait partie du contrat du mot, pas du mécanisme de lia
 
 ---
 
-# 7. Différences de niveau d’erreur
+# 7. Valeurs franchissant l’ABI en v1
+
+La v1 privilégie des valeurs de données simples à la frontière hôte.
+
+Types autorisés à travers l’ABI v1 :
+
+- `Int`
+- `String`
+- `Bool`
+- `Unit`
+- `List<T>`
+- `Map<K,V>`
+- `Result<T,E>`
+
+Règles :
+
+- `List<T>` n’est autorisé que si `T` est lui-même une valeur compatible avec l’ABI v1
+- `Map<K,V>` n’est autorisé que si `K` et `V` sont eux-mêmes compatibles avec l’ABI v1
+- les restrictions de `Map<K,V>` sur les clés restent celles de la v1 du langage
+- `Result<T,E>` n’est autorisé que si `T` et `E` sont eux-mêmes compatibles avec l’ABI v1
+
+Les quotations ne franchissent pas l’ABI hôte en v1.
+
+Autrement dit :
+
+- un mot `host.*` ne reçoit pas de `Quote<{ ... }>` en entrée
+- un mot `host.*` ne retourne pas de `Quote<{ ... }>`
+- un mot `export` n’expose pas de `Quote<{ ... }>` en entrée
+- un mot `export` n’expose pas de `Quote<{ ... }>` en sortie
+
+Cette limitation garde la frontière ABI simple et purement orientée données.
+
+Toute extension future de l’ABI vers des callbacks, quotations, handles exécutables ou objets hôte reste explicitement différée.
+
+---
+
+# 8. Différences de niveau d’erreur
 
 Le dépôt distingue trois catégories.
 
@@ -324,14 +378,34 @@ Lorsqu’elle apparaît à l’exécution, elle constitue aussi une erreur de co
 
 ---
 
-# 8. Non-objectifs et limites de la v1
+# 9. Frontière de vérification et d’exécution
+
+L’hôte exécute un programme Nicole déjà vérifié.
+
+La frontière ABI v1 n’implique donc pas :
+
+- parsing dynamique du programme
+- checking dynamique du programme
+- inférence de type à l’exécution
+
+Le contrat hôte doit satisfaire des signatures déjà connues.
+
+Une fois le programme vérifié, l’exécution consomme ce programme vérifié et applique le contrat d’intégration déclaré.
+
+---
+
+# 10. Non-objectifs et limites de la v1
 
 `HOST_ABI.md` ne définit pas :
 
 - un mécanisme concret de découverte dynamique
 - un registre d’exports concret
 - un protocole de sérialisation
+- des callbacks hôte basés sur quotations
 - un modèle async/thread
+- des valeurs streamées
+- des itérateurs
+- des générateurs
 - une FFI native
 - une API ou interface native C, Rust, Lua ou LLVM
 - une représentation mémoire des valeurs
@@ -344,7 +418,7 @@ La seule chose normée ici est le contrat conceptuel entre un programme Nicole e
 
 ---
 
-# 9. Règle de fond
+# 11. Règle de fond
 
 Le contrat hôte doit rester :
 

@@ -740,6 +740,104 @@ Pourquoi c’est invalide :
 Règle violée :
 - `host.*` est réservé aux mots fournis par l’hôte
 
+### Mot hôte absent mais traité comme un `Result`
+
+```nicole
+: try-read-config { key:String -- r:Result<String,MapError> }
+  key host.read-config
+;
+```
+
+Pourquoi c’est invalide :
+- le contrat hôte supposé ne déclare pas `host.read-config`
+- l’absence de binding hôte ne devient pas automatiquement `Err(...)`
+
+Règle violée :
+- l’absence d’un mot `host.*` est une erreur d’intégration
+- le mécanisme de liaison hôte n’est pas modélisé comme un `Result`
+
+### Mot hôte recevant une quotation
+
+Contrat hôte supposé dans cet exemple :
+
+```text
+host.run-later { q:Quote<{ | x:Int -- y:Int }> -- }
+```
+
+```nicole
+: send-callback { q:Quote<{ | x:Int -- y:Int }> -- }
+  q host.run-later
+;
+```
+
+Pourquoi c’est invalide :
+- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur d’entrée d’un mot `host.*`
+
+Règle violée :
+- les quotations ne franchissent pas l’ABI hôte en v1
+
+### Mot hôte retournant une quotation
+
+Contrat hôte supposé dans cet exemple :
+
+```text
+host.make-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+```
+
+```nicole
+: fetch-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+  host.make-callback
+;
+```
+
+Pourquoi c’est invalide :
+- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur de retour d’un mot `host.*`
+
+Règle violée :
+- les quotations ne franchissent pas l’ABI hôte en v1
+
+### Export recevant une quotation
+
+```nicole
+export : app.accept-callback { q:Quote<{ | x:Int -- y:Int }> -- }
+;
+```
+
+Pourquoi c’est invalide :
+- un mot exporté expose ici une quotation à la frontière hôte
+
+Règle violée :
+- les quotations ne franchissent pas l’ABI hôte en v1
+
+### Export retournant une quotation
+
+```nicole
+export : app.make-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+  :[ | x:Int -- y:Int | x 1 + ;]
+;
+```
+
+Pourquoi c’est invalide :
+- un mot exporté expose ici une quotation en sortie à la frontière hôte
+
+Règle violée :
+- les quotations ne franchissent pas l’ABI hôte en v1
+
+### Export avec corps incompatible avec sa signature
+
+```nicole
+export : app.bad { -- n:Int }
+;
+```
+
+Pourquoi c’est invalide :
+- le mot exporté annonce une sortie `Int`
+- son corps ne produit aucune valeur
+
+Règle violée :
+- un mot exporté reste un mot Nicole normal
+- son corps doit respecter exactement sa signature avant l’exécution
+
 ---
 
 ## 8. Collisions de noms visibles

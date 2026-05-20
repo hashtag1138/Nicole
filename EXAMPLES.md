@@ -903,6 +903,27 @@ Effet de pile :
 Pourquoi :
 - exemple minimal d’appel à un mot fourni par l’hôte
 
+### Lecture de configuration depuis l’hôte
+
+Contrat hôte supposé pour cet exemple :
+
+```text
+host.config.get { key:String -- r:Result<String,MapError> }
+```
+
+```nicole
+: read-config { key:String -- r:Result<String,MapError> }
+  key host.config.get
+;
+```
+
+Explication :
+- le mot hôte peut lui-même choisir de retourner un `Result`
+- ce `Result` fait partie de la signature déclarée du mot hôte
+
+Pourquoi :
+- montre que `Result` à la frontière hôte reste explicite et contractuel
+
 ---
 
 ## 11. `export`
@@ -945,6 +966,21 @@ Effet de pile :
 
 Pourquoi :
 - montre un export événementiel minimal
+
+### Export simple avec entrée et sortie
+
+```nicole
+export : app.run { input:String -- output:String }
+  input
+;
+```
+
+Explication :
+- expose un mot normal du programme à l’hôte
+- la signature d’export reste le contrat ABI visible
+
+Pourquoi :
+- montre un export minimal avec valeur de retour
 
 ---
 
