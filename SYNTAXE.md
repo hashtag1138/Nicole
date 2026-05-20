@@ -59,6 +59,38 @@ Chaînes :
 - les retours à la ligne bruts dans une chaîne ne sont pas autorisés en v1
 - les échappements supportés en v1 sont `\"`, `\\`, `\n` et `\t`
 
+## Formes réservées v1
+
+Les formes suivantes sont réservées par le langage et ne peuvent pas être définies comme mots utilisateur :
+
+- `if`
+- `else`
+- `end`
+- `case`
+- `pub`
+- `export`
+- `call`
+- `?`
+- `Ok!`
+- `Err!`
+
+Dans `case`, les motifs `Ok(v)` et `Err(e)` sont des formes de pattern de `Result`, pas des noms de mots définissables par l’utilisateur.
+
+Les variantes fermées `MissingKey` et `OutOfBounds` sont réservées en v1 comme variantes d’erreur du langage et ne peuvent pas être redéfinies comme mots utilisateur.
+
+Les espaces de noms suivants sont fournis par le langage ou par le contrat hôte et ne peuvent pas être définis ni masqués par le code Nicole :
+
+- `result.*`
+- `list.*`
+- `map.*`
+- `host.*`
+
+Les builtins du langage font partie de l’espace de résolution visible.
+
+Un mot défini par l’utilisateur ne peut donc ni redéfinir ni masquer un nom builtin.
+
+Toute collision entre une définition utilisateur et une forme réservée, une variante réservée ou un nom builtin est une erreur de compilation.
+
 ---
 
 # 2. Visibilité interne, export et contrats hôte
@@ -1315,7 +1347,9 @@ Règles :
 - dans un mot, `?` quitte ce mot
 - dans une quotation, `?` quitte cette quotation
 - `?` ne saute jamais directement hors d’un mot appelant, d’un `export` appelant, d’une quotation extérieure, ni d’un builtin de collection
-- la frame qui contient `?` doit déclarer une sortie compatible avec `Result<_,E>`
+- en v1, `?` est autorisé seulement dans une frame dont la signature de sortie complète est exactement une seule valeur de type `Result<T,E>`
+- le type d’erreur produit par `?` doit correspondre exactement au type d’erreur `E` de cette sortie
+- aucune conversion implicite ni élargissement de type d’erreur n’existe en v1
 
 Exemple valide :
 
@@ -1532,7 +1566,7 @@ Dans le corps d’une quotation :
 - les inputs du `call` sont visibles comme des variables locales en lecture seule
 - aucune capture par référence implicite n’est autorisée
 - aucune mutation des captures n’est autorisée
-- si `?` apparaît dans le corps, la quotation doit elle-même déclarer une sortie compatible avec `Result<_,E>`
+- si `?` apparaît dans le corps, la quotation doit elle-même déclarer exactement une seule sortie de type `Result<T,E>`
 - dans une quotation, `?` quitte uniquement cette quotation
 
 Les noms locaux doivent être uniques dans la frame de la quotation.

@@ -258,6 +258,89 @@ Pourquoi c’est invalide :
 Règle violée :
 - un pattern `Err(...)` doit utiliser une variante compatible avec le type d’erreur du `Result`
 
+### Définition directe de `call`
+
+```nicole
+: call { -- n:Int }
+  1
+;
+```
+
+Pourquoi c’est invalide :
+- `call` est une forme réservée du langage
+
+Règle violée :
+- une forme réservée ne peut pas être définie comme mot utilisateur
+
+### Définition directe de `Ok!`
+
+```nicole
+: Ok! { x:Int -- r:Result<Int,String> }
+  x
+  "bad" drop
+;
+```
+
+Pourquoi c’est invalide :
+- `Ok!` est un constructeur builtin réservé
+
+Règle violée :
+- un builtin réservé ne peut pas être redéfini par le programme
+
+### Définition directe de `result.is-ok`
+
+```nicole
+: result.is-ok { -- b:Bool }
+  true
+;
+```
+
+Pourquoi c’est invalide :
+- `result.is-ok` appartient à l’espace builtin `result.*`
+
+Règle violée :
+- un nom builtin `result.*` ne peut pas être défini ni masqué par le programme
+
+### Définition directe de `list.map`
+
+```nicole
+: list.map { -- }
+;
+```
+
+Pourquoi c’est invalide :
+- `list.map` appartient à l’espace builtin `list.*`
+
+Règle violée :
+- un nom builtin `list.*` ne peut pas être défini ni masqué par le programme
+
+### Définition directe de `map.get`
+
+```nicole
+: map.get { -- }
+;
+```
+
+Pourquoi c’est invalide :
+- `map.get` appartient à l’espace builtin `map.*`
+
+Règle violée :
+- un nom builtin `map.*` ne peut pas être défini ni masqué par le programme
+
+### Définition directe de `MissingKey`
+
+```nicole
+: MissingKey { -- text:String }
+  "bad"
+;
+```
+
+Pourquoi c’est invalide :
+- `MissingKey` est une variante d’erreur réservée en v1
+
+Règle violée :
+- une variante d’erreur fermée du langage ne peut pas être redéfinie comme mot utilisateur
+
 ### `?` dans une frame qui ne retourne pas `Result`
 
 ```nicole
@@ -271,7 +354,41 @@ Pourquoi c’est invalide :
 - le mot promet pourtant une sortie simple `Int`
 
 Règle violée :
-- une frame contenant `?` doit déclarer une sortie compatible avec `Result<_,E>`
+- une frame contenant `?` doit retourner exactement une seule valeur `Result<T,E>`
+
+### `?` dans une frame à sorties multiples
+
+```nicole
+: bad-propagate-many { cfg:Map<String,Int> -- x:Int r:Result<Int,MapError> }
+  cfg "timeout" map.get ?
+  1
+  2 Ok!
+;
+```
+
+Pourquoi c’est invalide :
+- la frame annonce plusieurs sorties
+- `?` n’est autorisé en v1 que si la sortie complète est exactement une seule valeur `Result<T,E>`
+
+Règle violée :
+- une frame contenant `?` doit retourner exactement une seule valeur `Result<T,E>`
+
+### `?` avec type d’erreur incompatible
+
+```nicole
+: bad-propagate-error { xs:List<Int> -- r:Result<Int,MapError> }
+  xs 0 list.get ?
+  1 Ok!
+;
+```
+
+Pourquoi c’est invalide :
+- `list.get` produit `Result<Int,ListError>`
+- la frame retourne `Result<Int,MapError>`
+
+Règle violée :
+- le type d’erreur consommé par `?` doit correspondre exactement au type d’erreur de la sortie de frame
+- aucune conversion implicite entre `ListError` et `MapError` n’existe en v1
 
 ### Construction invalide par forme expressionnelle `Ok(...)`
 
@@ -414,7 +531,7 @@ Pourquoi c’est invalide :
 - la quotation annonce pourtant une sortie simple `Int`
 
 Règle violée :
-- une quotation contenant `?` doit déclarer une sortie compatible avec `Result<_,E>`
+- une quotation contenant `?` doit retourner exactement une seule valeur `Result<T,E>`
 
 ### Quotation qui retourne trop peu de valeurs
 

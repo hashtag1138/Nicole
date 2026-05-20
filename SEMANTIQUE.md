@@ -7,6 +7,33 @@ Ce document formalise le comportement du langage.
 La syntaxe de surface est définie et gelée dans `SYNTAXE.md`.
 Ce fichier ne redéfinit pas la syntaxe.
 
+## Formes réservées et builtins
+
+Les formes spéciales du langage, les variantes d’erreur fermées et les builtins fournis par le langage ne sont pas redéfinissables en v1.
+
+Cela couvre notamment :
+
+- `if`
+- `else`
+- `end`
+- `case`
+- `pub`
+- `export`
+- `call`
+- `?`
+- `Ok!`
+- `Err!`
+- `MissingKey`
+- `OutOfBounds`
+- `result.*`
+- `list.*`
+- `map.*`
+- `host.*`
+
+Ces noms participent à la résolution visible du programme.
+
+Une définition utilisateur qui tente de réutiliser ou de masquer l’un de ces noms doit être rejetée statiquement.
+
 Le but est de préciser :
 
 - le modèle d’exécution
@@ -446,7 +473,7 @@ Dans le corps d’une quotation :
 - les inputs du `call` sont accessibles en lecture seule
 - aucune capture par référence implicite n’existe
 - aucune mutation des captures n’existe
-- si `?` apparaît dans le corps, la quotation doit elle-même déclarer une sortie compatible avec `Result<_,E>`
+- si `?` apparaît dans le corps, la quotation doit elle-même déclarer exactement une seule sortie de type `Result<T,E>`
 - dans une quotation, `?` quitte uniquement cette quotation
 
 Les noms locaux doivent être uniques dans la frame de la quotation.
@@ -552,7 +579,13 @@ La portée de cette propagation est strictement locale :
 - `?` ne traverse jamais implicitement une frame parente
 - `?` ne provoque jamais de sortie implicite spéciale de `list.map`, `list.fold` ou `list.reduce`
 
-Le type-checker doit rejeter toute frame contenant `?` si cette frame ne déclare pas une sortie compatible avec `Result<_,E>`.
+Le type-checker doit rejeter toute frame contenant `?` si cette frame ne déclare pas exactement une seule sortie, de type `Result<T,E>`.
+
+Une frame qui annonce plusieurs sorties, aucune sortie, ou une sortie simple non `Result` doit être rejetée si son corps contient `?`.
+
+Le type d’erreur produit par la valeur consommée par `?` doit correspondre exactement au type d’erreur `E` de la sortie de frame.
+
+Il n’existe en v1 ni élargissement implicite, ni conversion implicite entre types d’erreur.
 
 ## Interaction avec les builtins d’ordre supérieur
 
