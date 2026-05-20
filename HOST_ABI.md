@@ -39,6 +39,10 @@ Un mot `export` appartient au programme Nicole mais peut être invoqué par l’
 
 Un mot `host.*` appartient au contrat fourni par l’hôte et peut être invoqué par le programme Nicole.
 
+L’effet (`pure` ou `dirty`) d’un mot `host.*` appartient au contrat hôte.
+
+Il n’existe pas de syntaxe source Nicole du type `dirty host.foo { ... }`.
+
 Le contrat hôte ne crée pas de mutation implicite, ne partage pas de pile globale et ne contourne pas les règles de typage ou de retour définies ailleurs dans la documentation.
 
 ---
@@ -57,10 +61,17 @@ Un mot exporté garantit :
 - des sorties typées
 - une discipline de retour identique à celle de tout mot Nicole
 - l’exécution dans une stack frame isolée
+- un statut d’effet vérifié (`pure` ou `dirty`) dérivé de son corps
 
 Le mot exporté reste un mot du programme.
 
 Il peut aussi être appelé depuis d’autres mots du programme, comme tout mot visible.
+
+`export` ne rend pas un mot dirty par lui-même.
+
+Le statut d’effet d’un export est déterminé par la sémantique du mot, puis validé contre son annotation éventuelle.
+
+L’hôte peut exposer ou inspecter cette information d’effet comme métadonnée de contrat, sans que cela change les règles de typage ABI.
 
 ## Appel conceptuel par l’hôte
 
@@ -126,7 +137,7 @@ Le corps du mot exporté doit donc être entièrement vérifié avant toute exé
 Exemple conceptuel :
 
 ```nicole
-export : app.on-message { msg:String -- }
+export dirty : app.on-message { msg:String -- }
   msg host.log
 ;
 ```
@@ -149,10 +160,43 @@ Un mot `host.*` garantit :
 - des entrées typées
 - des sorties typées si le mot en déclare
 - une sémantique stable du point de vue du programme Nicole
+- une déclaration d’effet explicite (`pure` ou `dirty`)
 
 Le programme peut appeler un mot `host.*` comme il appelle un mot normal, mais le mot n’est pas défini dans le code Nicole.
 
 Le contrat de type d’un mot `host.*` fait partie du contrat ABI fourni par l’hôte.
+
+Le contrat d’effet d’un mot `host.*` fait aussi partie de ce contrat ABI.
+
+Forme conceptuelle canonique d’une entrée hôte :
+
+```text
+host.log
+
+signature:
+{ msg:String -- }
+
+availability:
+required
+
+effect:
+dirty
+```
+
+Autre exemple :
+
+```text
+host.timezone
+
+signature:
+{ -- tz:String }
+
+availability:
+required
+
+effect:
+pure
+```
 
 ## Appel conceptuel depuis le programme
 
@@ -171,7 +215,7 @@ Le programme ne doit pas supposer :
 Exemple conceptuel :
 
 ```nicole
-: save-log { msg:String -- }
+dirty : save-log { msg:String -- }
   msg host.log
 ;
 ```
@@ -208,11 +252,21 @@ Le contrat d’intégration doit donc fournir :
 - le nom du mot
 - sa signature
 - le statut de disponibilité du mot
+- son effet (`pure` ou `dirty`)
+
+La déclaration d’effet est obligatoire en v1.
+
+Il n’existe pas de valeur implicite par défaut pour l’effet dans le contrat hôte.
 
 Le statut de disponibilité est conceptuellement l’un des deux suivants :
 
 - requis
 - optionnel
+
+L’effet est indépendant du statut de disponibilité :
+
+- un mot requis peut être `pure` ou `dirty`
+- un mot optionnel peut être `pure` ou `dirty`
 
 Un mot `host.*` requis doit être présent pour que le contrat soit valide.
 
@@ -273,6 +327,12 @@ Le contrat hôte n’autorise pas de conversions implicites au niveau de la fron
 Il n’autorise pas non plus d’inférence de type dynamique au moment de l’appel.
 
 Le binding hôte doit satisfaire une signature déjà connue et déjà vérifiée.
+
+La métadonnée d’effet :
+
+- ne modifie pas la compatibilité des types ABI
+- ne modifie pas les règles de frontière de valeurs
+- ne remplace pas la vérification de signature
 
 ---
 
@@ -336,10 +396,10 @@ Les quotations ne franchissent pas l’ABI hôte en v1.
 
 Autrement dit :
 
-- un mot `host.*` ne reçoit pas de `Quote<{ ... }>` en entrée
-- un mot `host.*` ne retourne pas de `Quote<{ ... }>`
-- un mot `export` n’expose pas de `Quote<{ ... }>` en entrée
-- un mot `export` n’expose pas de `Quote<{ ... }>` en sortie
+- un mot `host.*` ne reçoit pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
+- un mot `host.*` ne retourne pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>`
+- un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
+- un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en sortie
 
 Cette limitation garde la frontière ABI simple et purement orientée données.
 

@@ -881,13 +881,19 @@ Pourquoi :
 Contrat hôte supposé dans cette section :
 
 ```text
-host.log { msg:String -- }
+host.log
+signature:
+{ msg:String -- }
+availability:
+required
+effect:
+dirty
 ```
 
 ### Avertir l’hôte
 
 ```nicole
-: warn { msg:String -- }
+dirty : warn { msg:String -- }
   msg host.log
 ;
 ```
@@ -908,7 +914,13 @@ Pourquoi :
 Contrat hôte supposé pour cet exemple :
 
 ```text
-host.config.get { key:String -- r:Result<String,MapError> }
+host.config.get
+signature:
+{ key:String -- r:Result<String,MapError> }
+availability:
+required
+effect:
+pure
 ```
 
 ```nicole
@@ -931,7 +943,7 @@ Pourquoi :
 ### Handler de message
 
 ```nicole
-export : app.demo-message { msg:String -- }
+export dirty : app.demo-message { msg:String -- }
   msg host.log
 ;
 ```
@@ -951,7 +963,7 @@ Pourquoi :
 ### Handler sans retour
 
 ```nicole
-export : app.tick { -- }
+export dirty : app.tick { -- }
   "tick" host.log
 ;
 ```
@@ -989,11 +1001,17 @@ Pourquoi :
 Contrat hôte supposé :
 
 ```text
-host.log { msg:String -- }
+host.log
+signature:
+{ msg:String -- }
+availability:
+required
+effect:
+dirty
 ```
 
 ```nicole
-export : app.on-message { msg:String -- }
+export dirty : app.on-message { msg:String -- }
   msg host.log
 ;
 
@@ -1004,7 +1022,7 @@ export : app.on-message { msg:String -- }
   end
 ;
 
-: demo { -- }
+dirty : demo { -- }
   true greeting host.log
 ;
 ```
@@ -1031,3 +1049,139 @@ Explication :
 
 Pourquoi :
 - montre qu’une quotation peut être produite par un mot comme n’importe quelle autre valeur
+
+---
+
+## 14. Pureté et effet `dirty` (v0.14.0)
+
+Contrat hôte supposé dans cette section :
+
+```text
+host.log
+signature:
+{ msg:String -- }
+availability:
+required
+effect:
+dirty
+```
+
+### Mot pur
+
+```nicole
+: add-one { x:Int -- y:Int }
+  x 1 +
+;
+```
+
+Explication :
+- ce mot n’appelle que du code pur
+- aucune annotation `dirty` n’est requise
+
+### Mot dirty direct
+
+```nicole
+dirty : log-message { msg:String -- }
+  msg host.log
+;
+```
+
+Explication :
+- `host.log` est dirty dans le contrat hôte
+- l’annotation `dirty` est donc obligatoire
+
+### Export pur
+
+```nicole
+export : pure-main { -- code:Int }
+  0
+;
+```
+
+Explication :
+- `export` n’impose pas dirty
+- ce mot reste pur
+
+### Export dirty
+
+```nicole
+export dirty : app.run { -- code:Int }
+  "start" host.log
+  0
+;
+```
+
+Explication :
+- l’export appelle un binding hôte dirty
+- il doit donc être annoté `dirty`
+
+### Sous-mot dirty appelé
+
+```nicole
+dirty : parent { msg:String -- }
+
+  dirty : child-log { text:String -- }
+    text host.log
+  ;
+
+  msg child-log
+;
+```
+
+Explication :
+- le sous-mot `child-log` est dirty
+- le parent qui l’appelle est dirty
+
+### DirtyQuote construit et appelé dans une frame dirty
+
+```nicole
+dirty : run-dirty-quote { x:Int -- y:Int }
+  x
+  :[ | n:Int -- m:Int |
+    "trace" host.log
+    n 1 +
+  ;]
+  call
+;
+```
+
+Explication :
+- la quotation appelle `host.log`, elle est donc de type `DirtyQuote<{ | n:Int -- m:Int }>`
+- `call` est dirty dans ce cas
+
+### DirtyQuote passé à `list.map` dans une frame dirty
+
+```nicole
+dirty : map-with-logging { xs:List<Int> -- ys:List<Int> }
+  xs
+  :[ | x:Int -- y:Int |
+    "item" host.log
+    x 1 +
+  ;]
+  list.map
+;
+```
+
+Explication :
+- `list.map` reste un builtin structurellement pur
+- l’appel courant devient dirty parce que la quotation fournie est dirty
+
+### Propagation indirecte transitive
+
+```nicole
+dirty : dirty-leaf { msg:String -- }
+  msg host.log
+;
+
+dirty : dirty-middle { msg:String -- }
+  msg dirty-leaf
+;
+
+dirty : dirty-top { msg:String -- }
+  msg dirty-middle
+;
+```
+
+Explication :
+- `dirty-leaf` est dirty par appel hôte direct
+- `dirty-middle` et `dirty-top` deviennent dirty par propagation indirecte

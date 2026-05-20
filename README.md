@@ -80,6 +80,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - visibilité par défaut privée
 - visibilité interne `pub`
 - exposition à l’hôte `export`
+- annotation d’effet `dirty` (pas de mot-clé `pure`)
 - sous-mots
 - noms qualifiés
 - mots fournis par l’hôte via le préfixe réservé `host.`
@@ -88,6 +89,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - quotations et fonctions comme valeurs
 - quotations de valeur fermées par `;]`
 - quotations typées `Quote<{ captures | inputs -- outputs }>`
+- quotations dirty typées `DirtyQuote<{ captures | inputs -- outputs }>`
 - handlers d’événements
 
 ### Sémantique
@@ -106,8 +108,10 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - exécution embarquée sur bytecode
 - extension possible vers un JIT futur, sans promesse de stabilité d’implémentation
 - capture par valeur dans les quotations
+- pureté implicite + effet `dirty` explicite et vérifié statiquement
 - export = programme → hôte
 - host.* = hôte → programme
+- effet des bindings `host.*` défini par contrat hôte explicite
 
 ### Types
 
@@ -121,6 +125,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - MapError
 - Result<V,E>
 - Quote<{ captures | inputs -- outputs }>
+- DirtyQuote<{ captures | inputs -- outputs }>
 - Unit
 
 et éventuelles extensions futures.

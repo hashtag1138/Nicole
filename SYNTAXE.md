@@ -69,6 +69,7 @@ Les formes suivantes sont réservées par le langage et ne peuvent pas être dé
 - `case`
 - `pub`
 - `export`
+- `dirty`
 - `call`
 - `?`
 - `Ok!`
@@ -91,6 +92,43 @@ Un mot défini par l’utilisateur ne peut donc ni redéfinir ni masquer un nom 
 
 Toute collision entre une définition utilisateur et une forme réservée, une variante réservée ou un nom builtin est une erreur de compilation.
 
+`dirty` est réservé comme identifiant exact en v1.
+
+Cette réservation s’applique à :
+
+- noms de mots top-level
+- noms de sous-mots
+- noms de variables locales d’entrée
+- noms de captures de quotations
+- labels de sortie de signature
+
+Exemples invalides :
+
+```nicole
+: dirty { -- }
+  0 drop
+;
+```
+
+```nicole
+: foo { dirty:Int -- x:Int }
+  dirty
+;
+```
+
+```nicole
+:[ dirty:Int | x:Int -- y:Int | x ;]
+```
+
+Seul l’identifiant exact `dirty` est réservé.
+
+Les identifiants suivants restent autorisés :
+
+- `dirty-int`
+- `dirty_log`
+- `is-dirty`
+- `dirty.value`
+
 ---
 
 # 2. Visibilité interne, export et contrats hôte
@@ -106,6 +144,33 @@ Il n’existe pas de graphe de modules ni de mécanisme `import` en v1.
 `export` rend un mot visible à l’hôte et implique `pub`.
 Tout mot exporté est appelable par l’hôte.
 En v1, `export` n’est autorisé que sur un mot top-level.
+
+`dirty` est l’annotation d’effet explicite de v1.
+
+L’ordre des modificateurs est normatif :
+
+```text
+visibilité d’abord, dirty ensuite, définition ensuite
+```
+
+Formes valides :
+
+```text
+: foo
+dirty : foo
+pub : foo
+pub dirty : foo
+export : foo
+export dirty : foo
+```
+
+Formes invalides :
+
+```text
+dirty pub : foo
+dirty export : foo
+: dirty foo
+```
 
 Les modificateurs de visibilité ne créent pas d’espace nominal séparé.
 Un nom visible doit rester unique même si une définition est `pub` et l’autre `export`.
@@ -541,16 +606,25 @@ Deux directions coexistent :
 
 Tout mot dont le nom commence par `host.` est réservé à l’hôte.
 
-```nicole
-host.log { msg:String -- }
-host.time { -- seconds:Float }
+Exemple abrégé de noms hôte :
+
+```text
+host.log
+host.time
 ```
+
+Ces noms abrégés ne constituent pas le format canonique du contrat.
+Le format canonique `signature` / `availability` / `effect` est défini dans `HOST_ABI.md`.
 
 Ces mots ne sont pas définis dans le code source du programme.
 
 Le langage connaît leur signature via le contrat d’intégration de l’hôte.
 
 Leur corps est fourni par l’hôte, hors du langage source.
+
+L’effet (`pure` ou `dirty`) d’un mot `host.*` appartient au contrat hôte (`HOST_ABI.md`), pas à la syntaxe source Nicole.
+
+La v1 n’introduit pas de forme source du type `dirty host.foo { ... }`.
 
 Règles :
 
@@ -758,10 +832,14 @@ ListError
 MapError
 Result<V,E>
 Quote<{ captures | inputs -- outputs }>
+DirtyQuote<{ captures | inputs -- outputs }>
 Unit
 ```
 
 Dans `Quote<{ captures | inputs -- outputs }>`, les mots `captures`, `inputs` et `outputs` sont des placeholders descriptifs. Les types concrets doivent utiliser des entrées et sorties nommées, par exemple `Quote<{ | x:Int -- y:Int }>` ou `Quote<{ a:Int | x:Int -- y:Int }>` .
+
+Dans `DirtyQuote<{ captures | inputs -- outputs }>`, la structure de signature est identique.
+Seule l’information d’effet diffère.
 
 Extensions possibles plus tard :
 
@@ -799,12 +877,12 @@ Ces deux notions ne doivent pas être confondues.
 Exemples :
 
 ```nicole
-: log-only { msg:String -- }
-  msg host.log
+: consume-only { msg:String -- }
+  msg drop
 ;
 ```
 
-`log-only` ne produit aucune valeur.
+`consume-only` ne produit aucune valeur.
 
 Si le littéral ou mot `unit` est retenu, il produirait une valeur de type `Unit`.
 
@@ -989,6 +1067,7 @@ list.get
 list.set
 list.concat
 list.map
+list.filter
 list.fold
 list.reduce
 ```
@@ -1005,15 +1084,16 @@ list.len    { xs:List<T> -- n:Int }
 list.get    { xs:List<T> index:Int -- r:Result<T,ListError> }
 list.set    { xs:List<T> index:Int value:T -- r:Result<List<T>,ListError> }
 list.concat { xs:List<T> ys:List<T> -- zs:List<T> }
-list.map    { xs:List<T> q:Quote<{ | x:T -- y:U }> -- ys:List<U> }
-list.filter { xs:List<T> q:Quote<{ | x:T -- keep:Bool }> -- ys:List<T> }
-list.fold   { xs:List<T> init:Acc q:Quote<{ | acc:Acc x:T -- out:Acc }> -- out:Acc }
-list.reduce { xs:List<T> q:Quote<{ | a:T b:T -- c:T }> -- out:T }
+list.map    { xs:List<T> q:(Quote<{ | x:T -- y:U }> | DirtyQuote<{ | x:T -- y:U }>) -- ys:List<U> }
+list.filter { xs:List<T> q:(Quote<{ | x:T -- keep:Bool }> | DirtyQuote<{ | x:T -- keep:Bool }>) -- ys:List<T> }
+list.fold   { xs:List<T> init:Acc q:(Quote<{ | acc:Acc x:T -- out:Acc }> | DirtyQuote<{ | acc:Acc x:T -- out:Acc }>) -- out:Acc }
+list.reduce { xs:List<T> q:(Quote<{ | a:T b:T -- c:T }> | DirtyQuote<{ | a:T b:T -- c:T }>) -- out:T }
 ```
 
 Ces signatures décrivent la partie appelable exigée par chaque builtin higher-order.
+Le choix `Quote` ou `DirtyQuote` est ensuite contraint par les règles d’effet de `SEMANTIQUE.md`.
 
-Le `|` vide dans `Quote<{ | ... }>` signifie que l’appel de `list.map`, `list.filter`, `list.fold` ou `list.reduce` ne fournit aucune capture supplémentaire au moment du builtin.
+Le `|` vide dans `Quote<{ | ... }>` ou `DirtyQuote<{ | ... }>` signifie que l’appel de `list.map`, `list.filter`, `list.fold` ou `list.reduce` ne fournit aucune capture supplémentaire au moment du builtin.
 
 Il ne signifie pas que la quotation passée doit avoir été construite sans captures internes.
 
@@ -1420,6 +1500,7 @@ Type canonique :
 
 ```text
 Quote<{ captures | inputs -- outputs }>
+DirtyQuote<{ captures | inputs -- outputs }>
 ```
 
 Exemples :
@@ -1429,6 +1510,8 @@ Quote<{ | -- }>
 Quote<{ | x:Int -- y:Int }>
 Quote<{ a:Int | x:Int -- y:Int }>
 Quote<{ | acc:Acc x:T -- out:Acc }>
+DirtyQuote<{ | x:Int -- y:Int }>
+DirtyQuote<{ a:Int | x:Int -- y:Int }>
 ```
 
 Règles :
@@ -1441,6 +1524,8 @@ Règles :
 - les noms sont documentaires
 - les captures font partie de la valeur de quotation, pas de la pile appelante
 - les formes anonymes de quotations ne sont pas canoniques en v1
+- `Quote<{ ... }>` désigne une quotation pure
+- `DirtyQuote<{ ... }>` désigne une quotation dirty
 
 ## Syntaxe
 
@@ -1589,6 +1674,7 @@ Une quotation de transformation pour `list.map` a une forme du genre :
 
 ```text
 Quote<{ | x:T -- y:U }>
+ou DirtyQuote<{ | x:T -- y:U }>
 ```
 
 Ici, le `|` vide décrit la partie appelable requise par `list.map`.
@@ -1615,6 +1701,7 @@ Une quotation de prédicat pour `list.filter` a une forme du genre :
 
 ```text
 Quote<{ | x:T -- keep:Bool }>
+ou DirtyQuote<{ | x:T -- keep:Bool }>
 ```
 
 Cette écriture décrit la partie appelable exigée par `list.filter`.
@@ -1661,6 +1748,7 @@ La quotation de `list.fold` a typiquement une forme du genre :
 
 ```text
 Quote<{ | acc:Acc x:T -- out:Acc }>
+ou DirtyQuote<{ | acc:Acc x:T -- out:Acc }>
 ```
 
 Là encore, cette écriture décrit la partie appelable exigée par `list.fold`.
@@ -1689,6 +1777,7 @@ La quotation de `list.reduce` a typiquement une forme du genre :
 
 ```text
 Quote<{ | a:T b:T -- c:T }>
+ou DirtyQuote<{ | a:T b:T -- c:T }>
 ```
 
 Cette forme décrit la partie appelable exigée par `list.reduce`.
@@ -1751,10 +1840,10 @@ Erreur attendue :
 ## Formulation courte
 
 ```text
-Une quotation est une valeur de type Quote<{ captures | inputs -- outputs }>.
+Une quotation est une valeur de type `Quote<{ captures | inputs -- outputs }>` ou `DirtyQuote<{ captures | inputs -- outputs }>`.
 La barre est obligatoire, même lorsque la zone captures est vide.
 Les captures, inputs et outputs sont typés dans la syntaxe de référence.
-call consomme une quotation, exécute son corps et applique son effet de pile.
+`call` consomme une quotation, exécute son corps et applique son effet de pile.
 Les captures sont figées par valeur et ne capturent jamais par référence.
 ```
 
@@ -1823,12 +1912,25 @@ Les variantes de visibilité sont :
   x
 ;
 
+dirty : internal-dirty { x:Int -- y:Int }
+  x
+;
+
 pub : internal-word { x:Int -- y:Int }
   x
 ;
 
+pub dirty : internal-dirty-shared { x:Int -- y:Int }
+  x
+;
+
 export : app.event { payload:String -- }
-  payload host.log
+  payload drop
+;
+
+export dirty : app.run { -- code:Int }
+  "start" host.log
+  0
 ;
 ```
 
@@ -1838,7 +1940,13 @@ export : app.event { payload:String -- }
 
 ```nicole
 # Contrat hôte supposé :
-# host.log { msg:String -- }
+# host.log
+# signature:
+# { msg:String -- }
+# availability:
+# required
+# effect:
+# dirty
 
 : square { x:Int -- y:Int }
   x x *
@@ -1856,7 +1964,7 @@ pub : helper { n:Int -- m:Int }
   n 1 +
 ;
 
-export : app.on-message { msg:String -- }
+export dirty : app.on-message { msg:String -- }
   msg host.log
 ;
 
@@ -1886,11 +1994,36 @@ pub : shared-name { x:Int -- y:Int }
 ;
 ```
 
+Mot dirty privé :
+
+```nicole
+dirty : private-dirty { x:Int -- y:Int }
+  x 1 +
+;
+```
+
+Mot public interne dirty :
+
+```nicole
+pub dirty : shared-dirty { x:Int -- y:Int }
+  x 1 +
+;
+```
+
 Mot exporté à l’hôte :
 
 ```nicole
 export : app.event { payload:String -- }
-  payload host.log
+  payload drop
+;
+```
+
+Mot exporté dirty :
+
+```nicole
+export dirty : app.run { -- code:Int }
+  "start" host.log
+  0
 ;
 ```
 

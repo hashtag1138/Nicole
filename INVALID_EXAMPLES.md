@@ -878,7 +878,13 @@ Règle violée :
 Contrat hôte supposé dans cet exemple :
 
 ```text
-host.run-later { q:Quote<{ | x:Int -- y:Int }> -- }
+host.run-later
+signature:
+{ q:Quote<{ | x:Int -- y:Int }> -- }
+availability:
+required
+effect:
+dirty
 ```
 
 ```nicole
@@ -898,7 +904,13 @@ Règle violée :
 Contrat hôte supposé dans cet exemple :
 
 ```text
-host.make-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+host.make-callback
+signature:
+{ -- q:Quote<{ | x:Int -- y:Int }> }
+availability:
+required
+effect:
+dirty
 ```
 
 ```nicole
@@ -1153,3 +1165,200 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - `SYNTAXE.md` définit les signatures avec la forme `{ ... -- ... }`
+
+---
+
+## 10. Pureté et effet `dirty` invalides (v0.14.0)
+
+Contrat hôte supposé dans cette section :
+
+```text
+host.log
+signature:
+{ msg:String -- }
+availability:
+required
+effect:
+dirty
+```
+
+### Annotation `dirty` manquante sur appel hôte dirty
+
+```nicole
+: bad-pure-host-call { -- }
+  "hello" host.log
+;
+```
+
+Pourquoi c’est invalide :
+- `host.log` est dirty dans le contrat hôte
+- le mot est inféré dirty mais n’est pas annoté `dirty`
+
+Règle violée :
+- inféré dirty + annotation absente => erreur statique
+
+### Mot pur appelant un mot Nicole dirty
+
+```nicole
+dirty : log-message { msg:String -- }
+  msg host.log
+;
+
+: bad-pure-calls-dirty { -- }
+  "hello" log-message
+;
+```
+
+Pourquoi c’est invalide :
+- `bad-pure-calls-dirty` appelle un mot dirty
+- il devrait être annoté `dirty`
+
+Règle violée :
+- un mot pur ne peut pas appeler du code dirty
+
+### Export pur appelant du code dirty
+
+```nicole
+export : bad-pure-export { -- code:Int }
+  "start" host.log
+  0
+;
+```
+
+Pourquoi c’est invalide :
+- l’export est inféré dirty
+- l’annotation `dirty` est absente
+
+Règle violée :
+- un export pur ne peut pas appeler du code dirty
+- inféré dirty + annotation absente => erreur statique
+
+### Annotation `dirty` redondante
+
+```nicole
+dirty : bad-redundant-dirty { -- n:Int }
+  1
+;
+```
+
+Pourquoi c’est invalide :
+- le corps est inféré pur
+- l’annotation dirty ne correspond pas à l’effet inféré
+
+Règle violée :
+- inféré pur + annoté dirty => erreur statique
+
+### Ordre invalide des modificateurs
+
+```nicole
+dirty export : bad-order-a { -- }
+;
+```
+
+```nicole
+dirty pub : bad-order-b { -- }
+;
+```
+
+```nicole
+: dirty bad-order-c { -- }
+;
+```
+
+Pourquoi c’est invalide :
+- l’ordre normatif est visibilité puis `dirty` puis définition
+
+Règle violée :
+- `dirty export :` et `dirty pub :` sont interdits en v1
+- la forme `: dirty foo` est interdite en v1
+
+### Définition d’un mot nommé `dirty`
+
+```nicole
+: dirty { -- }
+;
+```
+
+Pourquoi c’est invalide :
+- `dirty` est réservé comme identifiant exact
+
+Règle violée :
+- un mot utilisateur ne peut pas s’appeler `dirty`
+
+### Utilisation de `dirty` comme local
+
+```nicole
+: bad-dirty-local { dirty:Int -- x:Int }
+  dirty
+;
+```
+
+Pourquoi c’est invalide :
+- `dirty` est réservé aussi pour les noms locaux
+
+Règle violée :
+- un local ne peut pas porter l’identifiant exact `dirty`
+
+### Utilisation de `dirty` comme capture
+
+```nicole
+:[ dirty:Int | x:Int -- y:Int | x ;]
+```
+
+Pourquoi c’est invalide :
+- `dirty` est réservé aussi pour les noms de capture
+
+Règle violée :
+- une capture ne peut pas porter l’identifiant exact `dirty`
+
+### Construction de `DirtyQuote` dans une frame pure
+
+```nicole
+: bad-construct-dirty-quote { -- q:DirtyQuote<{ | x:Int -- y:Int }> }
+  :[ | x:Int -- y:Int |
+    "item" host.log
+    x
+  ;]
+;
+```
+
+Pourquoi c’est invalide :
+- la quotation est dirty car elle appelle `host.log`
+- la frame de construction est pure
+
+Règle violée :
+- une frame pure ne peut pas construire de `DirtyQuote`
+
+### Appel d’un `DirtyQuote` dans une frame pure
+
+```nicole
+: bad-call-dirty-quote { x:Int q:DirtyQuote<{ | n:Int -- m:Int }> -- y:Int }
+  x q call
+;
+```
+
+Pourquoi c’est invalide :
+- `call` sur `DirtyQuote` rend l’appel dirty
+- la frame appelante est pure
+
+Règle violée :
+- une frame pure ne peut pas appeler un `DirtyQuote`
+
+### Passage d’un `DirtyQuote` à `list.map` dans une frame pure
+
+```nicole
+: bad-map-dirty-quote {
+  xs:List<Int>
+  q:DirtyQuote<{ | x:Int -- y:Int }>
+  -- ys:List<Int>
+}
+  xs q list.map
+;
+```
+
+Pourquoi c’est invalide :
+- l’appel higher-order devient dirty avec une quotation dirty
+- la frame appelante est pure
+
+Règle violée :
+- une frame pure ne peut pas passer un `DirtyQuote` à `list.map`

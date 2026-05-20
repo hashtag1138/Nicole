@@ -19,6 +19,7 @@ Cela couvre notamment :
 - `case`
 - `pub`
 - `export`
+- `dirty`
 - `call`
 - `?`
 - `Ok!`
@@ -243,6 +244,64 @@ Formes recommandées :
 
 ---
 
+## Effets `pure` / `dirty` en v1
+
+Nicole est pure par défaut.
+
+La v1 n’introduit pas de mot-clé `pure`.
+
+`dirty` est l’annotation d’effet explicite.
+
+Le check d’effet est exact :
+
+- inféré `pure` + annoté `dirty` => erreur
+- inféré `dirty` + annotation `dirty` absente => erreur
+- inféré `dirty` + annoté `dirty` => valide
+- inféré `pure` + sans annotation => valide
+
+Le checker suit l’ordre suivant :
+
+1. inférer l’effet sur le graphe d’appels ;
+2. valider l’annotation source contre l’effet inféré.
+
+En v1, seuls les bindings `host.*` peuvent introduire l’impureté directement.
+
+Les builtins du langage sont purs en v1, sauf `call` dont l’effet dépend du type de quotation appelée.
+
+La propagation est transitive :
+
+- appel direct d’un mot dirty => appelant dirty
+- appel indirect via d’autres mots => dirty aussi
+
+Règles :
+
+- un mot pur ne peut pas appeler du code dirty
+- un `export` pur ne peut pas appeler du code dirty
+- un `export` dirty est autorisé quand le corps est effectivement dirty
+
+Le contrôle est statique uniquement.
+
+Il n’existe pas de violation dirty runtime en v1.
+
+`Result`, `Err` et `?` restent orthogonaux à ce système d’effet.
+
+Récursion et récursion mutuelle :
+
+- l’inférence dirty se fait sur les composantes fortement connexes (SCC) du graphe d’appels
+- un cycle devient dirty si un membre appelle directement un binding dirty
+- un cycle devient dirty si la propagation depuis l’extérieur lui apporte un appel dirty
+- la récursion mutuelle reste autorisée ; seul l’effet inféré doit être cohérent avec les annotations
+
+Sous-mots :
+
+- un sous-mot peut être annoté `dirty`
+- un parent devient dirty s’il appelle ce sous-mot dirty
+- un sous-mot dirty non appelé ne force pas le parent à devenir dirty
+
+L’effet se propage donc par usage, pas par simple présence textuelle.
+
+---
+
 # 4. `if`
 
 `if` consomme un `Bool` au sommet de la pile locale.
@@ -386,6 +445,11 @@ Exemple :
 Une quotation est une valeur exécutable de première classe.
 Elle se comporte comme un mot anonyme : elle a sa propre frame, une pile locale vide au départ, des variables locales immuables, et un retour exact conforme à sa signature.
 
+Deux types de quotations existent en v1 :
+
+- `Quote<{ captures | inputs -- outputs }>` pour une quotation pure
+- `DirtyQuote<{ captures | inputs -- outputs }>` pour une quotation dirty
+
 Elle peut :
 
 - capturer des valeurs au moment de sa construction
@@ -415,6 +479,11 @@ L’ordre des captures suit l’ordre de déclaration.
 
 `call` consomme d’abord la quotation placée au sommet de la pile.
 La quotation n'est pas un bloc qui réutilise la pile courante : les inputs ne deviennent des variables locales qu'au moment du `call`, dans la frame propre de la quotation.
+
+Effet de `call` :
+
+- `call` appliqué à `Quote<{ ... }>` reste pur
+- `call` appliqué à `DirtyQuote<{ ... }>` est dirty
 
 La convention de pile est :
 
@@ -458,6 +527,14 @@ Le type-checker vérifie trois moments distincts :
 1. à la construction de la quotation, les captures présentes sur la pile doivent correspondre aux captures déclarées ;
 2. à l’appel par `call`, les inputs présents sous la quotation doivent correspondre aux inputs déclarés ;
 3. au retour de la quotation, le corps doit produire exactement les outputs déclarés.
+
+Vérifications d’effet :
+
+- une quotation dont le corps appelle du code dirty est de type `DirtyQuote<{ ... }>`
+- une quotation dont le corps n’appelle que du code pur est de type `Quote<{ ... }>`
+- une frame pure ne peut pas construire de `DirtyQuote<{ ... }>`
+- une frame pure ne peut pas appeler un `DirtyQuote<{ ... }>` via `call`
+- une frame dirty peut construire et appeler les deux formes
 
 La quotation suit la même discipline de retour qu’un mot normal :
 
@@ -598,6 +675,15 @@ Le même principe de non-propagation implicite s’applique à `list.filter`, `l
 Ces builtins consomment une quotation déjà construite.
 
 Ils n’introduisent aucune propagation spéciale qui traverserait la frame de cette quotation.
+
+Les builtins d’ordre supérieur restent structurellement purs en v1.
+
+Leur effet au point d’appel dépend du type de quotation fourni :
+
+- avec `Quote<{ ... }>` : l’appel reste pur
+- avec `DirtyQuote<{ ... }>` : l’appel est dirty
+
+Une frame pure ne peut pas passer un `DirtyQuote<{ ... }>` à `list.map`, `list.filter`, `list.fold` ni `list.reduce`.
 
 ## `list.map`
 
@@ -823,7 +909,7 @@ En v1 :
 Exemple :
 
 ```nicole
-export : app.on-message { msg:String -- }
+export dirty : app.on-message { msg:String -- }
   msg host.log
 ;
 ```
@@ -837,7 +923,7 @@ Le programme peut les appeler, mais ne peut pas les définir.
 Exemple :
 
 ```nicole
-: save-log { msg:String -- }
+dirty : save-log { msg:String -- }
   msg host.log
 ;
 ```
@@ -851,6 +937,8 @@ Règles :
 - `Result` ne s’applique qu’au contrat de retour d’un mot `host.*` qui existe effectivement
 - le mécanisme de liaison lui-même n’est jamais modélisé comme un `Result`
 - la résolution statique traite `host.*` comme des mots connus, avec signatures connues et noms visibles uniques
+- l’effet (`pure`/`dirty`) d’un mot `host.*` est défini par `HOST_ABI.md`
+- le code Nicole source ne déclare jamais l’effet d’un mot `host.*` par une définition locale
 
 `host.file.open` n’est pas un mot de v1.
 S’il est documenté plus tard, ce sera comme extension future du contrat hôte.
