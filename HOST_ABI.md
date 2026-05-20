@@ -314,19 +314,23 @@ La v1 privilégie des valeurs de données simples à la frontière hôte.
 Types autorisés à travers l’ABI v1 :
 
 - `Int`
+- `Float`
 - `String`
 - `Bool`
 - `Unit`
 - `List<T>`
 - `Map<K,V>`
 - `Result<T,E>`
+- `ListError`
+- `MapError`
 
 Règles :
 
 - `List<T>` n’est autorisé que si `T` est lui-même une valeur compatible avec l’ABI v1
 - `Map<K,V>` n’est autorisé que si `K` et `V` sont eux-mêmes compatibles avec l’ABI v1
-- les restrictions de `Map<K,V>` sur les clés restent celles de la v1 du langage
+- `Map<K,V>` n’est autorisé que si `K` reste l’un des types de clé valides en v1 : `Int`, `String`, `Bool`
 - `Result<T,E>` n’est autorisé que si `T` et `E` sont eux-mêmes compatibles avec l’ABI v1
+- `ListError` et `MapError` sont eux-mêmes des valeurs ABI v1 autorisées comme types d’erreur fermés du langage
 
 Les quotations ne franchissent pas l’ABI hôte en v1.
 
