@@ -1057,6 +1057,48 @@ Pourquoi c’est invalide :
 Règle violée :
 - `pub` et `export` n’autorisent pas deux définitions visibles de même nom
 
+### Collision entre sous-mot et mot top-level
+
+```nicole
+: child { -- n:Int }
+  0
+;
+
+: parent { -- n:Int }
+
+  : child { -- n:Int }
+    1
+  ;
+
+  child
+;
+```
+
+Pourquoi c’est invalide :
+- Nicole v1 rejette un sous-mot et un mot top-level qui partagent le même nom visible
+- cette collision n’est pas laissée à un futur système de modules ou d’`import`
+
+Règle violée :
+- un sous-mot et un mot top-level ne peuvent pas partager le même nom visible en v1
+
+### `export` sur un sous-mot
+
+```nicole
+: parent { -- }
+
+  export : child { -- n:Int }
+    1
+  ;
+;
+```
+
+Pourquoi c’est invalide :
+- en v1, `export` n’est autorisé que sur un mot top-level
+- un sous-mot privé interne ne peut pas devenir un point d’entrée ABI
+
+Règle violée :
+- `export` est limité aux mots top-level en v1
+
 ---
 
 ## 9. Syntaxes explicitement interdites

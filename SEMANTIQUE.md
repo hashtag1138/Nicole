@@ -814,6 +814,12 @@ Le mot exporté reste un mot du programme.
 
 Il peut aussi être appelé dans le programme comme n’importe quel mot visible.
 
+En v1 :
+
+- le programme est analysé comme une seule unité de compilation
+- aucun graphe de modules ni mécanisme `import` n’existe
+- `export` n’est autorisé que sur un mot top-level
+
 Exemple :
 
 ```nicole
@@ -870,9 +876,10 @@ Le but de ce fichier est de définir le comportement du langage, pas de rouvrir 
 
 ## Nom identique entre sous-mot et mot top-level
 
-POINT OUVERT :
-la règle exacte entre un sous-mot et un mot top-level de même nom reste à préciser quand le système de modules et de visibilité inter-modules sera fixé.
+En v1, un sous-mot et un mot top-level ne peuvent pas partager le même nom visible.
 
-En revanche, la règle suivante est déjà normative en v1 :
+Cette restriction évite d’introduire une résolution dépendante d’un futur système de modules ou d’`import`.
+
+La règle suivante reste également normative :
 
 - dans un même parent, deux sous-mots ne peuvent pas partager le même nom

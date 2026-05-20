@@ -95,13 +95,17 @@ Toute collision entre une définition utilisateur et une forme réservée, une v
 
 # 2. Visibilité interne, export et contrats hôte
 
-Sans modificateur, un mot est privé au module courant.
-En v1, un module peut être compris comme une unité de compilation.
+Sans modificateur, un mot est privé à l’unique unité de compilation du programme v1.
+
+En v1, un programme Nicole est analysé comme une seule unité de compilation.
+
+Il n’existe pas de graphe de modules ni de mécanisme `import` en v1.
 
 `pub` rend un mot visible dans le programme.
 
 `export` rend un mot visible à l’hôte et implique `pub`.
 Tout mot exporté est appelable par l’hôte.
+En v1, `export` n’est autorisé que sur un mot top-level.
 
 Les modificateurs de visibilité ne créent pas d’espace nominal séparé.
 Un nom visible doit rester unique même si une définition est `pub` et l’autre `export`.
@@ -300,6 +304,8 @@ Ils peuvent être appelés par nom court depuis leur parent, mais ne sont pas vi
 Le compilateur peut utiliser un nom qualifié interne comme `invoice.subtotal`, mais ce nom n’implique pas une API publique.
 
 Dans un même parent, deux sous-mots ne peuvent pas avoir le même nom.
+
+En v1, un sous-mot et un mot top-level ne peuvent pas partager le même nom visible.
 
 Exemple :
 
@@ -1967,5 +1973,3 @@ Pour l’instant, les informations restent regroupées ici.
 # Points ouverts pour la v1
 
 - le littéral concret de `Unit` : `unit` n’est pas encore définitivement fixé
-- POINT OUVERT : interaction exacte entre un sous-mot et un mot top-level de même nom si le futur système de modules/visibilité l’autorise ; en revanche, dans un même parent, deux sous-mots de même nom sont interdits
-- POINT OUVERT : système de modules, visibilité inter-modules, collisions de noms, imports et résolution restent à spécifier
