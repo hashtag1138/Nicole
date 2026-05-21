@@ -68,6 +68,36 @@ Lorsqu’un mot est appelé :
 
 La pile locale n’est pas partagée avec l’appelant.
 
+## Définitions v0.16 pour l’appel récursif direct en position terminale
+
+Les définitions suivantes sont normatives pour la garantie v0.16 :
+
+- frame courante : la frame d’exécution Nicole du mot nommé actuellement en cours d’exécution
+- pile d'appels Nicole : la pile conceptuelle des frames d’exécution Nicole actives
+- appel récursif direct : un appel dont l'appelé résolu statiquement est exactement le même mot nommé que celui de la frame courante
+- position terminale : position d’un chemin de contrôle où, après le retour normal de l’appel, aucune autre opération Nicole n’est exécutée dans la frame courante avant le retour de cette frame
+- chemin de contrôle : un chemin d’exécution concret depuis un point donné jusqu’au retour de la frame courante, incluant les choix de branche
+- garantie de pile constante : garantie qu’une suite d’appels récursifs directs ne fait pas croître la profondeur de la pile d'appels Nicole
+
+## Garantie v0.16 d’appel récursif direct en position terminale
+
+Un appel récursif direct en position terminale ne doit pas augmenter la profondeur de la pile d'appels Nicole.
+
+Cette garantie est normative pour la v0.16.
+
+Cette garantie concerne uniquement les frames d’exécution Nicole.
+Le comportement de pile native, de runtime hôte ou de machine sous-jacente reste non spécifié.
+
+Une implémentation peut réutiliser la frame courante ou la remplacer par une frame équivalente.
+Dans tous les cas, le comportement observable du programme doit rester identique.
+
+Portée :
+
+- la garantie s’applique uniquement au mot nommé de la frame courante
+- aucune garantie n’est fournie pour la récursion mutuelle
+- aucune garantie n’est fournie pour la récursion indirecte
+- aucune garantie n’est fournie pour les quotations
+
 ## Retour d’un mot
 
 Au retour, la pile locale doit correspondre exactement aux sorties déclarées par la signature.
@@ -300,6 +330,12 @@ Sous-mots :
 
 L’effet se propage donc par usage, pas par simple présence textuelle.
 
+Interaction avec la garantie v0.16 d’appel récursif direct en position terminale :
+
+- les règles `pure` / `dirty` restent inchangées
+- la garantie d’appel récursif direct ne modifie ni l’inférence d’effet, ni les contraintes d’annotation
+- un appel récursif direct dirty reste soumis aux mêmes règles d’effet qu’un appel dirty non optimisé
+
 ---
 
 # 4. `if`
@@ -321,6 +357,8 @@ Sémantique :
 - la condition est consommée depuis la pile locale
 - la branche choisie s’exécute dans la même frame
 - les deux branches doivent produire le même effet de pile
+- la position terminale se détermine localement, chemin de contrôle par chemin de contrôle
+- un appel récursif direct est garanti seulement sur les chemins où il est effectivement en position terminale
 
 La validation est statique quand elle est possible.
 
@@ -371,6 +409,8 @@ Sémantique :
 - la première branche compatible est exécutée
 - `_` match tout ce qui n’a pas été retenu avant
 - toutes les branches doivent produire le même effet de pile
+- la position terminale se détermine localement, chemin de contrôle par chemin de contrôle
+- un appel récursif direct est garanti seulement sur les chemins où il est effectivement en position terminale
 
 Même effet de pile signifie :
 
@@ -663,6 +703,12 @@ Une frame qui annonce plusieurs sorties, aucune sortie, ou une sortie simple non
 Le type d’erreur produit par la valeur consommée par `?` doit correspondre exactement au type d’erreur `E` de la sortie de frame.
 
 Il n’existe en v1 ni élargissement implicite, ni conversion implicite entre types d’erreur.
+
+Interaction avec la garantie v0.16 d’appel récursif direct en position terminale :
+
+- les règles de `?` restent inchangées
+- un appel récursif direct suivi d’une opération `?` n’est pas en position terminale
+- un `?` exécuté avant un appel peut terminer la frame avant que cet appel ne soit atteint
 
 ## Interaction avec les builtins d’ordre supérieur
 

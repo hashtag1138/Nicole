@@ -203,6 +203,35 @@ Utilisation :
 Pourquoi :
 - montre la forme recommandée en Nicole v1 avec des noms explicites
 
+### Récursion directe en position terminale (accumulateur)
+
+```nicole
+: sum-down-acc { n:Int acc:Int -- result:Int }
+  n 0 = if
+    acc
+  else
+    n 1 - acc n + sum-down-acc
+  end
+;
+```
+
+Note :
+- Cet exemple reçoit la garantie v0.16 de pile d'appels Nicole constante, car l'appel récursif est un appel récursif direct en position terminale.
+
+### Récursion non terminale
+
+```nicole
+: fact { n:Int -- result:Int }
+  n case
+    0 => 1
+    _ => n n 1 - fact *
+  end
+;
+```
+
+Note :
+- Cet exemple reste valide, mais l'appel récursif n'est pas en position terminale, car la multiplication reste à effectuer après le retour de l'appel récursif. Il ne reçoit donc aucune garantie v0.16 de pile constante.
+
 ### Récursion mutuelle
 
 ```nicole
@@ -233,6 +262,9 @@ Utilisation :
 
 Pourquoi :
 - montre que la récursion mutuelle reste naturelle avec des noms distincts
+
+Note :
+- Cette récursion mutuelle reste valide, mais la v0.16 ne garantit pas une utilisation à pile d'appels Nicole constante pour la récursion mutuelle.
 
 ---
 

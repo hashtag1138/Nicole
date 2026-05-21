@@ -771,8 +771,28 @@ Le pattern matching avancé et les guards conditionnels sont hors v1.
 
 La récursion est autorisée.
 
+En v0.16, la récursion directe en position terminale reçoit une garantie de pile constante sur la pile d'appels Nicole.
+
+Exemple de récursion directe en position terminale :
+
 ```nicole
-: fact { n:Int -- result:Int }
+: sum-down-acc { n:Int acc:Int -- result:Int }
+  n 0 = if
+    acc
+  else
+    n 1 - acc n + sum-down-acc
+  end
+;
+```
+
+Cet exemple est valide et bénéficie de la garantie de pile constante pour ses appels récursifs directs en position terminale.
+
+La récursion non terminale reste valide, sans garantie de pile constante.
+
+Exemple de récursion non terminale :
+
+```nicole
+: fact { n:Int -- r:Int }
   n case
     0 => 1
     _ => n n 1 - fact *
@@ -780,7 +800,8 @@ La récursion est autorisée.
 ;
 ```
 
-La récursion mutuelle est possible si les signatures sont connues avant analyse.
+La récursion mutuelle reste possible si les signatures sont connues avant analyse.
+Elle reste valide en v0.16, mais sans garantie de pile constante.
 
 La collecte préalable des signatures reste nécessaire pour :
 
@@ -813,7 +834,11 @@ Cet exemple reste valide avec des noms visibles uniques :
 - `even` et `odd` ont chacun un nom distinct
 - la collecte préalable des signatures suffit à permettre leurs appels réciproques
 
-La profondeur d’appel doit pouvoir être bornée par l’environnement d’exécution, mais ce point relève de l’intégration hôte, pas de la syntaxe.
+Les garanties de croissance de pile diffèrent donc selon la forme de récursion :
+
+- récursif direct en position terminale : garantie de pile constante
+- récursion non terminale : valide, sans garantie de pile constante
+- récursion mutuelle : valide, sans garantie de pile constante
 
 ---
 

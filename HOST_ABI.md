@@ -62,6 +62,7 @@ Un mot exporté garantit :
 - une discipline de retour identique à celle de tout mot Nicole
 - l’exécution dans une stack frame isolée
 - un statut d’effet vérifié (`pure` ou `dirty`) dérivé de son corps
+- pour la v0.16, la garantie d’appel récursif direct en position terminale s’applique uniquement aux frames d’exécution Nicole ; le comportement de pile native reste non spécifié
 
 Le mot exporté reste un mot du programme.
 
