@@ -67,6 +67,7 @@ Les formes suivantes sont réservées par le langage et ne peuvent pas être dé
 - `else`
 - `end`
 - `case`
+- `when`
 - `pub`
 - `export`
 - `dirty`
@@ -703,13 +704,13 @@ Exemple :
 # 13. `case`
 
 `case` consomme la valeur à matcher depuis le sommet de la pile locale.
-Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent sur les patterns.
 
 Syntaxe retenue :
 
 ```nicole
 value case
   pattern => expression
+  pattern when guard => expression
   pattern => expression
   _       => expression
 end
@@ -723,6 +724,18 @@ Exemple :
     0 => "zero"
     1 => "one"
     _ => "many"
+  end
+;
+```
+
+Exemple de branche gardée :
+
+```nicole
+: classify-result { r:Result<Int,MapError> -- text:String }
+  r case
+    Ok(v) when v 0 > => "positive"
+    Ok(v) => "non-positive"
+    Err(MissingKey) => "missing"
   end
 ;
 ```
@@ -751,6 +764,7 @@ Règles de liaison :
 - `Err(OutOfBounds)` ne crée aucun binding local
 - `MissingKey` et `OutOfBounds` seuls ne créent aucun binding local
 - `_` ne crée aucun binding local
+- les bindings créés par le pattern sont visibles dans le guard éventuel, puis dans le corps de branche sélectionné
 
 Exemple de branche liant :
 
@@ -763,7 +777,7 @@ Exemple de branche liant :
 ;
 ```
 
-Le pattern matching avancé et les guards conditionnels sont hors v1.
+Le pattern matching avancé reste hors v1.
 
 ---
 
@@ -1959,6 +1973,22 @@ Ni :
 let name = "Ada"
 ```
 
+Ni :
+
+```nicole
+value case
+  pattern if condition => expression
+end
+```
+
+Ni :
+
+```nicole
+value case
+  pattern => when condition expression
+end
+```
+
 Ni une syntaxe basée sur `->` pour les signatures.
 
 La syntaxe canonique provisoire est :
@@ -2119,6 +2149,7 @@ Pattern matching :
 ```nicole
 value case
   pattern => expression
+  pattern when guard => expression
   _ => expression
 end
 ```

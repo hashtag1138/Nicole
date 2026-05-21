@@ -390,13 +390,13 @@ Les deux branches laissent la pile locale dans le même état de sortie.
 # 5. `case`
 
 `case` consomme la valeur à matcher depuis le sommet de la pile locale.
-Il n'existe aucun guard conditionnel en v1, ni `when`, ni mécanisme équivalent sur les patterns.
 
 Syntaxe de surface :
 
 ```nicole
 value case
   pattern => expression
+  pattern when guard => expression
   pattern => expression
   _       => expression
 end
@@ -406,10 +406,15 @@ Sémantique :
 
 - la valeur à matcher est consommée
 - les branches sont testées dans l’ordre
-- la première branche compatible est exécutée
+- une branche est compatible si son pattern matche
+- si une branche compatible possède un guard, ce guard est évalué seulement après le matching de son pattern
+- une branche est sélectionnée seulement si son pattern matche et si son guard éventuel évalue à `true`
+- si le pattern matche mais que le guard évalue à `false`, le matching continue vers les branches suivantes
+- la première branche sélectionnée est exécutée
 - `_` match tout ce qui n’a pas été retenu avant
 - toutes les branches doivent produire le même effet de pile
-- la position terminale se détermine localement, chemin de contrôle par chemin de contrôle
+- le guard lui-même n’est jamais en position terminale
+- la position terminale du corps de branche se détermine localement, chemin de contrôle par chemin de contrôle
 - un appel récursif direct est garanti seulement sur les chemins où il est effectivement en position terminale
 
 Même effet de pile signifie :
@@ -420,6 +425,17 @@ Même effet de pile signifie :
 - même pile préexistante préservée
 
 Cette vérification doit être statique quand les branches sont écrites en Nicole.
+
+Règles des guards :
+
+- le guard est évalué avec les bindings produits par le pattern déjà en scope
+- le guard doit avoir exactement l’effet de pile `-- Bool`
+- le guard ne doit consommer aucune valeur de la pile locale préexistante
+- le `Bool` produit par le guard est consommé immédiatement par la sélection de branche
+- le guard doit être pur
+- un guard ne peut pas appeler de code dirty
+- `?` est interdit dans un guard
+- un appel récursif direct situé dans un guard ne relève d’aucune garantie de pile constante
 
 Patterns v1 retenus :
 
@@ -440,9 +456,12 @@ Règles de liaison :
 - `Err(OutOfBounds)` ne crée aucun binding local
 - `MissingKey` et `OutOfBounds` seuls ne créent aucun binding local
 - `_` ne crée aucun binding local
+- les bindings créés par le pattern sont visibles dans le guard éventuel, puis dans le corps de branche sélectionné
 
 Pour les types somme fermés comme `Result`, `ListError` et `MapError`, l’exhaustivité doit être vérifiée statiquement quand le type du scrutinee est connu.
 
+- une branche gardée ne compte pas comme couverture statique inconditionnelle
+- `_ when guard` est autorisé, mais reste conditionnel et ne rend pas le `case` exhaustif à lui seul
 - pour des valeurs ouvertes comme `Int` ou `String`, `_` est nécessaire si le programme veut garantir qu’aucune valeur non couverte ne provoquera d’échec de matching
 - en l’absence de `_`, si aucune branche ne matche à l’exécution, cela relève d’une erreur de contrat d’exécution
 - `Bool` peut être vérifié exhaustivement si les deux littéraux `true` et `false` sont couverts ; sinon, l’absence de `_` peut rester une erreur de contrat d’exécution
@@ -474,6 +493,18 @@ Exemple :
     0 => "zero"
     1 => "one"
     _ => "many"
+  end
+;
+```
+
+Exemple avec guard :
+
+```nicole
+: classify-result { r:Result<Int,MapError> -- text:String }
+  r case
+    Ok(v) when v 0 > => "positive"
+    Ok(v) => "non-positive"
+    Err(MissingKey) => "missing"
   end
 ;
 ```
@@ -707,6 +738,7 @@ Il n’existe en v1 ni élargissement implicite, ni conversion implicite entre t
 Interaction avec la garantie v0.16 d’appel récursif direct en position terminale :
 
 - les règles de `?` restent inchangées
+- `?` reste interdit dans un guard de `case`
 - un appel récursif direct suivi d’une opération `?` n’est pas en position terminale
 - un `?` exécuté avant un appel peut terminer la frame avant que cet appel ne soit atteint
 
