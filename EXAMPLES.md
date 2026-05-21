@@ -525,6 +525,113 @@ Explication :
 Pourquoi :
 - montre la primitive d’observation minimale conservée en v1
 
+### Test de vacuité d’une map
+
+```nicole
+: has-no-user { users:Map<String,Int> -- b:Bool }
+  users map.is-empty
+;
+```
+
+Explication :
+- retourne `true` si la map est vide
+- retourne `false` si elle contient au moins une entrée
+
+Pourquoi :
+- montre `map.is-empty` comme observation simple
+
+### Clés d’une map dans l’ordre d’insertion
+
+```nicole
+: user-keys { -- xs:List<String> }
+  map.empty:Map<String,Int>
+  "alice" 1 map.set
+  "bob" 2 map.set
+  map.keys
+;
+```
+
+Explication :
+- `map.keys` renvoie les clés dans l’ordre d’insertion
+
+Pourquoi :
+- rend l’ordre d’insertion observable explicitement
+
+### Valeurs d’une map dans l’ordre des clés
+
+```nicole
+: user-values { -- xs:List<Int> }
+  map.empty:Map<String,Int>
+  "alice" 1 map.set
+  "bob" 2 map.set
+  map.values
+;
+```
+
+Explication :
+- `map.values` suit le même ordre que `map.keys`
+
+Pourquoi :
+- rend la correspondance ordre-clés/ordre-valeurs explicite
+
+### Mise à jour sans déplacer la clé
+
+```nicole
+: keys-after-update { -- xs:List<String> }
+  map.empty:Map<String,Int>
+  "a" 1 map.set
+  "b" 2 map.set
+  "a" 9 map.set
+  map.keys
+;
+```
+
+Explication :
+- une mise à jour de clé existante change la valeur
+- la position initiale de la clé est conservée
+
+Pourquoi :
+- fixe le comportement d’ordre pour `map.set` sur clé existante
+
+### Suppression puis réinsertion en fin d’ordre
+
+```nicole
+: keys-after-remove-set { -- xs:List<String> }
+  map.empty:Map<String,Int>
+  "a" 1 map.set
+  "b" 2 map.set
+  "c" 3 map.set
+  "b" map.remove case
+    Ok(m2) => m2
+    Err(MissingKey) => map.empty:Map<String,Int>
+  end
+  "b" 22 map.set
+  map.keys
+;
+```
+
+Explication :
+- `map.remove` enlève la clé de l’ordre
+- une réinsertion ultérieure place la clé en fin d’ordre
+
+Pourquoi :
+- illustre la règle `remove` puis `set`
+
+### Test de vacuité d’une liste
+
+```nicole
+: has-no-value { xs:List<Int> -- b:Bool }
+  xs list.is-empty
+;
+```
+
+Explication :
+- retourne `true` si la liste est vide
+- retourne `false` sinon
+
+Pourquoi :
+- montre `list.is-empty` de manière directe
+
 ### Lecture dans une liste
 
 ```nicole
@@ -546,6 +653,70 @@ Effet de pile :
 
 Pourquoi :
 - montre un accès de liste avec erreur explicite
+
+### Premier élément avec erreur explicite
+
+```nicole
+: first-or-zero-v2 { xs:List<Int> -- n:Int }
+  xs list.first case
+    Ok(v) => v
+    Err(OutOfBounds) => 0
+  end
+;
+```
+
+Explication :
+- `list.first` retourne un `Result`
+- une liste vide produit `Err(OutOfBounds)`
+
+Pourquoi :
+- montre la forme idiomatique de `list.first`
+
+### Dernier élément avec erreur explicite
+
+```nicole
+: last-or-zero { xs:List<Int> -- n:Int }
+  xs list.last case
+    Ok(v) => v
+    Err(OutOfBounds) => 0
+  end
+;
+```
+
+Explication :
+- `list.last` retourne un `Result`
+- une liste vide produit `Err(OutOfBounds)`
+
+Pourquoi :
+- montre la forme idiomatique de `list.last`
+
+### Ajout en fin de liste
+
+```nicole
+: append-42 { xs:List<Int> -- ys:List<Int> }
+  xs 42 list.append
+;
+```
+
+Explication :
+- renvoie une nouvelle liste avec `42` ajouté en fin
+
+Pourquoi :
+- rend explicite l’opération d’ajout immuable
+
+### Inversion d’une liste
+
+```nicole
+: reversed { xs:List<Int> -- ys:List<Int> }
+  xs list.reverse
+;
+```
+
+Explication :
+- renvoie une nouvelle liste dans l’ordre inverse
+
+Pourquoi :
+- documente `list.reverse` sans ambiguïté
 
 ### Transformation avec `list.map`
 

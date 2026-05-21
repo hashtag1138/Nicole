@@ -1063,9 +1063,14 @@ Opérations canoniques v1 :
 
 ```text
 list.len
+list.is-empty
 list.get
+list.first
+list.last
 list.set
+list.append
 list.concat
+list.reverse
 list.map
 list.filter
 list.fold
@@ -1080,14 +1085,19 @@ Notes :
 Signatures conceptuelles :
 
 ```text
-list.len    { xs:List<T> -- n:Int }
-list.get    { xs:List<T> index:Int -- r:Result<T,ListError> }
-list.set    { xs:List<T> index:Int value:T -- r:Result<List<T>,ListError> }
-list.concat { xs:List<T> ys:List<T> -- zs:List<T> }
-list.map    { xs:List<T> q:(Quote<{ | x:T -- y:U }> | DirtyQuote<{ | x:T -- y:U }>) -- ys:List<U> }
-list.filter { xs:List<T> q:(Quote<{ | x:T -- keep:Bool }> | DirtyQuote<{ | x:T -- keep:Bool }>) -- ys:List<T> }
-list.fold   { xs:List<T> init:Acc q:(Quote<{ | acc:Acc x:T -- out:Acc }> | DirtyQuote<{ | acc:Acc x:T -- out:Acc }>) -- out:Acc }
-list.reduce { xs:List<T> q:(Quote<{ | a:T b:T -- c:T }> | DirtyQuote<{ | a:T b:T -- c:T }>) -- out:T }
+list.len      { xs:List<T> -- n:Int }
+list.is-empty { xs:List<T> -- b:Bool }
+list.get      { xs:List<T> index:Int -- r:Result<T,ListError> }
+list.first    { xs:List<T> -- r:Result<T,ListError> }
+list.last     { xs:List<T> -- r:Result<T,ListError> }
+list.set      { xs:List<T> index:Int value:T -- r:Result<List<T>,ListError> }
+list.append   { xs:List<T> value:T -- ys:List<T> }
+list.concat   { xs:List<T> ys:List<T> -- zs:List<T> }
+list.reverse  { xs:List<T> -- ys:List<T> }
+list.map      { xs:List<T> q:(Quote<{ | x:T -- y:U }> | DirtyQuote<{ | x:T -- y:U }>) -- ys:List<U> }
+list.filter   { xs:List<T> q:(Quote<{ | x:T -- keep:Bool }> | DirtyQuote<{ | x:T -- keep:Bool }>) -- ys:List<T> }
+list.fold     { xs:List<T> init:Acc q:(Quote<{ | acc:Acc x:T -- out:Acc }> | DirtyQuote<{ | acc:Acc x:T -- out:Acc }>) -- out:Acc }
+list.reduce   { xs:List<T> q:(Quote<{ | a:T b:T -- c:T }> | DirtyQuote<{ | a:T b:T -- c:T }>) -- out:T }
 ```
 
 Ces signatures décrivent la partie appelable exigée par chaque builtin higher-order.
@@ -1178,6 +1188,16 @@ Exemples :
 
 Une liste vide doit être rejetée statiquement lorsqu’elle est prouvable, sinon elle constitue une erreur d’utilisation à l’exécution.
 
+Règles supplémentaires :
+
+- `list.first` renvoie `Ok(value)` pour le premier élément et `Err(OutOfBounds)` sur liste vide
+- `list.last` renvoie `Ok(value)` pour le dernier élément et `Err(OutOfBounds)` sur liste vide
+- `list.get` et `list.set` considèrent un index négatif comme hors limites et renvoient `Err(OutOfBounds)`
+- `list.append` renvoie une nouvelle liste avec l’élément ajouté en fin
+- `list.reverse` renvoie une nouvelle liste avec l’ordre inversé
+- ces opérations de liste n’exécutent aucune quotation
+- `list.zip` reste différé et n’est pas défini en v1
+
 ---
 
 # 20. ListError v1
@@ -1193,8 +1213,10 @@ OutOfBounds
 Règles :
 
 - `OutOfBounds` représente un index hors limites pour `list.get` ou `list.set`
+- un index négatif pour `list.get` ou `list.set` est hors limites
+- `list.first` et `list.last` sur une liste vide renvoient `Err(OutOfBounds)`
 - `ListError` est un type somme fermé en v1
-- `list.get` et `list.set` renvoient un `Result<...,ListError>`
+- `list.get`, `list.set`, `list.first` et `list.last` renvoient un `Result<...,ListError>`
 - `case` peut matcher `Err(OutOfBounds)` directement
 
 Exemple :
@@ -1236,8 +1258,12 @@ Règles :
 - toute opération de mise à jour retourne une nouvelle map
 - `map.empty:Map<K,V>` construit une map vide de type `Map<K,V>`
 - `map.empty` non annoté est invalide, même si un contexte voisin pourrait suggérer un type
-- l’ordre d’une map n’est pas observable en v1, car v1 ne définit aucune API d’itération de map
-- aucun programme v1 ne doit supposer un ordre particulier des entrées d’une map
+- les maps préservent l’ordre d’insertion des clés
+- `map.keys` expose les clés dans cet ordre d’insertion
+- `map.values` expose les valeurs dans le même ordre que `map.keys`
+- `map.set` sur une clé existante met à jour la valeur sans déplacer la clé
+- `map.remove` retire aussi la clé de cet ordre
+- un `map.set` effectué après suppression réinsère la clé en fin d’ordre
 
 Opérations prévues :
 
@@ -1248,6 +1274,9 @@ map.contains
 map.set
 map.remove
 map.len
+map.is-empty
+map.keys
+map.values
 ```
 
 Ici, `map.empty` désigne le nom canonique de l'opération.
@@ -1263,6 +1292,9 @@ map.contains{ m:Map<K,V> k:K -- ok:Bool }
 map.set     { m:Map<K,V> k:K v:V -- m2:Map<K,V> }
 map.remove  { m:Map<K,V> k:K -- r:Result<Map<K,V>,MapError> }
 map.len     { m:Map<K,V> -- n:Int }
+map.is-empty{ m:Map<K,V> -- ok:Bool }
+map.keys    { m:Map<K,V> -- xs:List<K> }
+map.values  { m:Map<K,V> -- xs:List<V> }
 ```
 
 Sémantique attendue :
@@ -1275,6 +1307,13 @@ Sémantique attendue :
 - `m k map.remove` renvoie `Ok(newMap)` si la clé existe et `Err(MissingKey)` sinon
 - `map.remove` ne mute jamais la map d’entrée sur place
 - `m map.len` renvoie le nombre d’entrées
+- `m map.is-empty` renvoie `true` si la map est vide, sinon `false`
+- `m map.keys` renvoie les clés dans l’ordre d’insertion
+- `m map.values` renvoie les valeurs dans le même ordre que `map.keys`
+- `map.set` sur une clé existante conserve la position originale de cette clé
+- `map.remove` retire la clé de l’ordre d’insertion
+- si une clé supprimée est réinsérée via `map.set`, elle est placée en fin d’ordre
+- ces opérations de map n’exécutent aucune quotation
 
 Éléments explicitement différés :
 
@@ -1282,13 +1321,13 @@ Sémantique attendue :
 - support des handles hôte comme clés
 - `Keyable`
 - `Hashable`
-- `map.keys`
-- `map.values`
+- `map.has`
+- `map.to-list`
+- `map.entries`
 - `map.items`
 - `map.map`
 - `map.filter`
 - `map.fold`
-- garanties d’ordre d’itération des maps
 
 Exemples :
 
@@ -2075,9 +2114,14 @@ Listes :
 
 ```nicole
 []:List<Int>
+xs list.is-empty
 xs 0 list.get
+xs list.first
+xs list.last
 xs 0 42 list.set
+xs 42 list.append
 xs ys list.concat
+xs list.reverse
 xs quote list.map
 ```
 
@@ -2085,8 +2129,11 @@ Maps :
 
 ```nicole
 map.empty:Map<String,Int>
+m map.is-empty
 m k map.get
 m k v map.set
+m map.keys
+m map.values
 ```
 
 Le langage doit rester explicite, concaténatif, typé, et proche de la syntaxe ci-dessus.

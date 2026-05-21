@@ -607,33 +607,33 @@ Règle violée :
 - `map.remove` ne retourne pas une map simple en v1
 - le retour doit correspondre exactement à la signature déclarée
 
-### Utilisation invalide de `map.keys`
+### Utilisation invalide de `map.has`
 
 ```nicole
-: bad-map-keys { users:Map<String,Int> -- xs:List<String> }
-  users map.keys
+: bad-map-has { users:Map<String,Int> -- b:Bool }
+  users "alice" map.has
 ;
 ```
 
 Pourquoi c’est invalide :
-- `map.keys` ne fait pas partie de `Map` v1
+- `map.has` ne fait pas partie de `Map` v1
 
 Règle violée :
-- `map.keys` est différé et n’est pas défini en v1
+- `map.has` est différé et n’est pas défini en v1
 
-### Utilisation invalide de `map.values`
+### Utilisation invalide de `map.to-list`
 
 ```nicole
-: bad-map-values { users:Map<String,Int> -- xs:List<Int> }
-  users map.values
+: bad-map-to-list { users:Map<String,Int> -- xs:List<String> }
+  users map.to-list
 ;
 ```
 
 Pourquoi c’est invalide :
-- `map.values` ne fait pas partie de `Map` v1
+- `map.to-list` ne fait pas partie de `Map` v1
 
 Règle violée :
-- `map.values` est différé et n’est pas défini en v1
+- `map.to-list` est différé et n’est pas défini en v1
 
 ### Utilisation invalide de `map.items`
 
@@ -648,6 +648,20 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - `map.items` est différé et n’est pas défini en v1
+
+### Utilisation invalide de `list.zip`
+
+```nicole
+: bad-list-zip { xs:List<Int> ys:List<Int> -- zs:List<Int> }
+  xs ys list.zip
+;
+```
+
+Pourquoi c’est invalide :
+- `list.zip` ne fait pas partie de `List` v1
+
+Règle violée :
+- `list.zip` est différé et n’est pas défini en v1
 
 ### Utilisation invalide de `Ok!` comme pattern de `case`
 

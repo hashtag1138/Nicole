@@ -685,6 +685,32 @@ Leur effet au point d’appel dépend du type de quotation fourni :
 
 Une frame pure ne peut pas passer un `DirtyQuote<{ ... }>` à `list.map`, `list.filter`, `list.fold` ni `list.reduce`.
 
+## Builtins de liste structurels v1
+
+Les builtins de liste suivants sont purement structurels :
+
+- `list.len` a l’effet `List<T> -- Int`
+- `list.is-empty` a l’effet `List<T> -- Bool`
+- `list.get` a l’effet `List<T> Int -- Result<T,ListError>`
+- `list.first` a l’effet `List<T> -- Result<T,ListError>`
+- `list.last` a l’effet `List<T> -- Result<T,ListError>`
+- `list.set` a l’effet `List<T> Int T -- Result<List<T>,ListError>`
+- `list.append` a l’effet `List<T> T -- List<T>`
+- `list.concat` a l’effet `List<T> List<T> -- List<T>`
+- `list.reverse` a l’effet `List<T> -- List<T>`
+
+Sémantique :
+
+- `list.is-empty` retourne `true` pour une liste vide et `false` sinon
+- `list.first` retourne `Ok(first)` pour une liste non vide, sinon `Err(OutOfBounds)`
+- `list.last` retourne `Ok(last)` pour une liste non vide, sinon `Err(OutOfBounds)`
+- un index négatif passé à `list.get` ou `list.set` est hors limites et retourne `Err(OutOfBounds)`
+- `list.append` retourne une nouvelle liste avec l’élément ajouté en fin
+- `list.concat` retourne une nouvelle liste contenant d’abord les éléments de gauche puis ceux de droite
+- `list.reverse` retourne une nouvelle liste avec l’ordre inversé
+- ces builtins n’exécutent aucune quotation
+- ces builtins restent purs en v1
+
 ## `list.map`
 
 `list.map` préserve l’ordre des éléments.
@@ -757,6 +783,8 @@ Utilisation attendue :
 
 - `list.get`
 - `list.set`
+- `list.first`
+- `list.last`
 
 ## `MapError`
 
@@ -789,10 +817,20 @@ Les maps sont immuables en v1.
 - `map.remove` ne mute jamais la map d’entrée
 - `map.len` a l’effet `Map<K,V> -- Int`
 - `map.len` retourne le nombre d’entrées
+- `map.is-empty` a l’effet `Map<K,V> -- Bool`
+- `map.is-empty` retourne `true` si la map est vide et `false` sinon
+- `map.keys` a l’effet `Map<K,V> -- List<K>`
+- `map.values` a l’effet `Map<K,V> -- List<V>`
 - seules les clés `Int`, `String` et `Bool` sont définies en v1
 - les types de clé définis par l’utilisateur ne sont pas supportés en v1
-- l’ordre d’une map n’est pas observable en v1, car v1 ne définit aucune API d’itération de map
-- un programme Nicole ne doit donc supposer aucun ordre de map
+- les maps préservent l’ordre d’insertion des clés
+- `map.keys` retourne les clés dans cet ordre d’insertion
+- `map.values` retourne les valeurs dans le même ordre que `map.keys`
+- `map.set` sur une clé existante met à jour la valeur sans déplacer cette clé
+- `map.remove` retire aussi la clé de cet ordre
+- un `map.set` effectué après suppression réinsère la clé en fin d’ordre
+- ces builtins de map n’exécutent aucune quotation
+- ces builtins restent purs en v1
 
 Éléments différés :
 
@@ -800,13 +838,13 @@ Les maps sont immuables en v1.
 - support des handles hôte comme clés
 - `Keyable`
 - `Hashable`
-- `map.keys`
-- `map.values`
+- `map.has`
+- `map.to-list`
+- `map.entries`
 - `map.items`
 - `map.map`
 - `map.filter`
 - `map.fold`
-- garanties d’ordre d’itération des maps
 
 ## Constructions vides typées
 
