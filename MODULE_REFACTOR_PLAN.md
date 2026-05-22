@@ -8,7 +8,7 @@ Document status:
 
 Current global status:
 
-`pre-audit`
+`implemented`
 
 ## Status vocabulary
 
@@ -65,7 +65,7 @@ Current global status:
 | 4 | Export and HOST_ABI rewrite | implemented | | Host-visible names become `@module.word` |
 | 5 | Valid examples rewrite | implemented | | Rewrite all valid examples into module form |
 | 6 | Invalid examples rewrite | implemented | | Preserve intended invalid reasons under new baseline |
-| 7 | Final consistency audit and tagging | pre-audit | | Cross-file audit, release readiness, tag proposal |
+| 7 | Final consistency audit and tagging | implemented | | Cross-file audit, release readiness, tag proposal |
 
 ## Phase dependencies
 
@@ -325,10 +325,14 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "no modules|no import|top-level export" README.md SYNTAXE.md SEMANTIQUE.md HOST_ABI.md`
 - Risks:
 - Late micro-fixes can unintentionally reopen scoped decisions.
-- Status: `pre-audit`
-- Result commit:
+- Status: `implemented`
+- Result commit: `230da6ec6025a4655be9f928eda9ee78eb7d99dd`
 - Result tag:
 - Notes:
+- final cross-file consistency audit passed
+- normative docs, valid examples, invalid examples, HOST_ABI, DESIGN_NOTES, and plan are aligned
+- include semantics remain intentionally deferred and consistently documented
+- repository is ready for release/tag proposal
 
 ## Status history
 
@@ -354,6 +358,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 6 | pre-audit | patching | Invalid examples rewrite started |
 | 2026-05-22 | Phase 6 | patching | implemented | Phase 6 global post-audit passed |
 | 2026-05-22 | Phase 7 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 7 | pre-audit | implemented | Final consistency audit passed |
 
 ## Important constraints
 
