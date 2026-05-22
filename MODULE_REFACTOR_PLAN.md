@@ -136,7 +136,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Risks:
 - Partial lexical changes can make examples and invalid examples temporarily inconsistent until later phases.
 - Status: `implemented`
-- Result commit:
+- Result commit: 74565733f76378dc05f72681a1a363e5ea26d265
 - Result tag:
 - Notes:
 - Lexical groundwork added for `@`
