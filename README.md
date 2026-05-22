@@ -86,7 +86,8 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - constructions vides typées explicitement : `[]:List<T>` et `map.empty:Map<K,V>`
 - visibilité par défaut privée
 - visibilité interne `pub`
-- exposition à l’hôte `export`
+- déclaration d’export module-locale `export : word`
+- noms visibles hôte canoniques `@module.word` (avec `@` conservé)
 - annotation d’effet `dirty` (pas de mot-clé `pure`)
 - sous-mots
 - noms qualifiés
@@ -119,7 +120,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - extension possible vers un JIT futur, sans promesse de stabilité d’implémentation
 - capture par valeur dans les quotations
 - pureté implicite + effet `dirty` explicite et vérifié statiquement
-- export = programme → hôte
+- export = programme → hôte via nom canonique `@module.word`
 - host.* = hôte → programme
 - effet des bindings `host.*` défini par contrat hôte explicite
 

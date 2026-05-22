@@ -173,7 +173,7 @@ La sémantique détaillée de `include` (mapping fichiers/paths) reste différé
 
 `dirty` est l’annotation d’effet explicite de v1.
 
-L’ordre des modificateurs est normatif :
+Pour les définitions de mots, l’ordre des modificateurs est normatif :
 
 ```text
 visibilité d’abord, dirty ensuite, définition ensuite
@@ -183,30 +183,75 @@ Formes valides pour des définitions utilisateur à l’intérieur d’un module
 
 ```nicole
 module @demo
-  : foo
-  dirty : foo
-  pub : foo
-  pub dirty : foo
+  : foo { -- }
+  ;
+  dirty : foo-dirty { -- }
+  ;
+  pub : foo-public { -- }
+  ;
+  pub dirty : foo-public-dirty { -- }
+  ;
 end-module
 ```
+
+Déclaration d’export (phase 4) :
+
+```nicole
+module @demo
+  : run { -- code:Int }
+    0
+  ;
+  export : run
+end-module
+```
+
+Règles normatives d’export :
+
+- `export : word` est une déclaration uniquement
+- `export : word` apparaît dans le module qui définit `word`
+- `word` doit déjà exister dans ce même module
+- `export` ne définit pas de nouveau mot
+- `export` ne crée pas d’alias visible dans le programme
+- `export` n’utilise pas les aliases d’import
+- `export` ne modifie ni signature, ni pureté, ni récursion, ni typage du mot référencé
+- `export` hors module est invalide
+- `export` sur un sous-mot exécutable reste invalide en v1
+
+Relation `pub` / `export` :
+
+- `pub` contrôle la visibilité Nicole via chemins qualifiés
+- `export` contrôle la visibilité côté hôte
+- `export` n’implique jamais de visibilité par nom court
+- `export` ne dépend ni des imports, ni des aliases
+
+Noms visibles côté hôte :
+
+- le nom canonique visible hôte est `@module.word`
+- le `@` initial est conservé
+- le nom est dérivé du module définissant et du mot référencé par `export`
+- les aliases d’import n’affectent jamais ce nom canonique
+- les noms canoniques visibles hôte doivent être uniques dans le programme
+- une duplication de déclaration menant au même nom canonique est invalide
 
 Formes invalides :
 
 ```text
 dirty pub : foo
 dirty export : foo
+export dirty : foo
 : dirty foo
+export : foo { ... }
 ```
 
-Les modificateurs de visibilité ne créent pas d’espace nominal séparé.
-Un nom visible doit rester unique même si une définition est `pub` et l’autre `export`.
+`pub` et `export` ne créent pas d’espace nominal séparé.
+Un nom visible doit rester unique dans son espace de résolution.
 
 Règle :
 
 ```text
 sans modificateur = privé au module
 pub = visibilité interne selon les règles de résolution en vigueur
-export = notion d’exposition hôte legacy ; placement final et noms visibles côté hôte révisés en phase 4
+export = déclaration de visibilité hôte du mot du module
 ```
 
 Exemples :
@@ -299,7 +344,7 @@ Dans un module, la résolution se fait dans cet ordre :
 Hors module :
 
 - les références utilisateur non qualifiées sont invalides
-- une référence utilisateur exige `@module.word`
+- une référence utilisateur exige `@module.word` avec import externe correspondant
 - un alias ne peut être utilisé que s’il est introduit par un import
 
 Exemple invalide (Phase 2) :
@@ -315,13 +360,6 @@ Cette définition est invalide :
 
 - les mots définis par l’utilisateur doivent être contenus dans `module @... end-module`
 - un mot utilisateur top-level est rejeté en phase 2
-
-Transition `export` (phase 2) :
-
-- la position normative exacte de `export` est révisée en phase 4
-- les noms visibles côté hôte sont révisés en phase 4
-- les exemples d’`export` existants peuvent rester des exemples legacy jusque-là
-- la phase 2 établit uniquement le confinement des définitions utilisateur dans des modules
 
 Note de transition :
 
@@ -668,14 +706,17 @@ Formes recommandées :
 
 # 10. Point d’entrée hôte
 
-En mode embarqué, l’hôte choisit quel mot exporté sert de point d’entrée.
+En mode embarqué, l’hôte choisit le nom canonique d’un mot exporté comme point d’entrée.
 
 Exemple de convention d’intégration :
 
 ```nicole
-export : entry { args:List<String> -- code:Int }
-  0
-;
+module @app
+  : run { args:List<String> -- code:Int }
+    0
+  ;
+  export : run
+end-module
 ```
 
 `args` contient les données d’entrée fournies par l’hôte.
@@ -693,10 +734,10 @@ Convention d’hôte :
 non-zéro = erreur
 ```
 
-`entry` n’est qu’un exemple de mot exporté.
-Le langage n’impose aucun nom spécial comme point d’entrée.
+Le point d’entrée exposé ici est `@app.run`.
+Le langage n’impose aucun nom spécial.
 L’hôte peut choisir n’importe quel mot exporté compatible avec sa convention d’intégration.
-Mais deux mots exportés ne peuvent jamais partager le même nom visible.
+Mais deux mots exportés ne peuvent jamais partager le même nom canonique visible hôte.
 
 ---
 
@@ -704,7 +745,7 @@ Mais deux mots exportés ne peuvent jamais partager le même nom visible.
 
 Deux directions coexistent :
 
-- `export` : mot défini par le programme, appelable par l’hôte
+- `export` : déclaration module-locale qui expose un mot Nicole vers l’hôte
 - `host.*` : mot fourni par l’hôte, appelable par le programme
 
 Tout mot dont le nom commence par `host.` est réservé à l’hôte.
@@ -1612,7 +1653,7 @@ Règles :
 - `?` propage uniquement depuis la frame d’exécution courante
 - dans un mot, `?` quitte ce mot
 - dans une quotation, `?` quitte cette quotation
-- `?` ne saute jamais directement hors d’un mot appelant, d’un `export` appelant, d’une quotation extérieure, ni d’un builtin de collection
+- `?` ne saute jamais directement hors d’un mot appelant, d’un mot exporté appelant, d’une quotation extérieure, ni d’un builtin de collection
 - en v1, `?` est autorisé seulement dans une frame dont la signature de sortie complète est exactement une seule valeur de type `Result<T,E>`
 - le type d’erreur produit par `?` doit correspondre exactement au type d’erreur `E` de cette sortie
 - aucune conversion implicite ni élargissement de type d’erreur n’existe en v1
@@ -2104,30 +2145,34 @@ La syntaxe canonique provisoire est :
 Les variantes de visibilité sont :
 
 ```nicole
-: private-word { x:Int -- y:Int }
-  x
-;
+module @demo
+  : private-word { x:Int -- y:Int }
+    x
+  ;
 
-dirty : internal-dirty { x:Int -- y:Int }
-  x
-;
+  dirty : internal-dirty { x:Int -- y:Int }
+    x
+  ;
 
-pub : internal-word { x:Int -- y:Int }
-  x
-;
+  pub : internal-word { x:Int -- y:Int }
+    x
+  ;
 
-pub dirty : internal-dirty-shared { x:Int -- y:Int }
-  x
-;
+  pub dirty : internal-dirty-shared { x:Int -- y:Int }
+    x
+  ;
 
-export : app.event { payload:String -- }
-  payload drop
-;
+  : event { payload:String -- }
+    payload drop
+  ;
+  export : event
 
-export dirty : app.run { -- code:Int }
-  "start" host.log
-  0
-;
+  dirty : run { -- code:Int }
+    "start" host.log
+    0
+  ;
+  export : run
+end-module
 ```
 
 ---
@@ -2160,14 +2205,17 @@ pub : helper { n:Int -- m:Int }
   n 1 +
 ;
 
-export dirty : app.on-message { msg:String -- }
-  msg host.log
-;
+module @app
+  dirty : on-message { msg:String -- }
+    msg host.log
+  ;
+  export : on-message
 
-export : entry { args:List<String> -- code:Int }
-  12 square drop
-  0
-;
+  : run { args:List<String> -- code:Int }
+    0
+  ;
+  export : run
+end-module
 ```
 
 ---
@@ -2209,18 +2257,24 @@ pub dirty : shared-dirty { x:Int -- y:Int }
 Mot exporté à l’hôte :
 
 ```nicole
-export : app.event { payload:String -- }
-  payload drop
-;
+module @app
+  : event { payload:String -- }
+    payload drop
+  ;
+  export : event
+end-module
 ```
 
 Mot exporté dirty :
 
 ```nicole
-export dirty : app.run { -- code:Int }
-  "start" host.log
-  0
-;
+module @app
+  dirty : run { -- code:Int }
+    "start" host.log
+    0
+  ;
+  export : run
+end-module
 ```
 
 Sous-mot :

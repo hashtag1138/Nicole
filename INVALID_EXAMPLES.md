@@ -1082,8 +1082,12 @@ Règle violée :
 ### Export recevant une quotation
 
 ```nicole
-export : app.accept-callback { q:Quote<{ | x:Int -- y:Int }> -- }
-;
+module @app
+  : accept-callback { q:Quote<{ | x:Int -- y:Int }> -- }
+    q drop
+  ;
+  export : accept-callback
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1095,9 +1099,12 @@ Règle violée :
 ### Export retournant une quotation
 
 ```nicole
-export : app.make-callback { -- q:Quote<{ | x:Int -- y:Int }> }
-  :[ | x:Int -- y:Int | x 1 + ;]
-;
+module @app
+  : make-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+    :[ | x:Int -- y:Int | x 1 + ;]
+  ;
+  export : make-callback
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1109,8 +1116,11 @@ Règle violée :
 ### Export avec corps incompatible avec sa signature
 
 ```nicole
-export : app.bad { -- n:Int }
-;
+module @app
+  : bad { -- n:Int }
+  ;
+  export : bad
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1189,43 +1199,54 @@ Pourquoi c’est invalide :
 Règle violée :
 - dans un même parent, deux sous-mots ne peuvent pas partager le même nom
 
-### Deux exports de même nom
+### `export` vers un mot absent du module
 
 ```nicole
-export : entry { -- n:Int }
-  1
-;
-
-export : entry { -- text:String }
-  "hello"
-;
+module @app
+  : run { -- code:Int }
+    0
+  ;
+  export : missing
+end-module
 ```
 
 Pourquoi c’est invalide :
-- `entry` est un seul nom public côté hôte
-- un nom d’export doit désigner un seul mot exporté
+- `missing` n’existe pas dans `@app`
+- `export : word` doit référencer un mot existant du module définissant
 
 Règle violée :
-- deux exports ne peuvent pas partager le même nom visible
+- `export : word` doit viser un mot déjà défini dans le même module
 
-### Collision entre `pub` et `export`
+### `export` hors module
 
 ```nicole
-pub : foo { -- n:Int }
-  1
-;
-
-export : foo { -- n:Int }
-  2
-;
+export : run
 ```
 
 Pourquoi c’est invalide :
-- la visibilité ne crée pas un second namespace
-- `foo` reste un seul nom visible dans le programme
+- une déclaration `export` n’est valide qu’à l’intérieur d’un module
 
 Règle violée :
-- `pub` et `export` n’autorisent pas deux définitions visibles de même nom
+- le placement de `export` hors module est interdit
+
+### Déclaration `export` dupliquée
+
+```nicole
+module @app
+  : run { -- code:Int }
+    0
+  ;
+  export : run
+  export : run
+end-module
+```
+
+Pourquoi c’est invalide :
+- les deux déclarations produisent le même nom canonique visible hôte `@app.run`
+
+Règle violée :
+- un nom canonique visible hôte doit désigner un seul mot exporté
+- une déclaration `export` dupliquée est invalide
 
 ### Collision legacy entre sous-mot et mot top-level
 
@@ -1254,20 +1275,22 @@ Règle violée :
 ### `export` sur un sous-mot
 
 ```nicole
-: parent { -- }
-
-  export : child { -- n:Int }
-    1
+module @app
+  : parent { -- }
+    : child { -- n:Int }
+      1
+    ;
+    export : child
   ;
-;
+end-module
 ```
 
 Pourquoi c’est invalide :
-- la position normative finale de `export` est différée à la phase 4
-- en phase 2, la première erreur de cet exemple legacy est déjà que `parent` est défini top-level
+- `child` est un sous-mot exécutable et non un mot du scope module
+- `export` ne s’applique qu’à un mot défini au niveau module
 
 Règle violée :
-- une définition utilisateur top-level est rejetée en phase 2
+- `export` sur un sous-mot exécutable reste invalide/non supporté en v1
 
 ---
 
@@ -1377,18 +1400,21 @@ Règle violée :
 ### Export pur appelant du code dirty
 
 ```nicole
-export : bad-pure-export { -- code:Int }
-  "start" host.log
-  0
-;
+module @app
+  : bad-pure-export { -- code:Int }
+    "start" host.log
+    0
+  ;
+  export : bad-pure-export
+end-module
 ```
 
 Pourquoi c’est invalide :
-- l’export est inféré dirty
+- le mot exporté est inféré dirty
 - l’annotation `dirty` est absente
 
 Règle violée :
-- un export pur ne peut pas appeler du code dirty
+- un mot pur ne peut pas appeler du code dirty
 - inféré dirty + annotation absente => erreur statique
 
 ### Annotation `dirty` redondante

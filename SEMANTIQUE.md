@@ -227,6 +227,19 @@ Phase 3 complète ce modèle :
 - les aliases d’import participent aux collisions de noms visibles
 - le graphe d’import doit être acyclique
 
+Phase 4 complète le modèle d’exposition hôte :
+
+- `export : word` est une déclaration de compilation, pas un mot exécutable
+- `export : word` existe uniquement au top-level interne d’un module (pas dans un sous-mot)
+- `export : word` n’a aucun effet de pile
+- `export : word` résout `word` dans le module définissant
+- le mot référencé doit exister dans ce module
+- le nom canonique visible hôte est `@module.word`
+- les aliases d’import n’affectent jamais ce nom canonique
+- les noms canoniques visibles hôte doivent rester uniques
+- sans import, une référence externe `@text.word` reste invalide
+- dans `module @text`, la forme `@text.word` vers le module courant reste valide sans import
+
 Ordre de résolution dans un module :
 
 1. noms locaux dans le scope courant
@@ -272,7 +285,7 @@ Dans un même espace de résolution, un nom visible doit désigner une seule dé
 
 La résolution d’un appel se fait donc par le nom dans l’espace donné.
 
-Les modificateurs de visibilité comme `pub` et `export` n’introduisent pas d’espace nominal séparé.
+`pub` et les déclarations `export` n’introduisent pas d’espace nominal séparé.
 
 Toute collision visible est une erreur de compilation.
 
@@ -373,8 +386,8 @@ La propagation est transitive :
 Règles :
 
 - un mot pur ne peut pas appeler du code dirty
-- un `export` pur ne peut pas appeler du code dirty
-- un `export` dirty est autorisé quand le corps est effectivement dirty
+- un mot exporté suit exactement les mêmes règles d’effet que tout autre mot
+- `export` ne change jamais l’effet du mot référencé
 
 Le contrôle est statique uniquement.
 
@@ -1072,32 +1085,37 @@ Cette situation constitue une erreur de contrat d’exécution.
 
 Deux directions officielles existent :
 
-- `export` : mot défini par le programme et appelable par l’hôte
+- `export` : déclaration module-locale exposant un mot du programme à l’hôte
 - `host.*` : mot fourni par l’hôte et appelable depuis le programme
 
 ## `export`
 
-`export` expose un mot du programme vers l’hôte.
+`export : word` publie vers l’hôte un mot déjà défini dans le module courant.
 
-Le mot exporté reste un mot du programme.
+Règles :
 
-Il peut aussi être appelé dans le programme comme n’importe quel mot visible.
-
-En v1 :
-
-- le programme est analysé comme une seule unité de compilation
-- les formes `module`, `import` et `include` sont introduites en syntaxe comme fondations grammaticales
-- la sémantique détaillée des modules/imports/includes est différée
-- la position normative exacte de `export` est révisée en phase 4
-- les exemples d’`export` existants peuvent rester legacy jusque-là
-- la phase 2 établit uniquement le confinement des définitions utilisateur dans des modules
+- `export : word` est une déclaration uniquement
+- la déclaration est valide uniquement dans le module qui définit `word`
+- `word` doit exister dans ce même module
+- `export` ne définit pas de nouveau mot et ne crée pas d’alias Nicole
+- `export` ne modifie ni typage, ni effet, ni récursion du mot référencé
+- `pub` règle la visibilité Nicole, `export` règle la visibilité hôte
+- `export` ne dépend jamais des imports ni des aliases
+- le nom canonique visible hôte est `@module.word` (avec `@` conservé)
+- ce nom canonique est dérivé du module définissant et du mot référencé
+- les aliases d’import n’affectent jamais ce nom canonique
+- les noms canoniques visibles hôte doivent rester uniques dans le programme
+- une déclaration `export` dupliquée qui produit le même nom canonique est invalide
 
 Exemple :
 
 ```nicole
-export dirty : app.on-message { msg:String -- }
-  msg host.log
-;
+module @app
+  dirty : on-message { msg:String -- }
+    msg host.log
+  ;
+  export : on-message
+end-module
 ```
 
 ## `host.*`

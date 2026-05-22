@@ -49,77 +49,82 @@ Le contrat hôte ne crée pas de mutation implicite, ne partage pas de pile glob
 
 # 2. `export` : mots du programme appelables par l’hôte
 
-`export` désigne un mot défini par le programme Nicole et rendu visible à l’hôte.
+`export` est une déclaration module-locale :
 
-## Garanties d’un mot exporté
+```nicole
+export : word
+```
 
-Un mot exporté garantit :
+Règles normatives :
 
-- un nom d’export unique dans le programme
-- une signature connue
-- des entrées typées
-- des sorties typées
-- une discipline de retour identique à celle de tout mot Nicole
-- l’exécution dans une stack frame isolée
-- un statut d’effet vérifié (`pure` ou `dirty`) dérivé de son corps
-- pour la v0.16, la garantie d’appel récursif direct en position terminale s’applique uniquement aux frames d’exécution Nicole ; le comportement de pile native reste non spécifié
+- `export : word` est une déclaration uniquement
+- elle apparaît dans le module qui définit `word`
+- `word` doit exister dans ce même module
+- `export` ne définit pas un nouveau mot
+- `export` ne crée pas d’alias visible dans le programme Nicole
+- `export` n’utilise pas les aliases d’import
+- `export` ne modifie ni signature, ni typage, ni pureté/dirty, ni récursion du mot référencé
+- `pub` règle la visibilité Nicole, `export` règle la visibilité hôte
+- `export` hors module est invalide
+- `export` sur un sous-mot exécutable est invalide en v1
 
-Le mot exporté reste un mot du programme.
+## Nom canonique visible hôte
 
-Il peut aussi être appelé depuis d’autres mots du programme, comme tout mot visible.
+Le nom canonique visible côté hôte est :
 
-`export` ne rend pas un mot dirty par lui-même.
+```text
+@module.word
+```
 
-Le statut d’effet d’un export est déterminé par la sémantique du mot, puis validé contre son annotation éventuelle.
+Propriétés :
 
-L’hôte peut exposer ou inspecter cette information d’effet comme métadonnée de contrat, sans que cela change les règles de typage ABI.
+- le `@` initial est conservé
+- le nom est dérivé du module définissant et du mot référencé
+- les aliases d’import n’affectent jamais ce nom
+- le nom canonique est le seul point de liaison hôte normatif
+
+## Unicité et collisions
+
+Un nom canonique visible hôte désigne un seul mot exporté.
+
+Conséquences :
+
+- les noms canoniques visibles hôte doivent être uniques dans le programme
+- une déclaration `export` dupliquée produisant le même nom canonique est invalide
+- deux déclarations différentes ne peuvent jamais produire le même nom canonique
+
+Exemple valide :
+
+```nicole
+module @app
+  : run { -- code:Int }
+    0
+  ;
+  export : run
+end-module
+```
+
+Nom visible hôte : `@app.run`.
+
+Exemple invalide (duplication) :
+
+```nicole
+module @app
+  : run { -- code:Int }
+    0
+  ;
+  export : run
+  export : run
+end-module
+```
 
 ## Appel conceptuel par l’hôte
 
-L’hôte appelle un mot exporté en sélectionnant ce mot par son nom d’export et en lui fournissant les valeurs d’entrée attendues par sa signature.
+L’hôte appelle un mot exporté en sélectionnant son nom canonique `@module.word` et en fournissant les valeurs d’entrée attendues par sa signature.
 
-Le nom d’export est le point de liaison public entre le programme et l’hôte.
+Le programme exécute ce mot dans sa frame propre et renvoie exactement les sorties déclarées.
 
-Au niveau de l’interface hôte, un nom d’export désigne un seul point d’entrée.
-
-Deux mots exportés ne peuvent jamais partager le même nom d’export.
-
-Plus généralement, un nom d’export doit désigner un seul mot exporté.
-
-Toute collision de noms d’export est invalide et doit être rejetée comme une erreur de contrat détectable statiquement.
-
-Exemple invalide :
-
-```nicole
-export : entry { -- n:Int }
-  1
-;
-
-export : entry { -- text:String }
-  "hello"
-;
-```
-
-Ce programme est invalide :
-
-- `entry` est un seul nom public côté hôte
-- l’hôte ne peut pas lier un même nom d’export à deux définitions distinctes
-
-Alternative valide :
-
-```nicole
-export : entry.int { -- n:Int }
-  1
-;
-
-export : entry.text { -- text:String }
-  "hello"
-;
-```
-
-Le programme exécute alors le mot dans sa frame propre et renvoie exactement les sorties déclarées.
-
-L’hôte ne reçoit que ces sorties déclarées, dans l’ordre défini par la signature.
+L’hôte ne reçoit que ces sorties déclarées, dans l’ordre de la signature.
 
 L’hôte ne voit pas la pile locale interne du mot.
 
@@ -138,12 +143,15 @@ Le corps du mot exporté doit donc être entièrement vérifié avant toute exé
 Exemple conceptuel :
 
 ```nicole
-export dirty : app.on-message { msg:String -- }
-  msg host.log
-;
+module @app
+  dirty : handle-message { msg:String -- }
+    msg host.log
+  ;
+  export : handle-message
+end-module
 ```
 
-Dans cet exemple, l’hôte peut invoquer `app.on-message` avec une valeur de type `String`.
+Dans cet exemple, l’hôte invoque `@app.handle-message` avec une valeur de type `String`.
 Le mot ne renvoie aucune valeur.
 
 ---
