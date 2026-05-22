@@ -198,7 +198,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Risks:
 - Under-specified alias scoping can lead to inconsistent compiler interpretations.
 - Status: `implemented`
-- Result commit:
+- Result commit: d87a4550944fff370a439a0c6ea08c4e37b9cd07
 - Result tag:
 - Notes:
 - Static module-aware resolution defined
