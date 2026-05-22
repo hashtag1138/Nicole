@@ -83,6 +83,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - annotation d’effet `dirty` (pas de mot-clé `pure`)
 - sous-mots
 - noms qualifiés
+- fondations lexicales/grammaticales pour `@module.word`, `module`, `end-module`, `import`, `include` (sémantique différée)
 - mots fournis par l’hôte via le préfixe réservé `host.`
 - listes immuables, concaténation et décomposition
 - opérations de liste `list.len`, `list.is-empty`, `list.get`, `list.first`, `list.last`, `list.set`, `list.append`, `list.concat`, `list.reverse`, `list.map`, `list.filter`, `list.fold`, `list.reduce`

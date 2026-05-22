@@ -62,8 +62,8 @@ Current global status:
 | Phase | Name | Status | Commit/tag | Notes |
 |---|---|---|---|---|
 | 0 | Baseline cleanup and existing contradictions | implemented | | Fix existing `case when` contradictions before module migration |
-| 1 | Lexical and grammar foundation | pre-audit | | Add `@`, structural `.`, module/import/include grammar shells |
-| 2 | Mandatory module model | planned | | Forbid top-level user words; define module containment |
+| 1 | Lexical and grammar foundation | implemented | | Add `@`, structural `.`, module/import/include grammar shells |
+| 2 | Mandatory module model | pre-audit | | Forbid top-level user words; define module containment |
 | 3 | Resolution, imports, and namespaces | planned | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | planned | | Host-visible names become `@module.word` |
 | 5 | Valid examples rewrite | planned | | Rewrite all valid examples into module form |
@@ -135,10 +135,15 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "module|end-module|import|include" SYNTAXE.md SEMANTIQUE.md`
 - Risks:
 - Partial lexical changes can make examples and invalid examples temporarily inconsistent until later phases.
-- Status: `pre-audit`
+- Status: `implemented`
 - Result commit:
 - Result tag:
 - Notes:
+- Lexical groundwork added for `@`
+- `.` changed to structural separator in syntax foundation
+- Reserved forms added for `module`, `end-module`, `import`, `include`
+- Grammar shells added for module/import/include
+- Phase 1 post-audit passed
 
 ## Phase 2 — Mandatory module model
 
@@ -161,7 +166,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Audit that every user word definition appears inside a `module @... end-module` block.
 - Risks:
 - Legacy examples can obscure whether failures are from intended rule or top-level prohibition.
-- Status: `planned`
+- Status: `pre-audit`
 - Result commit:
 - Result tag:
 - Notes:
@@ -301,6 +306,9 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 |---|---:|---|---|---|
 | 2026-05-22 | Phase 0 | planned | implemented | Phase 0 post-audit passed |
 | 2026-05-22 | Phase 1 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 1 | pre-audit | patching | Grammar groundwork implementation started |
+| 2026-05-22 | Phase 1 | patching | implemented | Phase 1 post-audit passed |
+| 2026-05-22 | Phase 2 | planned | pre-audit | Next phase opened |
 
 ## Important constraints
 

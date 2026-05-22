@@ -45,12 +45,19 @@ Les noms de sortie sont documentaires : ils décrivent les valeurs produites, ma
 Identifiants :
 
 - un identifiant commence par une lettre ASCII (`a-z`, `A-Z`) ou `_`
-- après le premier caractère, il peut contenir des lettres, des chiffres, `_`, `-` et `.`
+- après le premier caractère, il peut contenir des lettres, des chiffres, `_` et `-`
 - `-` peut apparaître dans un identifiant comme `add-one`
 - `-` seul reste l’opérateur arithmétique de soustraction
-- `.` peut faire partie d’un nom qualifié comme `host.log`, `map.empty` ou `app.on-message`
+- `.` est un séparateur structurel dans les noms qualifiés, pas un caractère normal d’identifiant
 - `.` n’est pas un opérateur autonome en v1
-- le préfixe `host.` est réservé aux mots fournis par l’hôte
+- `@` introduit une référence de module dans les formes grammaticales de modules/imports
+
+Formes lexicales introduites :
+
+- `identifier` : `[a-zA-Z_][a-zA-Z0-9_-]*`
+- `qualified_name` : `identifier ("." identifier)*`
+- `module_ref` : `@identifier`
+- `module_qualified_name` : `@identifier ("." identifier)+`
 
 Chaînes :
 
@@ -70,6 +77,10 @@ Les formes suivantes sont réservées par le langage et ne peuvent pas être dé
 - `when`
 - `pub`
 - `export`
+- `module`
+- `end-module`
+- `import`
+- `include`
 - `dirty`
 - `call`
 - `?`
@@ -128,7 +139,7 @@ Les identifiants suivants restent autorisés :
 - `dirty-int`
 - `dirty_log`
 - `is-dirty`
-- `dirty.value`
+- `dirtyvalue`
 
 ---
 
@@ -138,7 +149,8 @@ Sans modificateur, un mot est privé à l’unique unité de compilation du prog
 
 En v1, un programme Nicole est analysé comme une seule unité de compilation.
 
-Il n’existe pas de graphe de modules ni de mécanisme `import` en v1.
+Les formes `module`, `import` et `include` existent en syntaxe comme fondations grammaticales.
+Leur comportement sémantique complet (graphe d’import, résolution, collisions, contraintes de modules) est différé aux phases suivantes.
 
 `pub` rend un mot visible dans le programme.
 
@@ -198,6 +210,42 @@ pub : shared-helper { x:Int -- y:Int }
 export : entry { args:List<String> -- code:Int }
   0
 ;
+```
+
+## Fondations grammaticales modules/imports/includes (Phase 1)
+
+Cette section introduit uniquement la forme syntaxique minimale.
+
+Le comportement sémantique est explicitement différé.
+
+Sont différés :
+
+- graphe d’import
+- sémantique des aliases
+- contraintes détaillées sur les modules
+- règles de résolution détaillées
+
+Forme `module` :
+
+```nicole
+module @name
+  ...
+end-module
+```
+
+Formes `import` :
+
+```nicole
+import @name
+import @name as alias
+import @name.word
+import @name.word as alias
+```
+
+Forme `include` :
+
+```nicole
+include "path.nic"
 ```
 
 Exemple invalide :

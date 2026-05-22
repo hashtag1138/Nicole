@@ -1019,7 +1019,8 @@ Il peut aussi être appelé dans le programme comme n’importe quel mot visible
 En v1 :
 
 - le programme est analysé comme une seule unité de compilation
-- aucun graphe de modules ni mécanisme `import` n’existe
+- les formes `module`, `import` et `include` sont introduites en syntaxe comme fondations grammaticales
+- la sémantique détaillée des modules/imports/includes est différée
 - `export` n’est autorisé que sur un mot top-level
 
 Exemple :
