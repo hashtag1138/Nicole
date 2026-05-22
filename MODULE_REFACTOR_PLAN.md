@@ -167,7 +167,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Risks:
 - Legacy examples can obscure whether failures are from intended rule or top-level prohibition.
 - Status: `implemented`
-- Result commit:
+- Result commit: cc945fbcda1dc0304a9bbc8a9b9a484412871144
 - Result tag:
 - Notes:
 - Mandatory module containment added
