@@ -66,7 +66,7 @@ Current global status:
 | 2 | Mandatory module model | implemented | | Forbid top-level user words; define module containment |
 | 3 | Resolution, imports, and namespaces | implemented | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | implemented | | Host-visible names become `@module.word` |
-| 5 | Valid examples rewrite | pre-audit | | Rewrite all valid examples into module form |
+| 5 | Valid examples rewrite | patching | | Rewrite all valid examples into module form |
 | 6 | Invalid examples rewrite | planned | | Preserve intended invalid reasons under new baseline |
 | 7 | Final consistency audit and tagging | planned | | Cross-file audit, release readiness, tag proposal |
 
@@ -263,7 +263,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "@[a-zA-Z0-9_-]*\\." EXAMPLES.md`
 - Risks:
 - High-volume edits can introduce accidental semantic regressions in pedagogical examples.
-- Status: `pre-audit`
+- Status: `patching`
 - Result commit:
 - Result tag:
 - Notes:
@@ -338,6 +338,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 4 | pre-audit | patching | Export and HOST_ABI rewrite started |
 | 2026-05-22 | Phase 4 | patching | implemented | Phase 4 post-audit passed |
 | 2026-05-22 | Phase 5 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 5 | pre-audit | patching | Valid examples rewrite started |
 
 ## Important constraints
 

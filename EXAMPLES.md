@@ -21,9 +21,11 @@ Les exemples ci-dessous servent à lire le langage, à apprendre sa forme idioma
 ### Addition simple
 
 ```nicole
-: add-one { x:Int -- y:Int }
-  x 1 +
-;
+module @examples_basics_01
+  : add-one { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Explication :
@@ -41,9 +43,11 @@ Pourquoi :
 ### Carré d’un entier
 
 ```nicole
-: square { x:Int -- y:Int }
-  x x *
-;
+module @examples_basics_02
+  : square { x:Int -- y:Int }
+    x x *
+  ;
+end-module
 ```
 
 Explication :
@@ -60,12 +64,14 @@ Pourquoi :
 ### Chaînes simples
 
 ```nicole
-: greet { excited:Bool -- msg:String }
-  excited case
-    true => "hello"
-    false => "hi"
-  end
-;
+module @examples_basics_03
+  : greet { excited:Bool -- msg:String }
+    excited case
+      true => "hello"
+      false => "hi"
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -85,9 +91,11 @@ Pourquoi :
 ### Réutilisation d’un input
 
 ```nicole
-: double { x:Int -- y:Int }
-  x x +
-;
+module @examples_locals_01
+  : double { x:Int -- y:Int }
+    x x +
+  ;
+end-module
 ```
 
 Explication :
@@ -104,9 +112,11 @@ Pourquoi :
 ### Valeur de départ et calcul
 
 ```nicole
-: add-five { x:Int -- y:Int }
-  x 5 +
-;
+module @examples_locals_02
+  : add-five { x:Int -- y:Int }
+    x 5 +
+  ;
+end-module
 ```
 
 Explication :
@@ -127,14 +137,16 @@ Pourquoi :
 ### Sous-mot local explicite
 
 ```nicole
-: invoice { price:Int qty:Int -- total:Int }
+module @examples_subwords_01
+  : invoice { price:Int qty:Int -- total:Int }
 
-  : subtotal { price:Int qty:Int -- amount:Int }
-    price qty *
+    : subtotal { price:Int qty:Int -- amount:Int }
+      price qty *
+    ;
+
+    price qty subtotal
   ;
-
-  price qty subtotal
-;
+end-module
 ```
 
 Explication :
@@ -152,16 +164,18 @@ Pourquoi :
 ### Réutilisation d’un nom local dans une autre frame
 
 ```nicole
-: foo { x:Int -- y:Int }
+module @examples_subwords_02
+  : foo { x:Int -- y:Int }
 
-  : bar { x:Int -- y:Int }
-    1 x +
+    : bar { x:Int -- y:Int }
+      1 x +
+    ;
+
+    3 bar
+    x
+    +
   ;
-
-  3 bar
-  x
-  +
-;
+end-module
 ```
 
 Explication :
@@ -183,13 +197,15 @@ Pourquoi :
 ### Noms explicites
 
 ```nicole
-: id-int { x:Int -- y:Int }
-  x
-;
+module @examples_naming_01
+  : id-int { x:Int -- y:Int }
+    x
+  ;
 
-: id-string { x:String -- y:String }
-  x
-;
+  : id-string { x:String -- y:String }
+    x
+  ;
+end-module
 ```
 
 Explication :
@@ -206,13 +222,15 @@ Pourquoi :
 ### Récursion directe en position terminale (accumulateur)
 
 ```nicole
-: sum-down-acc { n:Int acc:Int -- result:Int }
-  n 0 = if
-    acc
-  else
-    n 1 - acc n + sum-down-acc
-  end
-;
+module @examples_naming_02
+  : sum-down-acc { n:Int acc:Int -- result:Int }
+    n 0 = if
+      acc
+    else
+      n 1 - acc n + sum-down-acc
+    end
+  ;
+end-module
 ```
 
 Note :
@@ -221,12 +239,14 @@ Note :
 ### Récursion non terminale
 
 ```nicole
-: fact { n:Int -- result:Int }
-  n case
-    0 => 1
-    _ => n n 1 - fact *
-  end
-;
+module @examples_naming_03
+  : fact { n:Int -- result:Int }
+    n case
+      0 => 1
+      _ => n n 1 - fact *
+    end
+  ;
+end-module
 ```
 
 Note :
@@ -235,21 +255,23 @@ Note :
 ### Récursion mutuelle
 
 ```nicole
-: even { n:Int -- result:Bool }
-  n 0 = if
-    true
-  else
-    n 1 - odd
-  end
-;
+module @examples_naming_04
+  : even { n:Int -- result:Bool }
+    n 0 = if
+      true
+    else
+      n 1 - odd
+    end
+  ;
 
-: odd { n:Int -- result:Bool }
-  n 0 = if
-    false
-  else
-    n 1 - even
-  end
-;
+  : odd { n:Int -- result:Bool }
+    n 0 = if
+      false
+    else
+      n 1 - even
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -273,9 +295,11 @@ Note :
 ### Paire de sortie
 
 ```nicole
-: pair { -- a:Int b:String }
-  1 "ok"
-;
+module @examples_returns_01
+  : pair { -- a:Int b:String }
+    1 "ok"
+  ;
+end-module
 ```
 
 Explication :
@@ -292,9 +316,11 @@ Pourquoi :
 ### Deux entiers
 
 ```nicole
-: dimensions { -- width:Int height:Int }
-  800 600
-;
+module @examples_returns_02
+  : dimensions { -- width:Int height:Int }
+    800 600
+  ;
+end-module
 ```
 
 Explication :
@@ -313,13 +339,15 @@ Pourquoi :
 ### Valeur absolue
 
 ```nicole
-: abs { x:Int -- y:Int }
-  x 0 < if
-    0 x -
-  else
-    x
-  end
-;
+module @examples_if_01
+  : abs { x:Int -- y:Int }
+    x 0 < if
+      0 x -
+    else
+      x
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -336,13 +364,15 @@ Pourquoi :
 ### Booléen simple
 
 ```nicole
-: choose-yes { flag:Bool -- text:String }
-  flag if
-    "yes"
-  else
-    "no"
-  end
-;
+module @examples_if_02
+  : choose-yes { flag:Bool -- text:String }
+    flag if
+      "yes"
+    else
+      "no"
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -363,12 +393,14 @@ Pourquoi :
 ### `Result` avec valeur par défaut
 
 ```nicole
-: timeout-or-default { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 30
-  end
-;
+module @examples_case_01
+  : timeout-or-default { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 30
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -385,13 +417,15 @@ Pourquoi :
 ### Helpers `Result`
 
 ```nicole
-: has-timeout-result { cfg:Map<String,Int> -- b:Bool }
-  cfg "timeout" map.get result.is-ok
-;
+module @examples_case_02
+  : has-timeout-result { cfg:Map<String,Int> -- b:Bool }
+    cfg "timeout" map.get result.is-ok
+  ;
 
-: timeout-or-30 { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get 30 result.unwrap-or
-;
+  : timeout-or-30 { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get 30 result.unwrap-or
+  ;
+end-module
 ```
 
 Explication :
@@ -408,11 +442,13 @@ Pourquoi :
 ### Propagation locale avec `?`
 
 ```nicole
-: require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
-  cfg "timeout" map.get ?
-  drop
-  1 Ok!
-;
+module @examples_case_03
+  : require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg "timeout" map.get ?
+    drop
+    1 Ok!
+  ;
+end-module
 ```
 
 Explication :
@@ -432,12 +468,14 @@ Pourquoi :
 ### `Bool` exhaustif
 
 ```nicole
-: bool-label { b:Bool -- text:String }
-  b case
-    true => "true"
-    false => "false"
-  end
-;
+module @examples_case_04
+  : bool-label { b:Bool -- text:String }
+    b case
+      true => "true"
+      false => "false"
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -462,10 +500,12 @@ Note pédagogique :
 ### Carte avec timeout
 
 ```nicole
-: cfg-with-timeout { -- cfg:Map<String,Int> }
-  map.empty:Map<String,Int>
-  "timeout" 30 map.set
-;
+module @examples_collections_01
+  : cfg-with-timeout { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "timeout" 30 map.set
+  ;
+end-module
 ```
 
 Explication :
@@ -479,9 +519,11 @@ Pourquoi :
 ### Présence d’une clé
 
 ```nicole
-: has-timeout { cfg:Map<String,Int> -- ok:Bool }
-  cfg "timeout" map.contains
-;
+module @examples_collections_02
+  : has-timeout { cfg:Map<String,Int> -- ok:Bool }
+    cfg "timeout" map.contains
+  ;
+end-module
 ```
 
 Explication :
@@ -497,9 +539,11 @@ Pourquoi :
 ### Présence d’un utilisateur
 
 ```nicole
-: has-user { users:Map<String,Int> -- b:Bool }
-  users "alice" map.contains
-;
+module @examples_collections_03
+  : has-user { users:Map<String,Int> -- b:Bool }
+    users "alice" map.contains
+  ;
+end-module
 ```
 
 Explication :
@@ -511,9 +555,11 @@ Pourquoi :
 ### Ajout ou remplacement dans une map
 
 ```nicole
-: add-user { users:Map<String,Int> -- out:Map<String,Int> }
-  users "alice" 42 map.set
-;
+module @examples_collections_04
+  : add-user { users:Map<String,Int> -- out:Map<String,Int> }
+    users "alice" 42 map.set
+  ;
+end-module
 ```
 
 Explication :
@@ -526,14 +572,16 @@ Pourquoi :
 ### Suppression explicite dans une map
 
 ```nicole
-: remove-user
-{
-  users:Map<String,Int>
-  --
-  r:Result<Map<String,Int>,MapError>
-}
-  users "alice" map.remove
-;
+module @examples_collections_05
+  : remove-user
+  {
+    users:Map<String,Int>
+    --
+    r:Result<Map<String,Int>,MapError>
+  }
+    users "alice" map.remove
+  ;
+end-module
 ```
 
 Explication :
@@ -546,9 +594,11 @@ Pourquoi :
 ### Nombre d’entrées d’une map
 
 ```nicole
-: user-count { users:Map<String,Int> -- n:Int }
-  users map.len
-;
+module @examples_collections_06
+  : user-count { users:Map<String,Int> -- n:Int }
+    users map.len
+  ;
+end-module
 ```
 
 Explication :
@@ -560,9 +610,11 @@ Pourquoi :
 ### Test de vacuité d’une map
 
 ```nicole
-: has-no-user { users:Map<String,Int> -- b:Bool }
-  users map.is-empty
-;
+module @examples_collections_07
+  : has-no-user { users:Map<String,Int> -- b:Bool }
+    users map.is-empty
+  ;
+end-module
 ```
 
 Explication :
@@ -575,12 +627,14 @@ Pourquoi :
 ### Clés d’une map dans l’ordre d’insertion
 
 ```nicole
-: user-keys { -- xs:List<String> }
-  map.empty:Map<String,Int>
-  "alice" 1 map.set
-  "bob" 2 map.set
-  map.keys
-;
+module @examples_collections_08
+  : user-keys { -- xs:List<String> }
+    map.empty:Map<String,Int>
+    "alice" 1 map.set
+    "bob" 2 map.set
+    map.keys
+  ;
+end-module
 ```
 
 Explication :
@@ -592,12 +646,14 @@ Pourquoi :
 ### Valeurs d’une map dans l’ordre des clés
 
 ```nicole
-: user-values { -- xs:List<Int> }
-  map.empty:Map<String,Int>
-  "alice" 1 map.set
-  "bob" 2 map.set
-  map.values
-;
+module @examples_collections_09
+  : user-values { -- xs:List<Int> }
+    map.empty:Map<String,Int>
+    "alice" 1 map.set
+    "bob" 2 map.set
+    map.values
+  ;
+end-module
 ```
 
 Explication :
@@ -609,13 +665,15 @@ Pourquoi :
 ### Mise à jour sans déplacer la clé
 
 ```nicole
-: keys-after-update { -- xs:List<String> }
-  map.empty:Map<String,Int>
-  "a" 1 map.set
-  "b" 2 map.set
-  "a" 9 map.set
-  map.keys
-;
+module @examples_collections_10
+  : keys-after-update { -- xs:List<String> }
+    map.empty:Map<String,Int>
+    "a" 1 map.set
+    "b" 2 map.set
+    "a" 9 map.set
+    map.keys
+  ;
+end-module
 ```
 
 Explication :
@@ -628,18 +686,20 @@ Pourquoi :
 ### Suppression puis réinsertion en fin d’ordre
 
 ```nicole
-: keys-after-remove-set { -- xs:List<String> }
-  map.empty:Map<String,Int>
-  "a" 1 map.set
-  "b" 2 map.set
-  "c" 3 map.set
-  "b" map.remove case
-    Ok(m2) => m2
-    Err(MissingKey) => map.empty:Map<String,Int>
-  end
-  "b" 22 map.set
-  map.keys
-;
+module @examples_collections_11
+  : keys-after-remove-set { -- xs:List<String> }
+    map.empty:Map<String,Int>
+    "a" 1 map.set
+    "b" 2 map.set
+    "c" 3 map.set
+    "b" map.remove case
+      Ok(m2) => m2
+      Err(MissingKey) => map.empty:Map<String,Int>
+    end
+    "b" 22 map.set
+    map.keys
+  ;
+end-module
 ```
 
 Explication :
@@ -652,9 +712,11 @@ Pourquoi :
 ### Test de vacuité d’une liste
 
 ```nicole
-: has-no-value { xs:List<Int> -- b:Bool }
-  xs list.is-empty
-;
+module @examples_collections_12
+  : has-no-value { xs:List<Int> -- b:Bool }
+    xs list.is-empty
+  ;
+end-module
 ```
 
 Explication :
@@ -667,12 +729,14 @@ Pourquoi :
 ### Lecture dans une liste
 
 ```nicole
-: first { xs:List<Int> -- n:Int }
-  xs 0 list.get case
-    Ok(v) => v
-    Err(OutOfBounds) => 0
-  end
-;
+module @examples_collections_13
+  : first { xs:List<Int> -- n:Int }
+    xs 0 list.get case
+      Ok(v) => v
+      Err(OutOfBounds) => 0
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -689,12 +753,14 @@ Pourquoi :
 ### Premier élément avec erreur explicite
 
 ```nicole
-: first-or-zero-v2 { xs:List<Int> -- n:Int }
-  xs list.first case
-    Ok(v) => v
-    Err(OutOfBounds) => 0
-  end
-;
+module @examples_collections_14
+  : first-or-zero-v2 { xs:List<Int> -- n:Int }
+    xs list.first case
+      Ok(v) => v
+      Err(OutOfBounds) => 0
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -707,12 +773,14 @@ Pourquoi :
 ### Dernier élément avec erreur explicite
 
 ```nicole
-: last-or-zero { xs:List<Int> -- n:Int }
-  xs list.last case
-    Ok(v) => v
-    Err(OutOfBounds) => 0
-  end
-;
+module @examples_collections_15
+  : last-or-zero { xs:List<Int> -- n:Int }
+    xs list.last case
+      Ok(v) => v
+      Err(OutOfBounds) => 0
+    end
+  ;
+end-module
 ```
 
 Explication :
@@ -725,9 +793,11 @@ Pourquoi :
 ### Ajout en fin de liste
 
 ```nicole
-: append-42 { xs:List<Int> -- ys:List<Int> }
-  xs 42 list.append
-;
+module @examples_collections_16
+  : append-42 { xs:List<Int> -- ys:List<Int> }
+    xs 42 list.append
+  ;
+end-module
 ```
 
 Explication :
@@ -739,9 +809,11 @@ Pourquoi :
 ### Inversion d’une liste
 
 ```nicole
-: reversed { xs:List<Int> -- ys:List<Int> }
-  xs list.reverse
-;
+module @examples_collections_17
+  : reversed { xs:List<Int> -- ys:List<Int> }
+    xs list.reverse
+  ;
+end-module
 ```
 
 Explication :
@@ -753,9 +825,11 @@ Pourquoi :
 ### Transformation avec `list.map`
 
 ```nicole
-: inc-all { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
-;
+module @examples_collections_18
+  : inc-all { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- y:Int | x 1 + ;] list.map
+  ;
+end-module
 ```
 
 Explication :
@@ -771,14 +845,16 @@ Pourquoi :
 ### Transformation avec `list.map` et capture explicite
 
 ```nicole
-: add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
-  xs
-  offset
-  :[ captured-offset:Int | x:Int -- y:Int |
-    x captured-offset +
-  ;]
-  list.map
-;
+module @examples_collections_19
+  : add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
+    xs
+    offset
+    :[ captured-offset:Int | x:Int -- y:Int |
+      x captured-offset +
+    ;]
+    list.map
+  ;
+end-module
 ```
 
 Explication :
@@ -797,15 +873,17 @@ Pourquoi :
 ### Transformation avec `list.map` et quotation retournant `Result`
 
 ```nicole
-: mark-timeouts { cfgs:List<Map<String,Int>> -- ys:List<Result<Int,MapError>> }
-  cfgs
-  :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
-    cfg "timeout" map.get ?
-    drop
-    1 Ok!
-  ;]
-  list.map
-;
+module @examples_collections_20
+  : mark-timeouts { cfgs:List<Map<String,Int>> -- ys:List<Result<Int,MapError>> }
+    cfgs
+    :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
+      cfg "timeout" map.get ?
+      drop
+      1 Ok!
+    ;]
+    list.map
+  ;
+end-module
 ```
 
 Explication :
@@ -824,9 +902,11 @@ Pourquoi :
 ### Filtrage avec `list.filter`
 
 ```nicole
-: keep-positive { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
-;
+module @examples_collections_21
+  : keep-positive { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
+  ;
+end-module
 ```
 
 Explication :
@@ -843,9 +923,11 @@ Pourquoi :
 ### Réduction simple
 
 ```nicole
-: sum { xs:List<Int> -- n:Int }
-  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
-;
+module @examples_collections_22
+  : sum { xs:List<Int> -- n:Int }
+    xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
+  ;
+end-module
 ```
 
 Explication :
@@ -862,9 +944,11 @@ Pourquoi :
 ### Réduction sur liste vide avec accumulateur initial
 
 ```nicole
-: sum-or-zero { xs:List<Int> -- n:Int }
-  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
-;
+module @examples_collections_23
+  : sum-or-zero { xs:List<Int> -- n:Int }
+    xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
+  ;
+end-module
 ```
 
 Explication :
@@ -881,15 +965,17 @@ Pourquoi :
 ### Réduction avec `list.fold` et capture explicite
 
 ```nicole
-: sum-with-offset { xs:List<Int> offset:Int -- n:Int }
-  xs
-  0
-  offset
-  :[ captured-offset:Int | acc:Int x:Int -- out:Int |
-    acc x + captured-offset +
-  ;]
-  list.fold
-;
+module @examples_collections_24
+  : sum-with-offset { xs:List<Int> offset:Int -- n:Int }
+    xs
+    0
+    offset
+    :[ captured-offset:Int | acc:Int x:Int -- out:Int |
+      acc x + captured-offset +
+    ;]
+    list.fold
+  ;
+end-module
 ```
 
 Explication :
@@ -907,9 +993,11 @@ Pourquoi :
 ### Réduction sans valeur initiale
 
 ```nicole
-: sum-non-empty { xs:List<Int> -- n:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
-;
+module @examples_collections_25
+  : sum-non-empty { xs:List<Int> -- n:Int }
+    xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
+  ;
+end-module
 ```
 
 Explication :
@@ -931,9 +1019,11 @@ Pourquoi :
 ### Quotation simple
 
 ```nicole
-: plus-one { x:Int -- y:Int }
-  x :[ | n:Int -- m:Int | n 1 + ;] call
-;
+module @examples_quotes_01
+  : plus-one { x:Int -- y:Int }
+    x :[ | n:Int -- m:Int | n 1 + ;] call
+  ;
+end-module
 ```
 
 Explication :
@@ -950,9 +1040,11 @@ Pourquoi :
 ### Quotations avec capture
 
 ```nicole
-: add-captured { x:Int y:Int -- z:Int }
-  x y :[ a:Int | n:Int -- m:Int | n a + ;] call
-;
+module @examples_quotes_02
+  : add-captured { x:Int y:Int -- z:Int }
+    x y :[ a:Int | n:Int -- m:Int | n a + ;] call
+  ;
+end-module
 ```
 
 Explication :
@@ -970,9 +1062,11 @@ Pourquoi :
 ### Ordre des captures
 
 ```nicole
-: capture-order { -- n:Int }
-  2 3 :[ a:Int b:Int | -- r:Int | a b - ;] call
-;
+module @examples_quotes_03
+  : capture-order { -- n:Int }
+    2 3 :[ a:Int b:Int | -- r:Int | a b - ;] call
+  ;
+end-module
 ```
 
 Explication :
@@ -990,9 +1084,11 @@ Pourquoi :
 ### Ordre des inputs de `call`
 
 ```nicole
-: call-order { -- n:Int }
-  2 3 :[ | x:Int y:Int -- r:Int | x y - ;] call
-;
+module @examples_quotes_04
+  : call-order { -- n:Int }
+    2 3 :[ | x:Int y:Int -- r:Int | x y - ;] call
+  ;
+end-module
 ```
 
 Explication :
@@ -1010,15 +1106,17 @@ Pourquoi :
 ### Quotation avec propagation locale
 
 ```nicole
-: call-timeout-check { cfg:Map<String,Int> -- r:Result<Int,MapError> }
-  cfg
-  :[ | current:Map<String,Int> -- r:Result<Int,MapError> |
-    current "timeout" map.get ?
-    drop
-    1 Ok!
-  ;]
-  call
-;
+module @examples_quotes_05
+  : call-timeout-check { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg
+    :[ | current:Map<String,Int> -- r:Result<Int,MapError> |
+      current "timeout" map.get ?
+      drop
+      1 Ok!
+    ;]
+    call
+  ;
+end-module
 ```
 
 Explication :
@@ -1036,14 +1134,16 @@ Pourquoi :
 ### Quotation avec réutilisation d’un nom dans une autre frame
 
 ```nicole
-: add-offset { x:Int offset:Int -- y:Int }
-  x
-  offset
-  :[ offset:Int | value:Int -- out:Int |
-    value offset +
-  ;]
-  call
-;
+module @examples_quotes_06
+  : add-offset { x:Int offset:Int -- y:Int }
+    x
+    offset
+    :[ offset:Int | value:Int -- out:Int |
+      value offset +
+    ;]
+    call
+  ;
+end-module
 ```
 
 Explication :
@@ -1061,9 +1161,11 @@ Pourquoi :
 ### Quotation passée à `list.map`
 
 ```nicole
-: inc-all-quoted { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
-;
+module @examples_quotes_07
+  : inc-all-quoted { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- y:Int | x 1 + ;] list.map
+  ;
+end-module
 ```
 
 Explication :
@@ -1096,9 +1198,11 @@ dirty
 ### Avertir l’hôte
 
 ```nicole
-dirty : warn { msg:String -- }
-  msg host.log
-;
+module @examples_host_warn
+  dirty : warn { msg:String -- }
+    msg host.log
+  ;
+end-module
 ```
 
 Explication :
@@ -1127,9 +1231,11 @@ pure
 ```
 
 ```nicole
-: read-config { key:String -- r:Result<String,MapError> }
-  key host.config.get
-;
+module @examples_host_config
+  : read-config { key:String -- r:Result<String,MapError> }
+    key host.config.get
+  ;
+end-module
 ```
 
 Explication :
@@ -1146,9 +1252,12 @@ Pourquoi :
 ### Handler de message
 
 ```nicole
-export dirty : app.demo-message { msg:String -- }
-  msg host.log
-;
+module @app
+  dirty : demo-message { msg:String -- }
+    msg host.log
+  ;
+  export : demo-message
+end-module
 ```
 
 Explication :
@@ -1166,9 +1275,12 @@ Pourquoi :
 ### Handler sans retour
 
 ```nicole
-export dirty : app.tick { -- }
-  "tick" host.log
-;
+module @app
+  dirty : tick { -- }
+    "tick" host.log
+  ;
+  export : tick
+end-module
 ```
 
 Explication :
@@ -1185,14 +1297,17 @@ Pourquoi :
 ### Export simple avec entrée et sortie
 
 ```nicole
-export : app.run { input:String -- output:String }
-  input
-;
+module @app
+  : run { input:String -- output:String }
+    input
+  ;
+  export : run
+end-module
 ```
 
 Explication :
 - expose un mot normal du programme à l’hôte
-- la signature d’export reste le contrat ABI visible
+- la signature du mot exporté reste le contrat ABI visible
 
 Pourquoi :
 - montre un export minimal avec valeur de retour
@@ -1214,20 +1329,23 @@ dirty
 ```
 
 ```nicole
-export dirty : app.on-message { msg:String -- }
-  msg host.log
-;
+module @app
+  dirty : on-message { msg:String -- }
+    msg host.log
+  ;
+  export : on-message
 
-: greeting { excited:Bool -- text:String }
-  excited case
-    true => "hello"
-    false => "hi"
-  end
-;
+  : greeting { excited:Bool -- text:String }
+    excited case
+      true => "hello"
+      false => "hi"
+    end
+  ;
 
-dirty : demo { -- }
-  true greeting host.log
-;
+  dirty : demo { -- }
+    true greeting host.log
+  ;
+end-module
 ```
 
 Explication :
@@ -1242,9 +1360,11 @@ Pourquoi :
 ## 13. Quotation retournée comme valeur
 
 ```nicole
-: make-increment { -- q:Quote<{ | x:Int -- y:Int }> }
-  :[ | x:Int -- y:Int | x 1 + ;]
-;
+module @examples_quotes_return
+  : make-increment { -- q:Quote<{ | x:Int -- y:Int }> }
+    :[ | x:Int -- y:Int | x 1 + ;]
+  ;
+end-module
 ```
 
 Explication :
@@ -1272,9 +1392,11 @@ dirty
 ### Mot pur
 
 ```nicole
-: add-one { x:Int -- y:Int }
-  x 1 +
-;
+module @examples_effects_01
+  : add-one { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Explication :
@@ -1284,9 +1406,11 @@ Explication :
 ### Mot dirty direct
 
 ```nicole
-dirty : log-message { msg:String -- }
-  msg host.log
-;
+module @examples_effects_02
+  dirty : log-message { msg:String -- }
+    msg host.log
+  ;
+end-module
 ```
 
 Explication :
@@ -1296,9 +1420,12 @@ Explication :
 ### Export pur
 
 ```nicole
-export : pure-main { -- code:Int }
-  0
-;
+module @app
+  : pure-main { -- code:Int }
+    0
+  ;
+  export : pure-main
+end-module
 ```
 
 Explication :
@@ -1308,10 +1435,13 @@ Explication :
 ### Export dirty
 
 ```nicole
-export dirty : app.run { -- code:Int }
-  "start" host.log
-  0
-;
+module @app
+  dirty : run { -- code:Int }
+    "start" host.log
+    0
+  ;
+  export : run
+end-module
 ```
 
 Explication :
@@ -1321,14 +1451,16 @@ Explication :
 ### Sous-mot dirty appelé
 
 ```nicole
-dirty : parent { msg:String -- }
+module @examples_effects_05
+  dirty : parent { msg:String -- }
 
-  dirty : child-log { text:String -- }
-    text host.log
+    dirty : child-log { text:String -- }
+      text host.log
+    ;
+
+    msg child-log
   ;
-
-  msg child-log
-;
+end-module
 ```
 
 Explication :
@@ -1338,14 +1470,16 @@ Explication :
 ### DirtyQuote construit et appelé dans une frame dirty
 
 ```nicole
-dirty : run-dirty-quote { x:Int -- y:Int }
-  x
-  :[ | n:Int -- m:Int |
-    "trace" host.log
-    n 1 +
-  ;]
-  call
-;
+module @examples_effects_06
+  dirty : run-dirty-quote { x:Int -- y:Int }
+    x
+    :[ | n:Int -- m:Int |
+      "trace" host.log
+      n 1 +
+    ;]
+    call
+  ;
+end-module
 ```
 
 Explication :
@@ -1355,14 +1489,16 @@ Explication :
 ### DirtyQuote passé à `list.map` dans une frame dirty
 
 ```nicole
-dirty : map-with-logging { xs:List<Int> -- ys:List<Int> }
-  xs
-  :[ | x:Int -- y:Int |
-    "item" host.log
-    x 1 +
-  ;]
-  list.map
-;
+module @examples_effects_07
+  dirty : map-with-logging { xs:List<Int> -- ys:List<Int> }
+    xs
+    :[ | x:Int -- y:Int |
+      "item" host.log
+      x 1 +
+    ;]
+    list.map
+  ;
+end-module
 ```
 
 Explication :
@@ -1372,17 +1508,19 @@ Explication :
 ### Propagation indirecte transitive
 
 ```nicole
-dirty : dirty-leaf { msg:String -- }
-  msg host.log
-;
+module @examples_effects_08
+  dirty : dirty-leaf { msg:String -- }
+    msg host.log
+  ;
 
-dirty : dirty-middle { msg:String -- }
-  msg dirty-leaf
-;
+  dirty : dirty-middle { msg:String -- }
+    msg dirty-leaf
+  ;
 
-dirty : dirty-top { msg:String -- }
-  msg dirty-middle
-;
+  dirty : dirty-top { msg:String -- }
+    msg dirty-middle
+  ;
+end-module
 ```
 
 Explication :
