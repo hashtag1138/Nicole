@@ -44,12 +44,9 @@ Current global status:
 - Import cycles are forbidden.
 - Recursion inside one module is unchanged.
 - Cross-module mutual recursion through cyclic imports is invalid.
-- `include` is explicit textual inclusion.
-- Include paths are relative to the file containing the include.
-- Included files inside modules are module-body fragments.
-- Included module-body fragments must not contain `module ... end-module`.
-- Duplicate includes are allowed only if normal collision rules still pass.
-- Implicit module merging does not exist.
+- `include` exists as an explicit syntax form.
+- Detailed include semantics remain deferred in normative docs.
+- Include invalid examples are deferred until include semantics are normatively specified.
 - Import aliases are scoped to the compilation unit after textual inclusion.
 - Reserved namespace roots are reserved both as roots and namespace forms:
   - `host`, `host.*`
@@ -285,7 +282,8 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Classify each invalid example: keep/rewrite/remove/invert.
 - Identify invalid cases masked by top-level prohibition.
 - Patch checklist:
-- Add new invalid classes: top-level words, bad imports, alias collisions, cycles, reserved-root modules, include violations.
+- Add new invalid classes: top-level words, bad imports, alias collisions, cycles, reserved-root modules.
+- Keep include invalid classes deferred until include semantics are normatively specified.
 - Rewrite old invalids inside modules where necessary to preserve original failure reason.
 - Post-audit checklist:
 - Verify each invalid has a precise violated rule citation.

@@ -168,6 +168,11 @@ Phase 2 établit le modèle obligatoire suivant :
 - dans un module, les appels courts vers des mots du même module sont autorisés
 - hors module, une référence utilisateur externe exige la forme `@module.word` avec import correspondant
 - dans `module @text`, la forme `@text.word` reste autorisée sans import, même si la forme courte locale est préférée
+- les modules sont des déclarations top-level uniquement
+- un module ne peut pas être imbriqué dans un autre module
+- les noms de modules doivent être uniques dans l’unité de compilation
+- un module peut être vide
+- un module n’est pas un mot exécutable
 
 En v1, le programme reste analysé comme une seule unité de compilation.
 

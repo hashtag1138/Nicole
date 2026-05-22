@@ -177,12 +177,14 @@ Result<List<U>,E>
 Exemple invalide :
 
 ```nicole
-: bad-map-propagation { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int |
-    x maybe-fail ?
-    1 +
-  ;] list.map
-;
+module @notes.invalid
+  : bad-map-propagation { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- y:Int |
+      x maybe-fail ?
+      1 +
+    ;] list.map
+  ;
+end-module
 ```
 
 Cet exemple doit être rejeté :
