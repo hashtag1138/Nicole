@@ -67,7 +67,7 @@ Current global status:
 | 3 | Resolution, imports, and namespaces | implemented | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | implemented | | Host-visible names become `@module.word` |
 | 5 | Valid examples rewrite | implemented | | Rewrite all valid examples into module form |
-| 6 | Invalid examples rewrite | pre-audit | | Preserve intended invalid reasons under new baseline |
+| 6 | Invalid examples rewrite | patching | | Preserve intended invalid reasons under new baseline |
 | 7 | Final consistency audit and tagging | planned | | Cross-file audit, release readiness, tag proposal |
 
 ## Phase dependencies
@@ -295,7 +295,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Audit that invalid examples containing `: word` definitions place them inside module blocks unless the intended failure is "top-level definition forbidden".
 - Risks:
 - If not rewritten carefully, invalid examples can silently test the wrong rule.
-- Status: `pre-audit`
+- Status: `patching`
 - Result commit:
 - Result tag:
 - Notes:
@@ -347,6 +347,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 5 | pre-audit | patching | Valid examples rewrite started |
 | 2026-05-22 | Phase 5 | patching | implemented | Phase 5 global post-audit passed |
 | 2026-05-22 | Phase 6 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 6 | pre-audit | patching | Invalid examples rewrite started |
 
 ## Important constraints
 

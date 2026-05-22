@@ -158,9 +158,13 @@ Règle violée :
 ### Addition de types incompatibles
 
 ```nicole
-: bad-add { x:Int -- y:Int }
-  x "oops" +
-;
+module @invalid.phase6
+
+  : bad-add { x:Int -- y:Int }
+    x "oops" +
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -172,9 +176,13 @@ Règle violée :
 ### Liste vide sans annotation
 
 ```nicole
-: bad-empty-list { -- xs:List<Int> }
-  []
-;
+module @invalid.phase6
+
+  : bad-empty-list { -- xs:List<Int> }
+    []
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -188,9 +196,13 @@ Règle violée :
 ### Map vide sans annotation
 
 ```nicole
-: bad-empty { -- m:Map<String,Int> }
-  map.empty
-;
+module @invalid.phase6
+
+  : bad-empty { -- m:Map<String,Int> }
+    map.empty
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -204,13 +216,17 @@ Règle violée :
 ### Type de clé de map invalide
 
 ```nicole
-: bad-map
-{
-  --
-  m:Map<List<Int>,String>
-}
-  map.empty:Map<List<Int>,String>
-;
+module @invalid.phase6
+
+  : bad-map
+  {
+    --
+    m:Map<List<Int>,String>
+  }
+    map.empty:Map<List<Int>,String>
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -222,9 +238,13 @@ Règle violée :
 ### Noms locaux dupliqués dans une même signature
 
 ```nicole
-: bad { x:Int x:Int -- y:Int }
-  x
-;
+module @invalid.phase6
+
+  : bad { x:Int x:Int -- y:Int }
+    x
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -241,9 +261,13 @@ Règle violée :
 ### Valeur supplémentaire au retour
 
 ```nicole
-: bad-return { -- n:Int }
-  1 "ok"
-;
+module @invalid.phase6
+
+  : bad-return { -- n:Int }
+    1 "ok"
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -257,8 +281,12 @@ Règle violée :
 ### Valeur manquante au retour
 
 ```nicole
-: missing-return { -- n:Int }
-;
+module @invalid.phase6
+
+  : missing-return { -- n:Int }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -275,13 +303,17 @@ Règle violée :
 ### `if` avec branches de types différents
 
 ```nicole
-: bad-if { flag:Bool -- n:Int }
-  flag if
-    1
-  else
-    "no"
-  end
-;
+module @invalid.phase6
+
+  : bad-if { flag:Bool -- n:Int }
+    flag if
+      1
+    else
+      "no"
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -293,11 +325,15 @@ Règle violée :
 ### `case` non exhaustif sur `Bool`
 
 ```nicole
-: bad-case-non-exhaustive { b:Bool -- text:String }
-  b case
-    true => "true"
-  end
-;
+module @invalid.phase6
+
+  : bad-case-non-exhaustive { b:Bool -- text:String }
+    b case
+      true => "true"
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -309,12 +345,16 @@ Règle violée :
 ### `case` avec branches incompatibles
 
 ```nicole
-: bad-case-incompatible-branches { b:Bool -- n:Int }
-  b case
-    true => 1
-    false => "no"
-  end
-;
+module @invalid.phase6
+
+  : bad-case-incompatible-branches { b:Bool -- n:Int }
+    b case
+      true => 1
+      false => "no"
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -328,12 +368,16 @@ Règle violée :
 ### Garde conditionnelle dirty interdite
 
 ```nicole
-: bad-case-guard { r:Result<Int,MapError> -- text:String }
-  r case
-    Ok(v) when "trace" host.log true => "ok"
-    Err(MissingKey) => "missing"
-  end
-;
+module @invalid.phase6
+
+  : bad-case-guard { r:Result<Int,MapError> -- text:String }
+    r case
+      Ok(v) when "trace" host.log true => "ok"
+      Err(MissingKey) => "missing"
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -347,12 +391,16 @@ Règle violée :
 ### Pattern `MissingKey` sur un scrutinee `Bool`
 
 ```nicole
-: bad-case-bool-variant { b:Bool -- n:Int }
-  b case
-    MissingKey => 0
-    _ => 1
-  end
-;
+module @invalid.phase6
+
+  : bad-case-bool-variant { b:Bool -- n:Int }
+    b case
+      MissingKey => 0
+      _ => 1
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -365,12 +413,16 @@ Règle violée :
 ### Mauvais variant d’erreur sur `Result<Int,ListError>`
 
 ```nicole
-: bad-case-listerror { r:Result<Int,ListError> -- n:Int }
-  r case
-    Ok(v) => v
-    Err(MissingKey) => 0
-  end
-;
+module @invalid.phase6
+
+  : bad-case-listerror { r:Result<Int,ListError> -- n:Int }
+    r case
+      Ok(v) => v
+      Err(MissingKey) => 0
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -383,12 +435,16 @@ Règle violée :
 ### Mauvais variant d’erreur sur `Result<Int,MapError>`
 
 ```nicole
-: bad-case-maperror { r:Result<Int,MapError> -- n:Int }
-  r case
-    Ok(v) => v
-    Err(OutOfBounds) => 0
-  end
-;
+module @invalid.phase6
+
+  : bad-case-maperror { r:Result<Int,MapError> -- n:Int }
+    r case
+      Ok(v) => v
+      Err(OutOfBounds) => 0
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -401,9 +457,13 @@ Règle violée :
 ### Définition directe de `call`
 
 ```nicole
-: call { -- n:Int }
-  1
-;
+module @invalid.phase6
+
+  : call { -- n:Int }
+    1
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -415,10 +475,14 @@ Règle violée :
 ### Définition directe de `Ok!`
 
 ```nicole
-: Ok! { x:Int -- r:Result<Int,String> }
-  x
-  "bad" drop
-;
+module @invalid.phase6
+
+  : Ok! { x:Int -- r:Result<Int,String> }
+    x
+    "bad" drop
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -430,9 +494,13 @@ Règle violée :
 ### Définition directe de `result.is-ok`
 
 ```nicole
-: result.is-ok { -- b:Bool }
-  true
-;
+module @invalid.phase6
+
+  : result.is-ok { -- b:Bool }
+    true
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -444,8 +512,12 @@ Règle violée :
 ### Définition directe de `list.map`
 
 ```nicole
-: list.map { -- }
-;
+module @invalid.phase6
+
+  : list.map { -- }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -457,8 +529,12 @@ Règle violée :
 ### Définition directe de `map.get`
 
 ```nicole
-: map.get { -- }
-;
+module @invalid.phase6
+
+  : map.get { -- }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -470,9 +546,13 @@ Règle violée :
 ### Définition directe de `MissingKey`
 
 ```nicole
-: MissingKey { -- text:String }
-  "bad"
-;
+module @invalid.phase6
+
+  : MissingKey { -- text:String }
+    "bad"
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -484,9 +564,13 @@ Règle violée :
 ### `?` dans une frame qui ne retourne pas `Result`
 
 ```nicole
-: bad-propagate { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get ?
-;
+module @invalid.phase6
+
+  : bad-propagate { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get ?
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -499,11 +583,15 @@ Règle violée :
 ### `?` dans une frame à sorties multiples
 
 ```nicole
-: bad-propagate-many { cfg:Map<String,Int> -- x:Int r:Result<Int,MapError> }
-  cfg "timeout" map.get ?
-  1
-  2 Ok!
-;
+module @invalid.phase6
+
+  : bad-propagate-many { cfg:Map<String,Int> -- x:Int r:Result<Int,MapError> }
+    cfg "timeout" map.get ?
+    1
+    2 Ok!
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -516,10 +604,14 @@ Règle violée :
 ### `?` avec type d’erreur incompatible
 
 ```nicole
-: bad-propagate-error { xs:List<Int> -- r:Result<Int,MapError> }
-  xs 0 list.get ?
-  1 Ok!
-;
+module @invalid.phase6
+
+  : bad-propagate-error { xs:List<Int> -- r:Result<Int,MapError> }
+    xs 0 list.get ?
+    1 Ok!
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -533,9 +625,13 @@ Règle violée :
 ### Construction invalide par forme expressionnelle `Ok(...)`
 
 ```nicole
-: bad-ok-expression { -- r:Result<Int,String> }
-  Ok(1)
-;
+module @invalid.phase6
+
+  : bad-ok-expression { -- r:Result<Int,String> }
+    Ok(1)
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -548,9 +644,13 @@ Règle violée :
 ### Construction invalide par forme expressionnelle `Err(...)`
 
 ```nicole
-: bad-err-expression { -- r:Result<Int,String> }
-  Err("bad")
-;
+module @invalid.phase6
+
+  : bad-err-expression { -- r:Result<Int,String> }
+    Err("bad")
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -592,9 +692,13 @@ Règle violée :
 ### `call` avec mauvais type d’input
 
 ```nicole
-: bad-call { s:String -- y:Int }
-  s :[ | x:Int -- y:Int | x 1 + ;] call
-;
+module @invalid.phase6
+
+  : bad-call { s:String -- y:Int }
+    s :[ | x:Int -- y:Int | x 1 + ;] call
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -607,9 +711,13 @@ Règle violée :
 ### `call` avec ordre d’inputs incorrect
 
 ```nicole
-: bad-call-order { -- n:Int }
-  "oops" 3 :[ | x:Int y:String -- r:Int | x ;] call
-;
+module @invalid.phase6
+
+  : bad-call-order { -- n:Int }
+    "oops" 3 :[ | x:Int y:String -- r:Int | x ;] call
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -623,9 +731,13 @@ Règle violée :
 ### `call` avec nombre d’inputs insuffisant
 
 ```nicole
-: bad-call-arity { x:Int -- y:Int }
-  x :[ | a:Int b:Int -- r:Int | a b + ;] call
-;
+module @invalid.phase6
+
+  : bad-call-arity { x:Int -- y:Int }
+    x :[ | a:Int b:Int -- r:Int | a b + ;] call
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -638,12 +750,16 @@ Règle violée :
 ### Capture et input de même nom dans une quotation
 
 ```nicole
-: bad { x:Int -- q:Quote<{ x:Int | x:Int -- y:Int }> }
-  x
-  :[ x:Int | x:Int -- y:Int |
+module @invalid.phase6
+
+  : bad { x:Int -- q:Quote<{ x:Int | x:Int -- y:Int }> }
     x
-  ;]
-;
+    :[ x:Int | x:Int -- y:Int |
+      x
+    ;]
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -656,14 +772,18 @@ Règle violée :
 ### Quotation avec `?` mais sortie non `Result`
 
 ```nicole
-: bad-quote-propagate { xs:List<Map<String,Int>> -- ys:List<Int> }
-  xs
-  :[ | cfg:Map<String,Int> -- y:Int |
-    cfg "timeout" map.get ?
-    1
-  ;]
-  list.map
-;
+module @invalid.phase6
+
+  : bad-quote-propagate { xs:List<Map<String,Int>> -- ys:List<Int> }
+    xs
+    :[ | cfg:Map<String,Int> -- y:Int |
+      cfg "timeout" map.get ?
+      1
+    ;]
+    list.map
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -676,11 +796,15 @@ Règle violée :
 ### Quotation qui retourne trop peu de valeurs
 
 ```nicole
-: bad-quote-too-few { -- q:Quote<{ | x:Int -- y:Int z:Int }> }
-  :[ | x:Int -- y:Int z:Int |
-    x
-  ;]
-;
+module @invalid.phase6
+
+  : bad-quote-too-few { -- q:Quote<{ | x:Int -- y:Int z:Int }> }
+    :[ | x:Int -- y:Int z:Int |
+      x
+    ;]
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -693,12 +817,16 @@ Règle violée :
 ### Quotation qui retourne trop de valeurs
 
 ```nicole
-: bad-quote-too-many { -- q:Quote<{ | x:Int -- y:Int }> }
-  :[ | x:Int -- y:Int |
-    x
-    1
-  ;]
-;
+module @invalid.phase6
+
+  : bad-quote-too-many { -- q:Quote<{ | x:Int -- y:Int }> }
+    :[ | x:Int -- y:Int |
+      x
+      1
+    ;]
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -711,15 +839,19 @@ Règle violée :
 ### Tentative de propagation implicite à travers `list.map`
 
 ```nicole
-: bad-try-map { cfgs:List<Map<String,Int>> -- r:Result<List<Int>,MapError> }
-  cfgs
-  :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
-    cfg "timeout" map.get ?
-    drop
-    1 Ok!
-  ;]
-  list.map
-;
+module @invalid.phase6
+
+  : bad-try-map { cfgs:List<Map<String,Int>> -- r:Result<List<Int>,MapError> }
+    cfgs
+    :[ | cfg:Map<String,Int> -- r:Result<Int,MapError> |
+      cfg "timeout" map.get ?
+      drop
+      1 Ok!
+    ;]
+    list.map
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -734,9 +866,13 @@ Règle violée :
 ### Hypothèse invalide sur le retour de `map.remove`
 
 ```nicole
-: bad-remove-return { users:Map<String,Int> -- out:Map<String,Int> }
-  users "alice" map.remove
-;
+module @invalid.phase6
+
+  : bad-remove-return { users:Map<String,Int> -- out:Map<String,Int> }
+    users "alice" map.remove
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -750,9 +886,13 @@ Règle violée :
 ### Utilisation invalide de `map.has`
 
 ```nicole
-: bad-map-has { users:Map<String,Int> -- b:Bool }
-  users "alice" map.has
-;
+module @invalid.phase6
+
+  : bad-map-has { users:Map<String,Int> -- b:Bool }
+    users "alice" map.has
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -764,9 +904,13 @@ Règle violée :
 ### Utilisation invalide de `map.to-list`
 
 ```nicole
-: bad-map-to-list { users:Map<String,Int> -- xs:List<String> }
-  users map.to-list
-;
+module @invalid.phase6
+
+  : bad-map-to-list { users:Map<String,Int> -- xs:List<String> }
+    users map.to-list
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -778,9 +922,13 @@ Règle violée :
 ### Utilisation invalide de `map.items`
 
 ```nicole
-: bad-map-items { users:Map<String,Int> -- xs:List<String> }
-  users map.items
-;
+module @invalid.phase6
+
+  : bad-map-items { users:Map<String,Int> -- xs:List<String> }
+    users map.items
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -792,9 +940,13 @@ Règle violée :
 ### Utilisation invalide de `list.zip`
 
 ```nicole
-: bad-list-zip { xs:List<Int> ys:List<Int> -- zs:List<Int> }
-  xs ys list.zip
-;
+module @invalid.phase6
+
+  : bad-list-zip { xs:List<Int> ys:List<Int> -- zs:List<Int> }
+    xs ys list.zip
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -806,12 +958,16 @@ Règle violée :
 ### Utilisation invalide de `Ok!` comme pattern de `case`
 
 ```nicole
-: bad-case-constructor-pattern { r:Result<Int,MapError> -- n:Int }
-  r case
-    Ok! => 1
-    Err(MissingKey) => 0
-  end
-;
+module @invalid.phase6
+
+  : bad-case-constructor-pattern { r:Result<Int,MapError> -- n:Int }
+    r case
+      Ok! => 1
+      Err(MissingKey) => 0
+    end
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -854,16 +1010,20 @@ Règle violée :
 ### Appel hors du parent
 
 ```nicole
-: invoice { price:Int qty:Int -- total:Int }
+module @invalid.phase6
 
-  : subtotal { price:Int qty:Int -- amount:Int }
-    price qty *
+  : invoice { price:Int qty:Int -- total:Int }
+  
+    : subtotal { price:Int qty:Int -- amount:Int }
+      price qty *
+    ;
+  
+    price qty subtotal
   ;
+  
+  12 3 subtotal
 
-  price qty subtotal
-;
-
-12 3 subtotal
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -875,14 +1035,18 @@ Règle violée :
 ### Sous-mot qui tente de capturer une variable du parent
 
 ```nicole
-: outer { a:Int -- result:Int }
+module @invalid.phase6
 
-  : add-a { x:Int -- y:Int }
-    x a +
+  : outer { a:Int -- result:Int }
+  
+    : add-a { x:Int -- y:Int }
+      x a +
+    ;
+  
+    10 add-a
   ;
 
-  10 add-a
-;
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -895,13 +1059,17 @@ Règle violée :
 ### Sous-mot qui tente de lire un local du parent
 
 ```nicole
-: bad { x:Int -- y:Int }
-  : child { z:Int -- r:Int }
-    z x +
+module @invalid.phase6
+
+  : bad { x:Int -- y:Int }
+    : child { z:Int -- r:Int }
+      z x +
+    ;
+  
+    1 child
   ;
 
-  1 child
-;
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -918,9 +1086,13 @@ Règle violée :
 ### `list.filter` avec quotation non booléenne
 
 ```nicole
-: bad-filter-type { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- keep:Int | x 1 + ;] list.filter
-;
+module @invalid.phase6
+
+  : bad-filter-type { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- keep:Int | x 1 + ;] list.filter
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -933,9 +1105,13 @@ Règle violée :
 ### `list.fold` avec ordre d’inputs incorrect
 
 ```nicole
-: bad-fold-order { xs:List<Int> -- n:Int }
-  xs 0 :[ | x:Int acc:Int -- out:Int | acc x + ;] list.fold
-;
+module @invalid.phase6
+
+  : bad-fold-order { xs:List<Int> -- n:Int }
+    xs 0 :[ | x:Int acc:Int -- out:Int | acc x + ;] list.fold
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -948,9 +1124,13 @@ Règle violée :
 ### `list.reduce` avec type de retour incompatible
 
 ```nicole
-: bad-reduce-type { xs:List<Int> -- n:Int }
-  xs :[ | a:Int b:Int -- c:Bool | a b = ;] list.reduce
-;
+module @invalid.phase6
+
+  : bad-reduce-type { xs:List<Int> -- n:Int }
+    xs :[ | a:Int b:Int -- c:Bool | a b = ;] list.reduce
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -963,13 +1143,17 @@ Règle violée :
 ### `list.reduce` sur liste vide prouvable
 
 ```nicole
-: bad-reduce-empty { -- n:Int }
-  []:List<Int>
-  :[ | a:Int b:Int -- c:Int |
-    a b +
-  ;]
-  list.reduce
-;
+module @invalid.phase6
+
+  : bad-reduce-empty { -- n:Int }
+    []:List<Int>
+    :[ | a:Int b:Int -- c:Int |
+      a b +
+    ;]
+    list.reduce
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -986,9 +1170,13 @@ Règle violée :
 ### Mot hôte absent du contrat
 
 ```nicole
-: show-config { key:String -- value:String }
-  key host.read-config
-;
+module @invalid.phase6
+
+  : show-config { key:String -- value:String }
+    key host.read-config
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1001,8 +1189,12 @@ Règle violée :
 ### Définition directe d’un mot `host.*`
 
 ```nicole
-: host.log { msg:String -- }
-;
+module @invalid.phase6
+
+  : host.log { msg:String -- }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1014,9 +1206,13 @@ Règle violée :
 ### Mot hôte absent mais traité comme un `Result`
 
 ```nicole
-: try-read-config { key:String -- r:Result<String,MapError> }
-  key host.read-config
-;
+module @invalid.phase6
+
+  : try-read-config { key:String -- r:Result<String,MapError> }
+    key host.read-config
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1042,9 +1238,13 @@ dirty
 ```
 
 ```nicole
-: send-callback { q:Quote<{ | x:Int -- y:Int }> -- }
-  q host.run-later
-;
+module @invalid.phase6
+
+  : send-callback { q:Quote<{ | x:Int -- y:Int }> -- }
+    q host.run-later
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1068,9 +1268,13 @@ dirty
 ```
 
 ```nicole
-: fetch-callback { -- q:Quote<{ | x:Int -- y:Int }> }
-  host.make-callback
-;
+module @invalid.phase6
+
+  : fetch-callback { -- q:Quote<{ | x:Int -- y:Int }> }
+    host.make-callback
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1136,60 +1340,72 @@ Règle violée :
 ## 8. Collisions de noms visibles
 
 Note de transition (phase 2) :
-- les exemples legacy qui impliquent encore des mots utilisateur top-level sont désormais masqués par l’interdiction des définitions top-level
-- ils sont conservés temporairement comme repères de migration et seront réécrits plus tard dans des contextes module-contenus
+- les cas legacy qui impliquent encore des mots utilisateur top-level sont désormais masqués par l’interdiction des définitions top-level
+- ils sont conservés temporairement comme repères de migration
 
-### Deux mots top-level de même nom avec types différents
+### Deux mots de même nom avec types différents dans un même module
 
 ```nicole
-: id { x:Int -- y:Int }
-  x
-;
+module @invalid.phase6
 
-: id { x:String -- y:String }
-  x
-;
+  : id { x:Int -- y:Int }
+    x
+  ;
+  
+  : id { x:String -- y:String }
+    x
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
-- en phase 2, la première erreur est déjà que `id` est défini top-level
-- l’ancienne collision nominale reste un cas legacy masqué jusqu’à une réécriture dans un module
+- les deux définitions `id` sont visibles dans le même module
+- un même nom visible ne peut désigner qu’un seul mot
 
 Règle violée :
-- une définition utilisateur top-level est rejetée en phase 2
+- deux mots visibles de même nom sont interdits, quelles que soient leurs signatures
 
-### Deux mots top-level de même nom avec arités différentes
+### Deux mots de même nom avec arités différentes dans un même module
 
 ```nicole
-: foo { a:Int b:Int -- r:Int }
-  a b +
-;
+module @invalid.phase6
 
-: foo { a:Int b:Int c:Int -- r:Int }
-  a b + c +
-;
+  : foo { a:Int b:Int -- r:Int }
+    a b +
+  ;
+  
+  : foo { a:Int b:Int c:Int -- r:Int }
+    a b + c +
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
-- en phase 2, la première erreur est déjà que `foo` est défini top-level
-- l’ancienne collision par arité reste un cas legacy masqué jusqu’à une réécriture dans un module
+- les deux définitions `foo` sont visibles dans le même module
+- la différence d’arité ne crée pas de surcharge en v1
 
 Règle violée :
-- une définition utilisateur top-level est rejetée en phase 2
+- deux mots visibles de même nom sont interdits, même si leurs arités diffèrent
 
 ### Deux sous-mots frères de même nom
 
 ```nicole
-: parent { -- }
+module @invalid.phase6
 
-  : child { -- n:Int }
-    1
+  : parent { -- }
+  
+    : child { -- n:Int }
+      1
+    ;
+  
+    : child { -- text:String }
+      "x"
+    ;
   ;
 
-  : child { -- text:String }
-    "x"
-  ;
-;
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1248,29 +1464,17 @@ Règle violée :
 - un nom canonique visible hôte doit désigner un seul mot exporté
 - une déclaration `export` dupliquée est invalide
 
-### Collision legacy entre sous-mot et mot top-level
+### Collision legacy entre sous-mot et mot top-level (supprimée)
 
-```nicole
-: child { -- n:Int }
-  0
-;
+Ce cas legacy dépendait d’une coexistence avec définition utilisateur top-level.
 
-: parent { -- n:Int }
+Sous le baseline modules obligatoires :
+- les définitions utilisateur top-level sont rejetées avant cette ancienne collision
+- cette classe n’est plus maintenue comme invalid autonome
 
-  : child { -- n:Int }
-    1
-  ;
-
-  child
-;
-```
-
-Pourquoi c’est invalide :
-- en phase 2, la première erreur est déjà que `child` est défini top-level
-- cette ancienne classe de collision devient legacy car les mots utilisateur top-level sont désormais interdits
-
-Règle violée :
-- une définition utilisateur top-level est rejetée en phase 2
+Décision Phase 6 :
+- cas retiré du corpus d’invalides actifs
+- ne pas réintroduire tant qu’une règle module-contenue équivalente n’est pas définie
 
 ### `export` sur un sous-mot
 
@@ -1366,9 +1570,13 @@ dirty
 ### Annotation `dirty` manquante sur appel hôte dirty
 
 ```nicole
-: bad-pure-host-call { -- }
-  "hello" host.log
-;
+module @invalid.phase6
+
+  : bad-pure-host-call { -- }
+    "hello" host.log
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1381,13 +1589,17 @@ Règle violée :
 ### Mot pur appelant un mot Nicole dirty
 
 ```nicole
-dirty : log-message { msg:String -- }
-  msg host.log
-;
+module @invalid.phase6
 
-: bad-pure-calls-dirty { -- }
-  "hello" log-message
-;
+  dirty : log-message { msg:String -- }
+    msg host.log
+  ;
+  
+  : bad-pure-calls-dirty { -- }
+    "hello" log-message
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1420,9 +1632,13 @@ Règle violée :
 ### Annotation `dirty` redondante
 
 ```nicole
-dirty : bad-redundant-dirty { -- n:Int }
-  1
-;
+module @invalid.phase6
+
+  dirty : bad-redundant-dirty { -- n:Int }
+    1
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1435,18 +1651,30 @@ Règle violée :
 ### Ordre invalide des modificateurs
 
 ```nicole
-dirty export : bad-order-a { -- }
-;
+module @invalid.phase6
+
+  dirty export : bad-order-a { -- }
+  ;
+
+end-module
 ```
 
 ```nicole
-dirty pub : bad-order-b { -- }
-;
+module @invalid.phase6
+
+  dirty pub : bad-order-b { -- }
+  ;
+
+end-module
 ```
 
 ```nicole
-: dirty bad-order-c { -- }
-;
+module @invalid.phase6
+
+  : dirty bad-order-c { -- }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1459,8 +1687,12 @@ Règle violée :
 ### Définition d’un mot nommé `dirty`
 
 ```nicole
-: dirty { -- }
-;
+module @invalid.phase6
+
+  : dirty { -- }
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1472,9 +1704,13 @@ Règle violée :
 ### Utilisation de `dirty` comme local
 
 ```nicole
-: bad-dirty-local { dirty:Int -- x:Int }
-  dirty
-;
+module @invalid.phase6
+
+  : bad-dirty-local { dirty:Int -- x:Int }
+    dirty
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1498,12 +1734,16 @@ Règle violée :
 ### Construction de `DirtyQuote` dans une frame pure
 
 ```nicole
-: bad-construct-dirty-quote { -- q:DirtyQuote<{ | x:Int -- y:Int }> }
-  :[ | x:Int -- y:Int |
-    "item" host.log
-    x
-  ;]
-;
+module @invalid.phase6
+
+  : bad-construct-dirty-quote { -- q:DirtyQuote<{ | x:Int -- y:Int }> }
+    :[ | x:Int -- y:Int |
+      "item" host.log
+      x
+    ;]
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1516,9 +1756,13 @@ Règle violée :
 ### Appel d’un `DirtyQuote` dans une frame pure
 
 ```nicole
-: bad-call-dirty-quote { x:Int q:DirtyQuote<{ | n:Int -- m:Int }> -- y:Int }
-  x q call
-;
+module @invalid.phase6
+
+  : bad-call-dirty-quote { x:Int q:DirtyQuote<{ | n:Int -- m:Int }> -- y:Int }
+    x q call
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1531,13 +1775,17 @@ Règle violée :
 ### Passage d’un `DirtyQuote` à `list.map` dans une frame pure
 
 ```nicole
-: bad-map-dirty-quote {
-  xs:List<Int>
-  q:DirtyQuote<{ | x:Int -- y:Int }>
-  -- ys:List<Int>
-}
-  xs q list.map
-;
+module @invalid.phase6
+
+  : bad-map-dirty-quote {
+    xs:List<Int>
+    q:DirtyQuote<{ | x:Int -- y:Int }>
+    -- ys:List<Int>
+  }
+    xs q list.map
+  ;
+
+end-module
 ```
 
 Pourquoi c’est invalide :
