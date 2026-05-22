@@ -105,7 +105,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Risks:
 - Fixes may accidentally reopen closed wording decisions if scope is not tightly enforced.
 - Status: `implemented`
-- Result commit: <TO_BE_FILLED_AFTER_COMMIT>
+- Result commit: 49c882146d17060ec6d614122e94215292b10687
 - Result tag:
 - Notes:
 - Guard contradiction resolved
