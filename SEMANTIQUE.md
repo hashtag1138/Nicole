@@ -204,6 +204,14 @@ En revanche, des frames différentes peuvent réutiliser le même nom local sans
 
 La résolution des appels est statique.
 
+Phase 2 établit le modèle obligatoire suivant :
+
+- les définitions de mots utilisateur sont contenues dans des blocs `module @... end-module`
+- une définition utilisateur top-level est rejetée
+- dans un module, un appel peut utiliser un nom court pour viser un mot du même module
+- hors module, un mot utilisateur est référencé via `@module.word`
+- dans un module, la forme `@module.word` reste autorisée, mais la forme courte locale est préférée
+
 La collecte des signatures précède l’analyse des corps.
 
 Elle sert à :
@@ -223,6 +231,11 @@ Toute collision visible est une erreur de compilation.
 Cette règle évite qu’un appel dépende de valeurs résiduelles présentes sur la pile pour sélectionner une définition.
 
 Les signatures de sortie ne servent jamais à distinguer deux mots, car deux définitions de même nom sont interdites quelles que soient leurs signatures.
+
+Note de transition :
+
+- certains exemples plus bas gardent une forme top-level legacy
+- la règle normative de phase 2 prévaut : une définition utilisateur valide est module-contenue
 
 Exemple invalide :
 
@@ -1021,7 +1034,9 @@ En v1 :
 - le programme est analysé comme une seule unité de compilation
 - les formes `module`, `import` et `include` sont introduites en syntaxe comme fondations grammaticales
 - la sémantique détaillée des modules/imports/includes est différée
-- `export` n’est autorisé que sur un mot top-level
+- la position normative exacte de `export` est révisée en phase 4
+- les exemples d’`export` existants peuvent rester legacy jusque-là
+- la phase 2 établit uniquement le confinement des définitions utilisateur dans des modules
 
 Exemple :
 
@@ -1079,11 +1094,11 @@ Le but de ce fichier est de définir le comportement du langage, pas de rouvrir 
 
 # Points ouverts
 
-## Nom identique entre sous-mot et mot top-level
+## Nom identique entre sous-mots dans un même parent
 
-En v1, un sous-mot et un mot top-level ne peuvent pas partager le même nom visible.
+En phase 2, le conflit sous-mot vs mot utilisateur top-level n’est plus applicable car les mots utilisateur top-level sont interdits.
 
-Cette restriction évite d’introduire une résolution dépendante d’un futur système de modules ou d’`import`.
+La contrainte locale reste normative :
 
 La règle suivante reste également normative :
 

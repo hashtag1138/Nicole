@@ -75,6 +75,9 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 ### Syntaxe
 
 - définition des mots
+- mots utilisateur définis dans des blocs `module @... end-module`
+- définitions utilisateur top-level invalides
+- références externes aux mots utilisateur via `@module.word`
 - signatures
 - constructions vides typées explicitement : `[]:List<T>` et `map.empty:Map<K,V>`
 - visibilité par défaut privée

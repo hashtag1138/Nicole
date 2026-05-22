@@ -14,6 +14,25 @@ Chaque exemple ci-dessous viole une règle déjà définie.
 
 ---
 
+## 0. Confinement module (Phase 2)
+
+### Définition utilisateur top-level
+
+```nicole
+: bad-top-level {
+  --
+}
+;
+```
+
+Pourquoi c’est invalide :
+- les mots définis par l’utilisateur doivent être contenus dans un bloc `module @... end-module`
+
+Règle violée :
+- une définition utilisateur top-level est rejetée en phase 2
+
+---
+
 ## 1. Erreurs de typage
 
 ### Addition de types incompatibles
@@ -986,6 +1005,10 @@ Règle violée :
 
 ## 8. Collisions de noms visibles
 
+Note de transition (phase 2) :
+- les exemples legacy qui impliquent encore des mots utilisateur top-level sont désormais masqués par l’interdiction des définitions top-level
+- ils sont conservés temporairement comme repères de migration et seront réécrits plus tard dans des contextes module-contenus
+
 ### Deux mots top-level de même nom avec types différents
 
 ```nicole
@@ -999,11 +1022,11 @@ Règle violée :
 ```
 
 Pourquoi c’est invalide :
-- `id` est un seul nom visible
-- Nicole v1 n’autorise pas plusieurs définitions visibles portant ce même nom
+- en phase 2, la première erreur est déjà que `id` est défini top-level
+- l’ancienne collision nominale reste un cas legacy masqué jusqu’à une réécriture dans un module
 
 Règle violée :
-- un nom visible doit désigner une seule définition
+- une définition utilisateur top-level est rejetée en phase 2
 
 ### Deux mots top-level de même nom avec arités différentes
 
@@ -1018,11 +1041,11 @@ Règle violée :
 ```
 
 Pourquoi c’est invalide :
-- la différence d’arité ne crée pas une nouvelle identité nominale
-- `foo` reste un seul nom visible
+- en phase 2, la première erreur est déjà que `foo` est défini top-level
+- l’ancienne collision par arité reste un cas legacy masqué jusqu’à une réécriture dans un module
 
 Règle violée :
-- un nom visible doit désigner une seule définition
+- une définition utilisateur top-level est rejetée en phase 2
 
 ### Deux sous-mots frères de même nom
 
@@ -1084,7 +1107,7 @@ Pourquoi c’est invalide :
 Règle violée :
 - `pub` et `export` n’autorisent pas deux définitions visibles de même nom
 
-### Collision entre sous-mot et mot top-level
+### Collision legacy entre sous-mot et mot top-level
 
 ```nicole
 : child { -- n:Int }
@@ -1102,11 +1125,11 @@ Règle violée :
 ```
 
 Pourquoi c’est invalide :
-- Nicole v1 rejette un sous-mot et un mot top-level qui partagent le même nom visible
-- cette collision n’est pas laissée à un futur système de modules ou d’`import`
+- en phase 2, la première erreur est déjà que `child` est défini top-level
+- cette ancienne classe de collision devient legacy car les mots utilisateur top-level sont désormais interdits
 
 Règle violée :
-- un sous-mot et un mot top-level ne peuvent pas partager le même nom visible en v1
+- une définition utilisateur top-level est rejetée en phase 2
 
 ### `export` sur un sous-mot
 
@@ -1120,11 +1143,11 @@ Règle violée :
 ```
 
 Pourquoi c’est invalide :
-- en v1, `export` n’est autorisé que sur un mot top-level
-- un sous-mot privé interne ne peut pas devenir un point d’entrée ABI
+- la position normative finale de `export` est différée à la phase 4
+- en phase 2, la première erreur de cet exemple legacy est déjà que `parent` est défini top-level
 
 Règle violée :
-- `export` est limité aux mots top-level en v1
+- une définition utilisateur top-level est rejetée en phase 2
 
 ---
 

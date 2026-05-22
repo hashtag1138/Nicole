@@ -63,8 +63,8 @@ Current global status:
 |---|---|---|---|---|
 | 0 | Baseline cleanup and existing contradictions | implemented | | Fix existing `case when` contradictions before module migration |
 | 1 | Lexical and grammar foundation | implemented | | Add `@`, structural `.`, module/import/include grammar shells |
-| 2 | Mandatory module model | pre-audit | | Forbid top-level user words; define module containment |
-| 3 | Resolution, imports, and namespaces | planned | | Define aliases, collisions, reserved roots, import graph |
+| 2 | Mandatory module model | implemented | | Forbid top-level user words; define module containment |
+| 3 | Resolution, imports, and namespaces | pre-audit | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | planned | | Host-visible names become `@module.word` |
 | 5 | Valid examples rewrite | planned | | Rewrite all valid examples into module form |
 | 6 | Invalid examples rewrite | planned | | Preserve intended invalid reasons under new baseline |
@@ -166,10 +166,15 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Audit that every user word definition appears inside a `module @... end-module` block.
 - Risks:
 - Legacy examples can obscure whether failures are from intended rule or top-level prohibition.
-- Status: `pre-audit`
+- Status: `implemented`
 - Result commit:
 - Result tag:
 - Notes:
+- Mandatory module containment added
+- Top-level user word definitions marked invalid
+- Local module short-name references documented
+- External user references documented as `@module.word`
+- Phase 2 corrective post-audit passed
 
 ## Phase 3 — Resolution, imports, and namespaces
 
@@ -192,7 +197,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "@host|@list|@map|@result" INVALID_EXAMPLES.md`
 - Risks:
 - Under-specified alias scoping can lead to inconsistent compiler interpretations.
-- Status: `planned`
+- Status: `pre-audit`
 - Result commit:
 - Result tag:
 - Notes:
@@ -309,6 +314,9 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 1 | pre-audit | patching | Grammar groundwork implementation started |
 | 2026-05-22 | Phase 1 | patching | implemented | Phase 1 post-audit passed |
 | 2026-05-22 | Phase 2 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 2 | pre-audit | patching | Mandatory module model implementation started |
+| 2026-05-22 | Phase 2 | patching | implemented | Phase 2 corrective post-audit passed |
+| 2026-05-22 | Phase 3 | planned | pre-audit | Next phase opened |
 
 ## Important constraints
 

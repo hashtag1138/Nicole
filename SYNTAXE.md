@@ -145,18 +145,23 @@ Les identifiants suivants restent autorisés :
 
 # 2. Visibilité interne, export et contrats hôte
 
-Sans modificateur, un mot est privé à l’unique unité de compilation du programme v1.
+Sans modificateur, un mot défini dans un module est privé à ce module.
 
-En v1, un programme Nicole est analysé comme une seule unité de compilation.
+Phase 2 établit le modèle obligatoire suivant :
+
+- tous les mots définis par l’utilisateur sont contenus dans un bloc `module @... end-module`
+- une définition utilisateur top-level est invalide
+- dans un module, la définition d’un mot utilise la syntaxe normale `: word { ... }`
+- dans un module, les appels courts vers des mots du même module sont autorisés
+- hors module, les références aux mots utilisateur doivent utiliser la forme `@module.word`
+- la forme `@module.word` reste autorisée à l’intérieur du même module, même si la forme courte est préférée
+
+En v1, le programme reste analysé comme une seule unité de compilation.
 
 Les formes `module`, `import` et `include` existent en syntaxe comme fondations grammaticales.
 Leur comportement sémantique complet (graphe d’import, résolution, collisions, contraintes de modules) est différé aux phases suivantes.
 
-`pub` rend un mot visible dans le programme.
-
-`export` rend un mot visible à l’hôte et implique `pub`.
-Tout mot exporté est appelable par l’hôte.
-En v1, `export` n’est autorisé que sur un mot top-level.
+`pub` rend un mot visible dans la portée du programme selon les règles de résolution en vigueur.
 
 `dirty` est l’annotation d’effet explicite de v1.
 
@@ -166,15 +171,15 @@ L’ordre des modificateurs est normatif :
 visibilité d’abord, dirty ensuite, définition ensuite
 ```
 
-Formes valides :
+Formes valides pour des définitions utilisateur à l’intérieur d’un module :
 
-```text
-: foo
-dirty : foo
-pub : foo
-pub dirty : foo
-export : foo
-export dirty : foo
+```nicole
+module @demo
+  : foo
+  dirty : foo
+  pub : foo
+  pub dirty : foo
+end-module
 ```
 
 Formes invalides :
@@ -191,25 +196,35 @@ Un nom visible doit rester unique même si une définition est `pub` et l’autr
 Règle :
 
 ```text
-sans modificateur = privé
-pub = visibilité interne au programme
-export = visibilité hôte + visibilité interne
+sans modificateur = privé au module
+pub = visibilité interne selon les règles de résolution en vigueur
+export = notion d’exposition hôte legacy ; placement final et noms visibles côté hôte révisés en phase 4
 ```
 
 Exemples :
 
 ```nicole
-: helper { x:Int -- y:Int }
-  x 1 +
-;
+module @demo
 
-pub : shared-helper { x:Int -- y:Int }
-  x 1 +
-;
+  : helper { x:Int -- y:Int }
+    x 1 +
+  ;
 
-export : entry { args:List<String> -- code:Int }
-  0
-;
+  pub : shared-helper { x:Int -- y:Int }
+    x 1 +
+  ;
+
+  : caller { x:Int -- y:Int }
+    x shared-helper
+  ;
+
+  : caller-qualified { x:Int -- y:Int }
+    x @demo.shared-helper
+  ;
+
+end-module
+
+@demo.shared-helper
 ```
 
 ## Fondations grammaticales modules/imports/includes (Phase 1)
@@ -248,41 +263,31 @@ Forme `include` :
 include "path.nic"
 ```
 
-Exemple invalide :
+Exemple invalide (Phase 2) :
 
 ```nicole
-pub : foo { -- n:Int }
-  1
-;
-
-export : foo { -- n:Int }
-  2
+: bad-top-level {
+  --
+}
 ;
 ```
 
-Ces deux définitions sont interdites :
+Cette définition est invalide :
 
-- `pub` et `export` ne créent pas deux namespaces distincts
-- `foo` reste un seul nom visible
+- les mots définis par l’utilisateur doivent être contenus dans `module @... end-module`
+- un mot utilisateur top-level est rejeté en phase 2
 
-Alternative valide :
+Transition `export` (phase 2) :
 
-```nicole
-pub : internal-foo { -- n:Int }
-  1
-;
+- la position normative exacte de `export` est révisée en phase 4
+- les noms visibles côté hôte sont révisés en phase 4
+- les exemples d’`export` existants peuvent rester des exemples legacy jusque-là
+- la phase 2 établit uniquement le confinement des définitions utilisateur dans des modules
 
-export : app.foo { -- n:Int }
-  2
-;
-```
+Note de transition :
 
-`export` ne remplace pas `host.*` :
-
-- `export` concerne les mots écrits par le programme
-- `host.*` désigne les mots fournis par l’hôte
-- le programme appelle l’hôte via `host.*`
-- l’hôte appelle le programme via `export`
+- certains exemples plus loin dans ce document utilisent encore une forme top-level legacy
+- en cas de conflit, la règle normative de phase 2 prévaut : les définitions utilisateur sont module-contenues
 
 ---
 
@@ -419,7 +424,7 @@ Le compilateur peut utiliser un nom qualifié interne comme `invoice.subtotal`, 
 
 Dans un même parent, deux sous-mots ne peuvent pas avoir le même nom.
 
-En v1, un sous-mot et un mot top-level ne peuvent pas partager le même nom visible.
+Le cas legacy « sous-mot vs mot utilisateur top-level » est obsolète en phase 2, car les définitions utilisateur top-level sont invalides.
 
 Exemple :
 
