@@ -130,9 +130,11 @@ end-module
 ```
 
 ```nicole
-: bad { -- x:Int }
-  1 2
-;
+module @invalid.phase6
+  : bad { -- x:Int }
+    1 2
+  ;
+end-module
 ```
 
 Le second exemple est invalide parce que la sortie attendue n’est pas respectée.
@@ -313,13 +315,15 @@ Note de transition :
 Exemple invalide :
 
 ```nicole
-: id { x:Int -- y:Int }
-  x
-;
+module @invalid.phase6
+  : id { x:Int -- y:Int }
+    x
+  ;
 
-: id { x:String -- y:String }
-  x
-;
+  : id { x:String -- y:String }
+    x
+  ;
+end-module
 ```
 
 Ces deux définitions sont interdites parce qu’un même nom visible ne peut désigner qu’un seul mot.
@@ -327,13 +331,15 @@ Ces deux définitions sont interdites parce qu’un même nom visible ne peut d�
 Exemple interdit :
 
 ```nicole
-: foo { a:Int b:Int -- r:Int }
-  a b +
-;
+module @invalid.phase6
+  : foo { a:Int b:Int -- r:Int }
+    a b +
+  ;
 
-: foo { a:Int b:Int c:Int -- r:Int }
-  a b + c +
-;
+  : foo { a:Int b:Int c:Int -- r:Int }
+    a b + c +
+  ;
+end-module
 ```
 
 Ces deux définitions sont interdites, même si leurs arités diffèrent.

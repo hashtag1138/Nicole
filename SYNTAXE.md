@@ -126,15 +126,19 @@ Cette réservation s’applique à :
 Exemples invalides :
 
 ```nicole
-: dirty { -- }
-  0 drop
-;
+module @invalid.phase6
+  : dirty { -- }
+    0 drop
+  ;
+end-module
 ```
 
 ```nicole
-: foo { dirty:Int -- x:Int }
-  dirty
-;
+module @invalid.phase6
+  : foo { dirty:Int -- x:Int }
+    dirty
+  ;
+end-module
 ```
 
 ```nicole
@@ -464,9 +468,11 @@ end-module
 Exemple invalide :
 
 ```nicole
-: bad { -- x:Int }
-  1 2
-;
+module @invalid.phase6
+  : bad { -- x:Int }
+    1 2
+  ;
+end-module
 ```
 
 Ce dernier exemple doit être rejeté, pas corrigé silencieusement en gardant seulement `2`.
@@ -553,16 +559,18 @@ Le sous-mot `subtotal` est appelable depuis `invoice` par son nom court, mais `i
 Exemple invalide :
 
 ```nicole
-: parent { -- }
+module @invalid.phase6
+  : parent { -- }
 
-  : child { -- n:Int }
-    1
-  ;
+    : child { -- n:Int }
+      1
+    ;
 
-  : child { -- text:String }
-    "x"
+    : child { -- text:String }
+      "x"
+    ;
   ;
-;
+end-module
 ```
 
 Ces deux sous-mots sont interdits :
@@ -620,14 +628,16 @@ Un sous-mot ne voit pas les variables du parent.
 Interdit :
 
 ```nicole
-: outer { a:Int -- result:Int }
+module @invalid.phase6
+  : outer { a:Int -- result:Int }
 
-  : add-a { x:Int -- y:Int }
-    x a +      # erreur : a n’existe pas dans add-a
+    : add-a { x:Int -- y:Int }
+      x a +      # erreur : a n’existe pas dans add-a
+    ;
+
+    10 add-a
   ;
-
-  10 add-a
-;
+end-module
 ```
 
 Chaque mot, parent ou enfant, possède sa propre frame isolée.
@@ -675,13 +685,15 @@ Les signatures de sortie ne servent jamais à distinguer deux mots, car deux dé
 Exemple invalide :
 
 ```nicole
-: id { x:Int -- y:Int }
-  x
-;
+module @invalid.phase6
+  : id { x:Int -- y:Int }
+    x
+  ;
 
-: id { x:String -- y:String }
-  x
-;
+  : id { x:String -- y:String }
+    x
+  ;
+end-module
 ```
 
 Ces deux définitions sont interdites, même si leurs types d’entrée diffèrent.
@@ -689,13 +701,15 @@ Ces deux définitions sont interdites, même si leurs types d’entrée diffère
 Exemple invalide :
 
 ```nicole
-: foo { a:Int b:Int -- r:Int }
-  a b +
-;
+module @invalid.phase6
+  : foo { a:Int b:Int -- r:Int }
+    a b +
+  ;
 
-: foo { a:Int b:Int c:Int -- r:Int }
-  a b + c +
-;
+  : foo { a:Int b:Int c:Int -- r:Int }
+    a b + c +
+  ;
+end-module
 ```
 
 Ces deux définitions sont interdites, même si leurs arités diffèrent.
@@ -805,9 +819,11 @@ Par conséquent, un programme ne peut pas appeler directement un mot `host.*` co
 Exemple invalide :
 
 ```nicole
-: show-config { key:String -- value:String }
-  key host.read-config
-;
+module @invalid.phase6
+  : show-config { key:String -- value:String }
+    key host.read-config
+  ;
+end-module
 ```
 
 Ce programme est invalide si le contrat hôte ne déclare pas `host.read-config`.
@@ -1280,9 +1296,11 @@ end-module
 Exemple invalide :
 
 ```nicole
-: bad-empty-list { -- xs:List<Int> }
-  []
-;
+module @invalid.phase6
+  : bad-empty-list { -- xs:List<Int> }
+    []
+  ;
+end-module
 ```
 
 Car l’annotation de type de la liste vide est manquante.
@@ -1751,9 +1769,11 @@ end-module
 Exemple invalide :
 
 ```nicole
-: bad-timeout { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get ?
-;
+module @invalid.phase6
+  : bad-timeout { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get ?
+  ;
+end-module
 ```
 
 Le second exemple est invalide parce que `?` peut produire `Err(MissingKey)` alors que le mot promet une sortie simple `Int`.
