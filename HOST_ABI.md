@@ -224,9 +224,11 @@ Le programme ne doit pas supposer :
 Exemple conceptuel :
 
 ```nicole
-dirty : save-log { msg:String -- }
-  msg host.log
-;
+module @abi.host_usage
+  dirty : save-log { msg:String -- }
+    msg host.log
+  ;
+end-module
 ```
 
 Ici, le programme appelle un mot fourni par l’hôte et lui transmet une chaîne.

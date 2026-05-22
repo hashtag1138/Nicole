@@ -122,9 +122,11 @@ Une valeur ignorée doit être supprimée explicitement avec `drop`.
 Exemples conceptuels :
 
 ```nicole
-: ok { -- x:Int }
-  1
-;
+module @semantics.exec
+  : ok { -- x:Int }
+    1
+  ;
+end-module
 ```
 
 ```nicole
@@ -148,9 +150,11 @@ La forme `{ -- a:Int b:String }` pousse d’abord `a`, puis `b`, de sorte que `b
 Exemple :
 
 ```nicole
-: pair { -- a:Int b:String }
-  1 "ok"
-;
+module @semantics.exec
+  : pair { -- a:Int b:String }
+    1 "ok"
+  ;
+end-module
 ```
 
 Après appel, la pile appelante reçoit :
@@ -180,9 +184,11 @@ Lire une variable locale pousse sa valeur sur la pile locale courante.
 Exemple :
 
 ```nicole
-: square { x:Int -- y:Int }
-  x x *
-;
+module @semantics.exec
+  : square { x:Int -- y:Int }
+    x x *
+  ;
+end-module
 ```
 
 Ici, `x` ne modifie rien.
@@ -335,21 +341,23 @@ Ces deux définitions sont interdites, même si leurs arités diffèrent.
 Formes recommandées :
 
 ```nicole
-: id-int { x:Int -- y:Int }
-  x
-;
+module @semantics.resolution
+  : id-int { x:Int -- y:Int }
+    x
+  ;
 
-: id-string { x:String -- y:String }
-  x
-;
+  : id-string { x:String -- y:String }
+    x
+  ;
 
-: foo2 { a:Int b:Int -- r:Int }
-  a b +
-;
+  : foo2 { a:Int b:Int -- r:Int }
+    a b +
+  ;
 
-: foo3 { a:Int b:Int c:Int -- r:Int }
-  a b + c +
-;
+  : foo3 { a:Int b:Int c:Int -- r:Int }
+    a b + c +
+  ;
+end-module
 ```
 
 ---
@@ -454,13 +462,15 @@ Cette vérification doit être statique quand les branches sont écrites en Nico
 Exemple :
 
 ```nicole
-: abs { x:Int -- y:Int }
-  x 0 < if
-    0 x -
-  else
-    x
-  end
-;
+module @semantics.exec
+  : abs { x:Int -- y:Int }
+    x 0 < if
+      0 x -
+    else
+      x
+    end
+  ;
+end-module
 ```
 
 Les deux branches laissent la pile locale dans le même état de sortie.
@@ -557,36 +567,42 @@ Pour les motifs imbriqués sur `Result` :
 Exemple de liaison :
 
 ```nicole
-: unwrap-result { r:Result<Int,MapError> -- n:Int }
-  r case
-    Ok(v) => v
-    Err(e) => 0
-  end
-;
+module @semantics.case
+  : unwrap-result { r:Result<Int,MapError> -- n:Int }
+    r case
+      Ok(v) => v
+      Err(e) => 0
+    end
+  ;
+end-module
 ```
 
 Exemple :
 
 ```nicole
-: sign-label { n:Int -- text:String }
-  n case
-    0 => "zero"
-    1 => "one"
-    _ => "many"
-  end
-;
+module @semantics.case
+  : sign-label { n:Int -- text:String }
+    n case
+      0 => "zero"
+      1 => "one"
+      _ => "many"
+    end
+  ;
+end-module
 ```
 
 Exemple avec guard :
 
 ```nicole
-: classify-result { r:Result<Int,MapError> -- text:String }
-  r case
-    Ok(v) when v 0 > => "positive"
-    Ok(v) => "non-positive"
-    Err(MissingKey) => "missing"
-  end
-;
+module @semantics.case
+  : classify-result { r:Result<Int,MapError> -- text:String }
+    r case
+      Ok(v) when v 0 > => "positive"
+      Ok(v) => "non-positive"
+      Err(MissingKey) => "missing"
+    end
+  ;
+end-module
 ```
 
 ---
@@ -921,12 +937,14 @@ Les éléments suivants restent hors de cette phase :
 Exemple :
 
 ```nicole
-: timeout-or-default { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 30
-  end
-;
+module @semantics.result
+  : timeout-or-default { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 30
+    end
+  ;
+end-module
 ```
 
 ## `ListError`
@@ -1070,9 +1088,11 @@ Ce n’est pas une exception implicite métier.
 Exemple :
 
 ```nicole
-: reduce-safely { xs:List<Int> -- n:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
-;
+module @semantics.collections
+  : reduce-safely { xs:List<Int> -- n:Int }
+    xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
+  ;
+end-module
 ```
 
 Si `xs` est prouvée vide à la compilation, l’appel doit être rejeté.
@@ -1127,9 +1147,11 @@ Le programme peut les appeler, mais ne peut pas les définir.
 Exemple :
 
 ```nicole
-dirty : save-log { msg:String -- }
-  msg host.log
-;
+module @abi.host_usage
+  dirty : save-log { msg:String -- }
+    msg host.log
+  ;
+end-module
 ```
 
 Règles :

@@ -72,12 +72,14 @@ Ils ne remplacent pas `case`, qui reste la forme normale d’inspection détaill
 Exemple idiomatique :
 
 ```nicole
-: timeout-or-default { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 30
-  end
-;
+module @notes.result.inspect
+  : timeout-or-default { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 30
+    end
+  ;
+end-module
 ```
 
 Cette phase n’introduit pas `result.match`.
@@ -130,12 +132,14 @@ Cette phase étend cette règle à `?` de manière explicite :
 Exemple valide :
 
 ```nicole
-: run-check { x:Int -- r:Result<Int,MapError> }
-  x :[ | n:Int -- r:Result<Int,MapError> |
-    n maybe-fail ?
-    1 +
-  ;] call
-;
+module @notes.result.call
+  : run-check { x:Int -- r:Result<Int,MapError> }
+    x :[ | n:Int -- r:Result<Int,MapError> |
+      n maybe-fail ?
+      1 +
+    ;] call
+  ;
+end-module
 ```
 
 Conceptuellement, la quotation produit ensuite :
@@ -190,12 +194,14 @@ Cet exemple doit être rejeté :
 Exemple valide :
 
 ```nicole
-: map-with-results { xs:List<Int> -- ys:List<Result<Int,MapError>> }
-  xs :[ | x:Int -- r:Result<Int,MapError> |
-    x maybe-fail ?
-    1 +
-  ;] list.map
-;
+module @notes.result.map
+  : map-with-results { xs:List<Int> -- ys:List<Result<Int,MapError>> }
+    xs :[ | x:Int -- r:Result<Int,MapError> |
+      x maybe-fail ?
+      1 +
+    ;] list.map
+  ;
+end-module
 ```
 
 Conceptuellement, chaque application de la quotation produit ensuite :
