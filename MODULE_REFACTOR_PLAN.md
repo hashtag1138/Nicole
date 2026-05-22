@@ -231,7 +231,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Risks:
 - ABI naming drift between syntax and host contract can break downstream implementation planning.
 - Status: `implemented`
-- Result commit:
+- Result commit: d035c40371d3ac3635f13aad4bcc198d86d740ac
 - Result tag:
 - Notes:
 - Module-local export declaration model defined
