@@ -78,6 +78,10 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - mots utilisateur définis dans des blocs `module @... end-module`
 - définitions utilisateur top-level invalides
 - références externes aux mots utilisateur via `@module.word`
+- résolution statique module-aware (local, module, alias, qualifié)
+- imports explicites et aliases explicites (pas de wildcard)
+- racines de namespace réservées : `host`, `list`, `map`, `result`
+- cycles d’import interdits
 - signatures
 - constructions vides typées explicitement : `[]:List<T>` et `map.empty:Map<K,V>`
 - visibilité par défaut privée
@@ -106,6 +110,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - inputs de signature = variables locales immuables
 - retours multiples
 - un nom visible désigne une seule définition
+- résolution statique à la compilation uniquement (pas de lookup dynamique)
 - récursion
 - if / case
 - `case` avec guards en v1

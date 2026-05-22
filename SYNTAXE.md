@@ -91,18 +91,25 @@ Dans `case`, les motifs `Ok(v)` et `Err(e)` sont des formes de pattern de `Resul
 
 Les variantes fermées `MissingKey` et `OutOfBounds` sont réservées en v1 comme variantes d’erreur du langage et ne peuvent pas être redéfinies comme mots utilisateur.
 
-Les espaces de noms suivants sont fournis par le langage ou par le contrat hôte et ne peuvent pas être définis ni masqués par le code Nicole :
+Les racines de namespace suivantes sont réservées, à la fois comme racines et comme formes namespace :
 
-- `result.*`
-- `list.*`
-- `map.*`
-- `host.*`
+- `host`, `host.*`
+- `list`, `list.*`
+- `map`, `map.*`
+- `result`, `result.*`
 
 Les builtins du langage font partie de l’espace de résolution visible.
 
 Un mot défini par l’utilisateur ne peut donc ni redéfinir ni masquer un nom builtin.
 
 Toute collision entre une définition utilisateur et une forme réservée, une variante réservée ou un nom builtin est une erreur de compilation.
+
+Règles associées :
+
+- un module utilisateur ne peut pas s’appeler `@host`, `@list`, `@map` ou `@result`
+- un alias d’import ne peut pas s’appeler `host`, `list`, `map` ou `result`
+- un nom utilisateur ne peut pas occuper une racine réservée
+- les formes qualifiées builtin existantes (`host.*`, `list.*`, `map.*`, `result.*`) restent valides
 
 `dirty` est réservé comme identifiant exact en v1.
 
@@ -153,15 +160,16 @@ Phase 2 établit le modèle obligatoire suivant :
 - une définition utilisateur top-level est invalide
 - dans un module, la définition d’un mot utilise la syntaxe normale `: word { ... }`
 - dans un module, les appels courts vers des mots du même module sont autorisés
-- hors module, les références aux mots utilisateur doivent utiliser la forme `@module.word`
-- la forme `@module.word` reste autorisée à l’intérieur du même module, même si la forme courte est préférée
+- hors module, une référence utilisateur externe exige la forme `@module.word` avec import correspondant
+- dans `module @text`, la forme `@text.word` reste autorisée sans import, même si la forme courte locale est préférée
 
 En v1, le programme reste analysé comme une seule unité de compilation.
 
 Les formes `module`, `import` et `include` existent en syntaxe comme fondations grammaticales.
-Leur comportement sémantique complet (graphe d’import, résolution, collisions, contraintes de modules) est différé aux phases suivantes.
+La phase 3 fixe la résolution statique, la visibilité des imports, les aliases, les collisions associées et l’acyclicité du graphe d’import.
+La sémantique détaillée de `include` (mapping fichiers/paths) reste différée.
 
-`pub` rend un mot visible dans la portée du programme selon les règles de résolution en vigueur.
+`pub` expose uniquement des chemins qualifiés ; il n’injecte pas de nom court hors du module.
 
 `dirty` est l’annotation d’effet explicite de v1.
 
@@ -227,18 +235,14 @@ end-module
 @demo.shared-helper
 ```
 
-## Fondations grammaticales modules/imports/includes (Phase 1)
+## Fondations grammaticales modules/imports/includes (Phases 1-3)
 
-Cette section introduit uniquement la forme syntaxique minimale.
+Cette section fixe la grammaire minimale (phase 1) et les règles de résolution/imports (phase 3).
 
-Le comportement sémantique est explicitement différé.
+Reste différé :
 
-Sont différés :
-
-- graphe d’import
-- sémantique des aliases
-- contraintes détaillées sur les modules
-- règles de résolution détaillées
+- la sémantique détaillée de `include` (mapping fichiers/paths)
+- les conventions de packaging
 
 Forme `module` :
 
@@ -262,6 +266,41 @@ Forme `include` :
 ```nicole
 include "path.nic"
 ```
+
+Règles normatives d’import :
+
+- les imports existent uniquement au top-level
+- les imports n’injectent jamais de noms implicitement
+- les wildcard imports n’existent pas en v1
+- les aliases créent des noms visibles dans l’unité de compilation importatrice
+- les aliases participent aux règles de collision de noms visibles
+- la portée des aliases d’import est l’unité de compilation après inclusion textuelle
+- un fragment inclus ne crée pas de scope alias séparé
+
+Sémantique des formes d’import :
+
+- `import @text` rend `@text.*` disponible en usage qualifié explicite uniquement pour les mots publics de `@text`
+- `import @text as t` crée une racine alias `t`, utilisable sous la forme `t.word`
+- `import @text.split` rend uniquement `@text.split` disponible explicitement
+- `import @text.split as split` crée l’alias court `split`
+- sans alias, `import @text.split` ne rend pas `split` visible
+- sans import, une référence externe `@text.word` est invalide
+
+Modèle de résolution statique (phase 3) :
+
+Dans un module, la résolution se fait dans cet ordre :
+
+1. noms locaux dans le scope courant (mot/sous-mot)
+2. mots définis dans le même module via nom court
+3. aliases d’import visibles
+4. noms qualifiés explicites (`@module.word`) autorisés dans le module courant ou via import externe correspondant
+5. namespaces réservés/builtins (`host.*`, `list.*`, `map.*`, `result.*`)
+
+Hors module :
+
+- les références utilisateur non qualifiées sont invalides
+- une référence utilisateur exige `@module.word`
+- un alias ne peut être utilisé que s’il est introduit par un import
 
 Exemple invalide (Phase 2) :
 
@@ -288,6 +327,16 @@ Note de transition :
 
 - certains exemples plus loin dans ce document utilisent encore une forme top-level legacy
 - en cas de conflit, la règle normative de phase 2 prévaut : les définitions utilisateur sont module-contenues
+
+Cycles d’import :
+
+- les cycles d’import sont interdits
+- forme diagnostique autorisée :
+
+```text
+cyclic import detected:
+@a -> @b -> @a
+```
 
 ---
 

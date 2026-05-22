@@ -33,6 +33,126 @@ Règle violée :
 
 ---
 
+## 0bis. Résolution et imports (Phase 3)
+
+### Import wildcard interdit
+
+```nicole
+import @text.*
+```
+
+Pourquoi c’est invalide :
+- la forme wildcard n’existe pas pour les imports
+
+Règle violée :
+- wildcard imports do not exist in v1
+
+### Collision d’alias d’import
+
+```nicole
+import @text as util
+import @tools as util
+```
+
+Pourquoi c’est invalide :
+- `util` est déclaré deux fois comme alias visible
+
+Règle violée :
+- les aliases participent aux collisions de noms visibles
+
+### Import sans alias n’expose pas le nom court
+
+```nicole
+import @text.split
+
+module @demo
+  : run { input:String -- out:List<String> }
+    input split
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `import @text.split` n’expose pas le nom court `split`
+- sans alias, seule la forme qualifiée explicite est autorisée
+
+Règle violée :
+- sans alias, un import ciblé n’injecte pas de nom court
+
+### Référence externe qualifiée sans import
+
+```nicole
+module @demo
+  : run { input:String -- out:List<String> }
+    input @text.split
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `@text.split` cible un mot utilisateur externe
+- aucun import correspondant n’est déclaré
+
+Règle violée :
+- sans import, une référence externe `@text.word` est invalide
+
+### Module sur racine réservée
+
+```nicole
+module @host
+end-module
+```
+
+Pourquoi c’est invalide :
+- `host` est une racine réservée (reserved root)
+
+Règle violée :
+- un module utilisateur ne peut pas occuper une racine réservée
+
+### Alias sur racine réservée
+
+```nicole
+import @text as host
+```
+
+Pourquoi c’est invalide :
+- `host` est une racine réservée (reserved root)
+
+Règle violée :
+- un alias d’import ne peut pas occuper une racine réservée
+
+### Cycle d’import interdit
+
+```text
+# a.nic
+import @b
+
+module @a
+  : ping { n:Int -- n2:Int }
+    n @b.pong
+  ;
+end-module
+
+# b.nic
+import @a
+
+module @b
+  : pong { n:Int -- n2:Int }
+    n @a.ping
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- le graphe d’import contient un cycle entre `@a` et `@b`
+
+Règle violée :
+- les cycles d’import sont interdits
+- diagnostic shape admise :
+  `cyclic import detected: @a -> @b -> @a`
+
+---
+
 ## 1. Erreurs de typage
 
 ### Addition de types incompatibles

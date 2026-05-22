@@ -64,8 +64,8 @@ Current global status:
 | 0 | Baseline cleanup and existing contradictions | implemented | | Fix existing `case when` contradictions before module migration |
 | 1 | Lexical and grammar foundation | implemented | | Add `@`, structural `.`, module/import/include grammar shells |
 | 2 | Mandatory module model | implemented | | Forbid top-level user words; define module containment |
-| 3 | Resolution, imports, and namespaces | pre-audit | | Define aliases, collisions, reserved roots, import graph |
-| 4 | Export and HOST_ABI rewrite | planned | | Host-visible names become `@module.word` |
+| 3 | Resolution, imports, and namespaces | implemented | | Define aliases, collisions, reserved roots, import graph |
+| 4 | Export and HOST_ABI rewrite | pre-audit | | Host-visible names become `@module.word` |
 | 5 | Valid examples rewrite | planned | | Rewrite all valid examples into module form |
 | 6 | Invalid examples rewrite | planned | | Preserve intended invalid reasons under new baseline |
 | 7 | Final consistency audit and tagging | planned | | Cross-file audit, release readiness, tag proposal |
@@ -197,10 +197,18 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "@host|@list|@map|@result" INVALID_EXAMPLES.md`
 - Risks:
 - Under-specified alias scoping can lead to inconsistent compiler interpretations.
-- Status: `pre-audit`
+- Status: `implemented`
 - Result commit:
 - Result tag:
 - Notes:
+- Static module-aware resolution defined
+- Import forms and alias semantics defined
+- External `@module.word` references require corresponding imports
+- Alias scope after textual inclusion specified
+- Reserved namespace roots added
+- Import cycles forbidden
+- Cross-module recursion through cyclic imports invalid
+- Phase 3 corrective post-audit passed
 
 ## Phase 4 — Export and HOST_ABI rewrite
 
@@ -222,7 +230,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "@[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]" HOST_ABI.md`
 - Risks:
 - ABI naming drift between syntax and host contract can break downstream implementation planning.
-- Status: `planned`
+- Status: `pre-audit`
 - Result commit:
 - Result tag:
 - Notes:
@@ -317,6 +325,9 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 2 | pre-audit | patching | Mandatory module model implementation started |
 | 2026-05-22 | Phase 2 | patching | implemented | Phase 2 corrective post-audit passed |
 | 2026-05-22 | Phase 3 | planned | pre-audit | Next phase opened |
+| 2026-05-22 | Phase 3 | pre-audit | patching | Resolution, imports, and namespace implementation started |
+| 2026-05-22 | Phase 3 | patching | implemented | Phase 3 corrective post-audit passed |
+| 2026-05-22 | Phase 4 | planned | pre-audit | Next phase opened |
 
 ## Important constraints
 

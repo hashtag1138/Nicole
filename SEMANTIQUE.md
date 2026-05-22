@@ -26,6 +26,10 @@ Cela couvre notamment :
 - `Err!`
 - `MissingKey`
 - `OutOfBounds`
+- `host`
+- `list`
+- `map`
+- `result`
 - `result.*`
 - `list.*`
 - `map.*`
@@ -209,8 +213,52 @@ Phase 2 établit le modèle obligatoire suivant :
 - les définitions de mots utilisateur sont contenues dans des blocs `module @... end-module`
 - une définition utilisateur top-level est rejetée
 - dans un module, un appel peut utiliser un nom court pour viser un mot du même module
-- hors module, un mot utilisateur est référencé via `@module.word`
-- dans un module, la forme `@module.word` reste autorisée, mais la forme courte locale est préférée
+- hors module, un mot utilisateur externe est référencé via `@module.word` avec import correspondant
+- dans `module @text`, la forme `@text.word` reste autorisée sans import, mais la forme courte locale est préférée
+
+Phase 3 complète ce modèle :
+
+- la résolution est entièrement statique et contextuelle
+- les imports sont des déclarations de compilation uniquement
+- les imports existent uniquement au top-level
+- les imports ne sont pas des mots exécutables
+- les imports n’ont aucun effet de pile
+- il n’existe ni import dynamique ni lookup namespace runtime
+- les aliases d’import participent aux collisions de noms visibles
+- le graphe d’import doit être acyclique
+
+Ordre de résolution dans un module :
+
+1. noms locaux dans le scope courant
+2. mots du même module appelés en nom court
+3. aliases d’import visibles
+4. noms qualifiés explicites (`@module.word`) autorisés dans le module courant ou via import externe correspondant
+5. namespaces réservés/builtins (`host.*`, `list.*`, `map.*`, `result.*`)
+
+Hors module :
+
+- aucun mot utilisateur non qualifié n’est résolu
+- un mot utilisateur externe exige `@module.word` et un import correspondant
+- un alias n’est utilisable que s’il est introduit explicitement par `import`
+
+Sémantique des imports :
+
+- `import @text` autorise uniquement l’usage qualifié explicite `@text.*` pour les mots publics de `@text`
+- `import @text as t` crée une racine alias `t`, utilisable sous la forme `t.word`
+- `import @text.split` autorise uniquement `@text.split`
+- `import @text.split as split` crée l’alias court `split`
+- sans alias, `import @text.split` ne rend pas `split` visible
+- sans import, une référence externe `@text.word` est invalide
+- la portée des aliases d’import suit l’unité de compilation après inclusion textuelle
+- les fragments inclus ne créent pas de scope alias séparé
+
+Racines réservées :
+
+- `host`, `list`, `map`, `result` sont réservées comme racines
+- `host.*`, `list.*`, `map.*`, `result.*` restent réservées comme namespaces
+- un module utilisateur ne peut pas être `@host`, `@list`, `@map` ou `@result`
+- un alias d’import ne peut pas être `host`, `list`, `map` ou `result`
+- un nom utilisateur ne peut pas occuper une racine réservée
 
 La collecte des signatures précède l’analyse des corps.
 
@@ -231,6 +279,12 @@ Toute collision visible est une erreur de compilation.
 Cette règle évite qu’un appel dépende de valeurs résiduelles présentes sur la pile pour sélectionner une définition.
 
 Les signatures de sortie ne servent jamais à distinguer deux mots, car deux définitions de même nom sont interdites quelles que soient leurs signatures.
+
+Imports et récursion :
+
+- la récursion interne à un module est inchangée
+- les cycles d’import sont interdits
+- une récursion mutuelle inter-modules qui dépend d’un cycle d’import est invalide
 
 Note de transition :
 
