@@ -120,13 +120,13 @@ Alias discussion remains deferred and should stay absent from the first spec pat
 | Phase | Name | Status | Primary outcome |
 |---|---|---|---|
 | 0 | Preliminary spec audit | complete | initial spec-only audit completed |
-| 1 | Plan creation | in-progress | this plan file created and validated |
-| 2 | Pre-patch audit | pending | exact patch-ready audit against current spec text |
-| 3 | Spec patch | pending | normative spec files updated |
-| 4 | Post-patch audit | pending | patch reviewed for consistency/completeness |
-| 5 | Commit spec patch | pending | spec patch committed |
-| 6 | Final audit | pending | repository re-audited after commit |
-| 7 | Final plan/status commit | pending | this plan/status file updated and committed |
+| 1 | Plan creation | complete | this plan file created and validated |
+| 2 | Pre-patch audit | complete | exact patch-ready audit against current spec text |
+| 3 | Spec patch | complete | normative spec files updated |
+| 4 | Post-patch audit | complete | patch reviewed for consistency/completeness |
+| 5 | Commit spec patch | complete | spec patch committed |
+| 6 | Final audit | complete | repository re-audited after commit |
+| 7 | Final plan/status commit | in-progress | this plan/status file being updated for final commit |
 | 8 | Tag and push | pending | final verification, tag, and push |
 
 Required workflow exactly:
@@ -136,25 +136,25 @@ Phase 0 — Preliminary spec audit
 Status: complete
 
 Phase 1 — Plan creation
-Status: in-progress
+Status: complete
 
 Phase 2 — Pre-patch audit
-Status: pending
+Status: complete
 
 Phase 3 — Spec patch
-Status: pending
+Status: complete
 
 Phase 4 — Post-patch audit
-Status: pending
+Status: complete
 
 Phase 5 — Commit spec patch
-Status: pending
+Status: complete
 
 Phase 6 — Final audit
-Status: pending
+Status: complete
 
 Phase 7 — Final plan/status commit
-Status: pending
+Status: in-progress
 
 Phase 8 — Tag and push
 Status: pending
@@ -188,7 +188,7 @@ Exit criteria:
 Status:
 
 ```text
-in-progress
+complete
 ```
 
 Purpose:
@@ -207,7 +207,7 @@ Exit criteria:
 Status:
 
 ```text
-pending
+complete
 ```
 
 Purpose:
@@ -227,13 +227,14 @@ Exit criteria:
 
 - patch-ready audit notes exist in the prompt/session
 - no untracked design drift remains
+- pre-patch audit passed
 
 ### Phase 3 — Spec patch
 
 Status:
 
 ```text
-pending
+complete
 ```
 
 Purpose:
@@ -258,13 +259,14 @@ Exit criteria:
 
 - patch applied to the planned spec files
 - no unrelated file changes
+- patch corrections integrated before post-patch audit sign-off
 
 ### Phase 4 — Post-patch audit
 
 Status:
 
 ```text
-pending
+complete
 ```
 
 Purpose:
@@ -284,13 +286,14 @@ Exit criteria:
 
 - audit confirms the patch is coherent
 - any required corrections applied before commit
+- post-patch audit passed
 
 ### Phase 5 — Commit spec patch
 
 Status:
 
 ```text
-pending
+complete
 ```
 
 Purpose:
@@ -303,6 +306,19 @@ Commit discipline:
 - do not tag yet
 - do not push yet
 
+Recorded result:
+
+- commit: `3bcba2dbd2f5042b5dc6dd61a747a4dac2dc522e`
+- message: `Add host opaque types to specification`
+- committed files:
+  - `SYNTAXE.md`
+  - `SEMANTIQUE.md`
+  - `HOST_ABI.md`
+  - `INVALID_EXAMPLES.md`
+  - `EXAMPLES.md`
+  - `README.md`
+  - `HOST_OPAQUE_TYPES_PLAN.md`
+
 Exit criteria:
 
 - spec patch committed
@@ -312,7 +328,7 @@ Exit criteria:
 Status:
 
 ```text
-pending
+complete
 ```
 
 Purpose:
@@ -330,12 +346,17 @@ Exit criteria:
 
 - final audit passed
 
+Recorded result:
+
+- final audit result: `Final audit passed`
+- committed state verified against the intended host opaque types specification outcome
+
 ### Phase 7 — Final plan/status commit
 
 Status:
 
 ```text
-pending
+in-progress
 ```
 
 Purpose:
@@ -348,6 +369,7 @@ Required updates:
 - mark completed phases
 - record residual gaps that remain intentionally deferred
 - append final change log entry
+- prepare the final plan/status commit after this file is updated
 
 Exit criteria:
 
@@ -503,8 +525,10 @@ These are known residual gaps to monitor during later phases:
 - ensuring alias discussion remains deferred and absent from the first patch
 - ensuring no wording drifts into ownership, destructors, or nullable-handle semantics
 - ensuring map wording remains consistent: host opaque types may appear as map values for any valid existing key type (`K ∈ {Int,String,Bool}`), never as map keys
+- no explicit positive examples yet for `Map<Int,host...>` or `Map<Bool,host...>`
+- host word/type same-canonical-name collision policy remains a future clarification
 
-These gaps are not blockers for Phase 1 plan creation.
+These gaps are not blockers for the completed Phase 6 final audit.
 
 ---
 
@@ -512,3 +536,4 @@ These gaps are not blockers for Phase 1 plan creation.
 
 - 2026-05-22: created initial `HOST_OPAQUE_TYPES_PLAN.md`; recorded baseline, accepted design decisions, workflow phases, expected file impact, validation commands, and audit discipline
 - 2026-05-22: corrected host opaque map-value decision: host opaque types may appear as map values for any existing valid key type `K ∈ {Int,String,Bool}`; host opaque types remain forbidden as map keys
+- 2026-05-22: marked host opaque types workflow through final audit complete after commit `3bcba2dbd2f5042b5dc6dd61a747a4dac2dc522e`; Phase 7 final plan/status commit moved to in-progress
