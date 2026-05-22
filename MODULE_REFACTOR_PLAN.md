@@ -61,8 +61,8 @@ Current global status:
 
 | Phase | Name | Status | Commit/tag | Notes |
 |---|---|---|---|---|
-| 0 | Baseline cleanup and existing contradictions | planned | | Fix existing `case when` contradictions before module migration |
-| 1 | Lexical and grammar foundation | planned | | Add `@`, structural `.`, module/import/include grammar shells |
+| 0 | Baseline cleanup and existing contradictions | implemented | | Fix existing `case when` contradictions before module migration |
+| 1 | Lexical and grammar foundation | pre-audit | | Add `@`, structural `.`, module/import/include grammar shells |
 | 2 | Mandatory module model | planned | | Forbid top-level user words; define module containment |
 | 3 | Resolution, imports, and namespaces | planned | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | planned | | Host-visible names become `@module.word` |
@@ -104,10 +104,13 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `git diff --stat`
 - Risks:
 - Fixes may accidentally reopen closed wording decisions if scope is not tightly enforced.
-- Status: `planned`
-- Result commit:
+- Status: `implemented`
+- Result commit: <TO_BE_FILLED_AFTER_COMMIT>
 - Result tag:
 - Notes:
+- Guard contradiction resolved
+- Invalid guard example rewritten
+- Contributor guidance aligned with current name resolution model
 
 ## Phase 1 — Lexical and grammar foundation
 
@@ -132,7 +135,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "module|end-module|import|include" SYNTAXE.md SEMANTIQUE.md`
 - Risks:
 - Partial lexical changes can make examples and invalid examples temporarily inconsistent until later phases.
-- Status: `planned`
+- Status: `pre-audit`
 - Result commit:
 - Result tag:
 - Notes:
@@ -296,6 +299,8 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 
 | Date | Phase | Old status | New status | Reason |
 |---|---:|---|---|---|
+| 2026-05-22 | Phase 0 | planned | implemented | Phase 0 post-audit passed |
+| 2026-05-22 | Phase 1 | planned | pre-audit | Next phase opened |
 
 ## Important constraints
 

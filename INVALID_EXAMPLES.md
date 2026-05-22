@@ -186,23 +186,24 @@ Pourquoi c’est invalide :
 Règle violée :
 - toutes les branches d’un `case` doivent produire le même effet de pile
 
-### Garde conditionnelle interdite
+### Garde conditionnelle dirty interdite
 
 ```nicole
-: bad-case-guard { r:Result<Int,MapError> -- n:Int }
+: bad-case-guard { r:Result<Int,MapError> -- text:String }
   r case
-    Err(e) when e => 0
-    _ => 1
+    Ok(v) when "trace" host.log true => "ok"
+    Err(MissingKey) => "missing"
   end
 ;
 ```
 
 Pourquoi c’est invalide :
-- `when` n’existe pas en v1
-- les gardes conditionnelles sur pattern ne font pas partie du langage
+- la branche gardée utilise `host.log` dans le guard
+- `host.log` est dirty
+- un guard doit rester pur
 
 Règle violée :
-- Nicole v1 ne possède aucun mécanisme de garde sur `case`
+- un guard ne peut pas appeler de code dirty
 
 ### Pattern `MissingKey` sur un scrutinee `Bool`
 

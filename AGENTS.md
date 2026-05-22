@@ -96,7 +96,7 @@ Le langage visé est :
 - à stack frames isolées
 - avec variables locales immuables
 - avec sous-mots privés, éventuellement nommés de façon qualifiée en interne
-- avec surcharge statique par entrées
+- avec noms explicites et résolution statique par nom visible unique
 - sans macros
 - sans métaprogrammation
 - sans capture lexicale implicite

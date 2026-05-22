@@ -104,7 +104,7 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - un nom visible désigne une seule définition
 - récursion
 - if / case
-- `case` sans guards en v1
+- `case` avec guards en v1
 - structures de contrôle retenues
 - exécution embarquée sur bytecode
 - extension possible vers un JIT futur, sans promesse de stabilité d’implémentation
