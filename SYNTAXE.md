@@ -27,9 +27,11 @@ Le langage n’est pas un Forth pur :
 Un mot se définit avec `:` et se termine par `;`.
 
 ```nicole
-: add { a:Int b:Int -- result:Int }
-  a b +
-;
+module @syntax.intro
+  : add { a:Int b:Int -- result:Int }
+    a b +
+  ;
+end-module
 ```
 
 La signature est toujours écrite entre `{` et `}`.
@@ -387,9 +389,11 @@ Lire une variable locale pousse sa valeur sur la pile locale courante.
 Exemple :
 
 ```nicole
-: square { x:Int -- y:Int }
-  x x *
-;
+module @syntax.frames
+  : square { x:Int -- y:Int }
+    x x *
+  ;
+end-module
 ```
 
 Ici, `x` ne désigne pas une variable mutable.  
@@ -402,9 +406,11 @@ Ici, `x` ne désigne pas une variable mutable.
 Les arguments d’entrée deviennent des variables locales.
 
 ```nicole
-: square { x:Int -- y:Int }
-  x x *
-;
+module @syntax.frames
+  : square { x:Int -- y:Int }
+    x x *
+  ;
+end-module
 ```
 
 Les variables locales :
@@ -448,9 +454,11 @@ Règles :
 Exemple valide :
 
 ```nicole
-: ok { -- x:Int }
-  1
-;
+module @syntax.frames
+  : ok { -- x:Int }
+    1
+  ;
+end-module
 ```
 
 Exemple invalide :
@@ -466,9 +474,11 @@ Ce dernier exemple doit être rejeté, pas corrigé silencieusement en gardant s
 Exemple de valeur ignorée explicitement :
 
 ```nicole
-: ignore { n:Int -- }
-  n drop
-;
+module @syntax.frames
+  : ignore { n:Int -- }
+    n drop
+  ;
+end-module
 ```
 
 Appel conceptuel :
@@ -480,9 +490,11 @@ Appel conceptuel :
 Avec :
 
 ```nicole
-: compute { a:Int b:Int -- result:Int }
-  a b + 2 *
-;
+module @syntax.frames
+  : compute { a:Int b:Int -- result:Int }
+    a b + 2 *
+  ;
+end-module
 ```
 
 Après appel :
@@ -516,20 +528,22 @@ Le cas legacy « sous-mot vs mot utilisateur top-level » est obsolète en phase
 Exemple :
 
 ```nicole
-: invoice { price:Int qty:Int -- total:Int }
+module @syntax.subwords
+  : invoice { price:Int qty:Int -- total:Int }
 
-  : subtotal { price:Int qty:Int -- amount:Int }
-    price qty *
+    : subtotal { price:Int qty:Int -- amount:Int }
+      price qty *
+    ;
+
+    : vat { amount:Int -- tax:Int }
+      amount 20 * 100 div
+    ;
+
+    price qty subtotal
+    dup vat
+    +
   ;
-
-  : vat { amount:Int -- tax:Int }
-    amount 20 * 100 div
-  ;
-
-  price qty subtotal
-  dup vat
-  +
-;
+end-module
 ```
 
 Le parent reste un mot exécutable.
@@ -559,19 +573,21 @@ Ces deux sous-mots sont interdits :
 Alternative valide :
 
 ```nicole
-: parent { -- }
+module @syntax.subwords
+  : parent { -- }
 
-  : child-int { -- n:Int }
-    1
+    : child-int { -- n:Int }
+      1
+    ;
+
+    : child-string { -- text:String }
+      "x"
+    ;
+
+    child-int drop
+    child-string drop
   ;
-
-  : child-string { -- text:String }
-    "x"
-  ;
-
-  child-int drop
-  child-string drop
-;
+end-module
 ```
 
 ---
@@ -621,16 +637,18 @@ Des frames différentes peuvent réutiliser les mêmes noms locaux.
 Exemple valide :
 
 ```nicole
-: foo { x:Int -- y:Int }
+module @syntax.subwords
+  : foo { x:Int -- y:Int }
 
-  : bar { x:Int -- y:Int }
-    1 x +
+    : bar { x:Int -- y:Int }
+      1 x +
+    ;
+
+    3 bar
+    x
+    +
   ;
-
-  3 bar
-  x
-  +
-;
+end-module
 ```
 
 Ici :
@@ -685,21 +703,23 @@ Ces deux définitions sont interdites, même si leurs arités diffèrent.
 Formes recommandées :
 
 ```nicole
-: id-int { x:Int -- y:Int }
-  x
-;
+module @syntax.locals
+  : id-int { x:Int -- y:Int }
+    x
+  ;
 
-: id-string { x:String -- y:String }
-  x
-;
+  : id-string { x:String -- y:String }
+    x
+  ;
 
-: foo2 { a:Int b:Int -- r:Int }
-  a b +
-;
+  : foo2 { a:Int b:Int -- r:Int }
+    a b +
+  ;
 
-: foo3 { a:Int b:Int c:Int -- r:Int }
-  a b + c +
-;
+  : foo3 { a:Int b:Int c:Int -- r:Int }
+    a b + c +
+  ;
+end-module
 ```
 
 ---
@@ -833,13 +853,15 @@ après if : S'
 Exemple :
 
 ```nicole
-: abs { x:Int -- y:Int }
-  x 0 < if
-    0 x -
-  else
-    x
-  end
-;
+module @syntax.conditionals
+  : abs { x:Int -- y:Int }
+    x 0 < if
+      0 x -
+    else
+      x
+    end
+  ;
+end-module
 ```
 
 ---
@@ -862,25 +884,29 @@ end
 Exemple :
 
 ```nicole
-: sign-label { n:Int -- text:String }
-  n case
-    0 => "zero"
-    1 => "one"
-    _ => "many"
-  end
-;
+module @syntax.case
+  : sign-label { n:Int -- text:String }
+    n case
+      0 => "zero"
+      1 => "one"
+      _ => "many"
+    end
+  ;
+end-module
 ```
 
 Exemple de branche gardée :
 
 ```nicole
-: classify-result { r:Result<Int,MapError> -- text:String }
-  r case
-    Ok(v) when v 0 > => "positive"
-    Ok(v) => "non-positive"
-    Err(MissingKey) => "missing"
-  end
-;
+module @syntax.case
+  : classify-result { r:Result<Int,MapError> -- text:String }
+    r case
+      Ok(v) when v 0 > => "positive"
+      Ok(v) => "non-positive"
+      Err(MissingKey) => "missing"
+    end
+  ;
+end-module
 ```
 
 Toutes les branches doivent produire le même nombre de valeurs, les mêmes types et le même effet de pile.
@@ -912,12 +938,14 @@ Règles de liaison :
 Exemple de branche liant :
 
 ```nicole
-: unwrap-result { r:Result<Int,MapError> -- n:Int }
-  r case
-    Ok(v) => v
-    Err(e) => 0
-  end
-;
+module @syntax.case
+  : unwrap-result { r:Result<Int,MapError> -- n:Int }
+    r case
+      Ok(v) => v
+      Err(e) => 0
+    end
+  ;
+end-module
 ```
 
 Le pattern matching avancé reste hors v1.
@@ -933,13 +961,15 @@ En v0.16, la récursion directe en position terminale reçoit une garantie de pi
 Exemple de récursion directe en position terminale :
 
 ```nicole
-: sum-down-acc { n:Int acc:Int -- result:Int }
-  n 0 = if
-    acc
-  else
-    n 1 - acc n + sum-down-acc
-  end
-;
+module @syntax.recursion
+  : sum-down-acc { n:Int acc:Int -- result:Int }
+    n 0 = if
+      acc
+    else
+      n 1 - acc n + sum-down-acc
+    end
+  ;
+end-module
 ```
 
 Cet exemple est valide et bénéficie de la garantie de pile constante pour ses appels récursifs directs en position terminale.
@@ -949,12 +979,14 @@ La récursion non terminale reste valide, sans garantie de pile constante.
 Exemple de récursion non terminale :
 
 ```nicole
-: fact { n:Int -- r:Int }
-  n case
-    0 => 1
-    _ => n n 1 - fact *
-  end
-;
+module @syntax.recursion
+  : fact { n:Int -- r:Int }
+    n case
+      0 => 1
+      _ => n n 1 - fact *
+    end
+  ;
+end-module
 ```
 
 La récursion mutuelle reste possible si les signatures sont connues avant analyse.
@@ -969,21 +1001,23 @@ La collecte préalable des signatures reste nécessaire pour :
 Exemple de récursion mutuelle valide :
 
 ```nicole
-: even { n:Int -- result:Bool }
-  n 0 = if
-    true
-  else
-    n 1 - odd
-  end
-;
+module @syntax.recursion
+  : even { n:Int -- result:Bool }
+    n 0 = if
+      true
+    else
+      n 1 - odd
+    end
+  ;
 
-: odd { n:Int -- result:Bool }
-  n 0 = if
-    false
-  else
-    n 1 - even
-  end
-;
+  : odd { n:Int -- result:Bool }
+    n 0 = if
+      false
+    else
+      n 1 - even
+    end
+  ;
+end-module
 ```
 
 Cet exemple reste valide avec des noms visibles uniques :
@@ -1059,9 +1093,11 @@ Ces deux notions ne doivent pas être confondues.
 Exemples :
 
 ```nicole
-: consume-only { msg:String -- }
-  msg drop
-;
+module @syntax.collections
+  : consume-only { msg:String -- }
+    msg drop
+  ;
+end-module
 ```
 
 `consume-only` ne produit aucune valeur.
@@ -1089,11 +1125,13 @@ Elles opèrent sur la pile locale du mot courant.
 Exemple :
 
 ```nicole
-: between { x:Int min:Int max:Int -- ok:Bool }
-  x min >=
-  x max <=
-  and
-;
+module @syntax.collections
+  : between { x:Int min:Int max:Int -- ok:Bool }
+    x min >=
+    x max <=
+    and
+  ;
+end-module
 ```
 
 `drop` est la primitive à utiliser quand une valeur doit être explicitement ignorée avant le retour.
@@ -1160,17 +1198,21 @@ produit `3.5`.
 Exemple de TVA :
 
 ```nicole
-: vat { amount:Int -- tax:Int }
-  amount 20 * 100 div
-;
+module @syntax.collections
+  : vat { amount:Int -- tax:Int }
+    amount 20 * 100 div
+  ;
+end-module
 ```
 
 Exemple Float :
 
 ```nicole
-: circle-area { r:Float -- area:Float }
-  r r *. 3.14159 *.
-;
+module @syntax.collections
+  : circle-area { r:Float -- area:Float }
+    r r *. 3.14159 *.
+  ;
+end-module
 ```
 
 ---
@@ -1220,15 +1262,19 @@ Note syntaxique :
 Exemples valides :
 
 ```nicole
-: empty-names { -- xs:List<String> }
-  []:List<String>
-;
+module @syntax.collections
+  : empty-names { -- xs:List<String> }
+    []:List<String>
+  ;
+end-module
 ```
 
 ```nicole
-: empty-ints { -- xs:List<Int> }
-  []:List<Int>
-;
+module @syntax.collections
+  : empty-ints { -- xs:List<Int> }
+    []:List<Int>
+  ;
+end-module
 ```
 
 Exemple invalide :
@@ -1296,74 +1342,92 @@ La compatibilité est vérifiée sur la partie appelable `inputs -- outputs`.
 Exemples :
 
 ```nicole
-: first { xs:List<String> -- s:String }
-  xs 0 list.get case
-    Ok(v) => v
-    Err(OutOfBounds) => ""
-  end
-;
+module @syntax.collections
+  : first { xs:List<String> -- s:String }
+    xs 0 list.get case
+      Ok(v) => v
+      Err(OutOfBounds) => ""
+    end
+  ;
+end-module
 ```
 
 ```nicole
-: replace-first { xs:List<Int> -- ys:List<Int> }
-  xs 0 42 list.set case
-    Ok(v) => v
-    Err(OutOfBounds) => xs
-  end
-;
+module @syntax.collections
+  : replace-first { xs:List<Int> -- ys:List<Int> }
+    xs 0 42 list.set case
+      Ok(v) => v
+      Err(OutOfBounds) => xs
+    end
+  ;
+end-module
 ```
 
 ```nicole
-: concat-singletons { -- xs:List<Int> }
-  [2] [4] list.concat
-;
+module @syntax.collections
+  : concat-singletons { -- xs:List<Int> }
+    [2] [4] list.concat
+  ;
+end-module
 ```
 
 ```nicole
-: inc-all { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- y:Int | x 1 + ;] list.map
-;
+module @syntax.collections
+  : inc-all { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- y:Int | x 1 + ;] list.map
+  ;
+end-module
 ```
 
 ```nicole
-: add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
-  xs
-  offset
-  :[ captured-offset:Int | x:Int -- y:Int |
-    x captured-offset +
-  ;]
-  list.map
-;
+module @syntax.collections
+  : add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
+    xs
+    offset
+    :[ captured-offset:Int | x:Int -- y:Int |
+      x captured-offset +
+    ;]
+    list.map
+  ;
+end-module
 ```
 
 ```nicole
-: keep-positive { xs:List<Int> -- ys:List<Int> }
-  xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
-;
+module @syntax.collections
+  : keep-positive { xs:List<Int> -- ys:List<Int> }
+    xs :[ | x:Int -- keep:Bool | x 0 > ;] list.filter
+  ;
+end-module
 ```
 
 ```nicole
-: sum { xs:List<Int> -- total:Int }
-  xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
-;
+module @syntax.collections
+  : sum { xs:List<Int> -- total:Int }
+    xs 0 :[ | acc:Int x:Int -- out:Int | acc x + ;] list.fold
+  ;
+end-module
 ```
 
 ```nicole
-: sum-with-offset { xs:List<Int> offset:Int -- n:Int }
-  xs
-  0
-  offset
-  :[ captured-offset:Int | acc:Int x:Int -- out:Int |
-    acc x + captured-offset +
-  ;]
-  list.fold
-;
+module @syntax.collections
+  : sum-with-offset { xs:List<Int> offset:Int -- n:Int }
+    xs
+    0
+    offset
+    :[ captured-offset:Int | acc:Int x:Int -- out:Int |
+      acc x + captured-offset +
+    ;]
+    list.fold
+  ;
+end-module
 ```
 
 ```nicole
-: sum-nonempty { xs:List<Int> -- total:Int }
-  xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
-;
+module @syntax.collections
+  : sum-nonempty { xs:List<Int> -- total:Int }
+    xs :[ | a:Int b:Int -- c:Int | a b + ;] list.reduce
+  ;
+end-module
 ```
 
 `list.reduce` est uniquement défini pour une liste non vide.
@@ -1404,12 +1468,14 @@ Règles :
 Exemple :
 
 ```nicole
-: first-or-empty { xs:List<String> -- s:String }
-  xs 0 list.get case
-    Ok(v) => v
-    Err(OutOfBounds) => ""
-  end
-;
+module @syntax.collections
+  : first-or-empty { xs:List<String> -- s:String }
+    xs 0 list.get case
+      Ok(v) => v
+      Err(OutOfBounds) => ""
+    end
+  ;
+end-module
 ```
 
 ---
@@ -1514,38 +1580,48 @@ Sémantique attendue :
 Exemples :
 
 ```nicole
-: empty-cfg { -- cfg:Map<String,Int> }
-  map.empty:Map<String,Int>
-;
+module @syntax.collections
+  : empty-cfg { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+  ;
+end-module
 ```
 
 ```nicole
-: cfg-with-timeout { -- cfg:Map<String,Int> }
-  map.empty:Map<String,Int>
-  "timeout" 30 map.set
-;
+module @syntax.collections
+  : cfg-with-timeout { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "timeout" 30 map.set
+  ;
+end-module
 ```
 
 ```nicole
-: timeout { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 0
-  end
-;
+module @syntax.collections
+  : timeout { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 0
+    end
+  ;
+end-module
 ```
 
 ```nicole
-: has-timeout { cfg:Map<String,Int> -- ok:Bool }
-  cfg "timeout" map.contains
-;
+module @syntax.collections
+  : has-timeout { cfg:Map<String,Int> -- ok:Bool }
+    cfg "timeout" map.contains
+  ;
+end-module
 ```
 
 ```nicole
-: store-action { -- actions:Map<String,Quote<{ | x:Int -- y:Int }>> }
-  map.empty:Map<String,Quote<{ | x:Int -- y:Int }>>
-  "inc" :[ | x:Int -- y:Int | x 1 + ;] map.set
-;
+module @syntax.collections
+  : store-action { -- actions:Map<String,Quote<{ | x:Int -- y:Int }>> }
+    map.empty:Map<String,Quote<{ | x:Int -- y:Int }>>
+    "inc" :[ | x:Int -- y:Int | x 1 + ;] map.set
+  ;
+end-module
 ```
 
 `map.get` doit renvoyer un `Result<V,MapError>`. L’absence de clé est représentée par `Err(MissingKey)` plutôt que par une valeur implicite cachée.
@@ -1574,12 +1650,14 @@ Règles :
 Exemple :
 
 ```nicole
-: timeout { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 0
-  end
-;
+module @syntax.result
+  : timeout { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 0
+    end
+  ;
+end-module
 ```
 
 Cas d’usage recommandé :
@@ -1661,11 +1739,13 @@ Règles :
 Exemple valide :
 
 ```nicole
-: require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
-  cfg "timeout" map.get ?
-  drop
-  1 Ok!
-;
+module @syntax.result
+  : require-timeout-flag { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg "timeout" map.get ?
+    drop
+    1 Ok!
+  ;
+end-module
 ```
 
 Exemple invalide :
@@ -1696,18 +1776,22 @@ list.try-fold
 Exemples :
 
 ```nicole
-: parse-timeout { cfg:Map<String,Int> -- r:Result<Int,MapError> }
-  cfg "timeout" map.get
-;
+module @syntax.result
+  : parse-timeout { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg "timeout" map.get
+  ;
+end-module
 ```
 
 ```nicole
-: timeout-or-default { cfg:Map<String,Int> -- n:Int }
-  cfg "timeout" map.get case
-    Ok(v) => v
-    Err(MissingKey) => 30
-  end
-;
+module @syntax.result
+  : timeout-or-default { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 30
+    end
+  ;
+end-module
 ```
 
 ---
@@ -2085,9 +2169,11 @@ Tant qu’aucune sémantique canonique n’est fixée, il ne faut pas présenter
 Les commentaires de ligne utilisent `#`.
 
 ```nicole
-: square { x:Int -- y:Int }
-  x x *   # pousse x deux fois, puis multiplie
-;
+module @syntax.frames
+  : square { x:Int -- y:Int }
+    x x *   # pousse x deux fois, puis multiplie
+  ;
+end-module
 ```
 
 Les commentaires de bloc ne sont pas définis en v1.
@@ -2189,21 +2275,23 @@ end-module
 # effect:
 # dirty
 
-: square { x:Int -- y:Int }
-  x x *
-;
+module @syntax.locals
+  : square { x:Int -- y:Int }
+    x x *
+  ;
 
-: PI { -- value:Float }
-  3.14159
-;
+  : PI { -- value:Float }
+    3.14159
+  ;
 
-: circle-area { r:Float -- area:Float }
-  r r *. PI *.
-;
+  : circle-area { r:Float -- area:Float }
+    r r *. PI *.
+  ;
 
-pub : helper { n:Int -- m:Int }
-  n 1 +
-;
+  pub : helper { n:Int -- m:Int }
+    n 1 +
+  ;
+end-module
 
 module @app
   dirty : on-message { msg:String -- }
@@ -2225,33 +2313,41 @@ end-module
 Mot privé :
 
 ```nicole
-: private-name { x:Int -- y:Int }
-  x 1 +
-;
+module @syntax.summary
+  : private-name { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Mot public interne :
 
 ```nicole
-pub : shared-name { x:Int -- y:Int }
-  x 1 +
-;
+module @syntax.summary
+  pub : shared-name { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Mot dirty privé :
 
 ```nicole
-dirty : private-dirty { x:Int -- y:Int }
-  x 1 +
-;
+module @syntax.summary
+  dirty : private-dirty { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Mot public interne dirty :
 
 ```nicole
-pub dirty : shared-dirty { x:Int -- y:Int }
-  x 1 +
-;
+module @syntax.summary
+  pub dirty : shared-dirty { x:Int -- y:Int }
+    x 1 +
+  ;
+end-module
 ```
 
 Mot exporté à l’hôte :
@@ -2280,14 +2376,16 @@ end-module
 Sous-mot :
 
 ```nicole
-: parent { x:Int -- y:Int }
+module @syntax.subwords
+  : parent { x:Int -- y:Int }
 
-  : child { z:Int -- r:Int }
-    z z *
+    : child { z:Int -- r:Int }
+      z z *
+    ;
+
+    x child
   ;
-
-  x child
-;
+end-module
 ```
 
 Conditionnel :
