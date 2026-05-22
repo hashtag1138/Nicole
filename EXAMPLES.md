@@ -1245,6 +1245,112 @@ Explication :
 Pourquoi :
 - montre que `Result` à la frontière hôte reste explicite et contractuel
 
+### Handle de fichier opaque déclaré par l’hôte
+
+Contrat hôte supposé pour cet exemple :
+
+```text
+type:
+host.io.FileHandle
+kind:
+opaque
+```
+
+```text
+host.io.open-file
+signature:
+{ path:String mode:String -- r:Result<host.io.FileHandle,String> }
+availability:
+required
+effect:
+dirty
+```
+
+```text
+host.io.read-line
+signature:
+{ file:host.io.FileHandle -- r:Result<String,String> }
+availability:
+required
+effect:
+dirty
+```
+
+```text
+host.io.close-file
+signature:
+{ file:host.io.FileHandle -- }
+availability:
+required
+effect:
+dirty
+```
+
+```nicole
+module @examples_host_file
+  dirty : open-file { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+    path mode host.io.open-file
+  ;
+
+  dirty : read-line { file:host.io.FileHandle -- r:Result<String,String> }
+    file host.io.read-line
+  ;
+
+  dirty : close-file { file:host.io.FileHandle -- }
+    file host.io.close-file
+  ;
+end-module
+```
+
+Explication :
+- `host.io.FileHandle` est un type opaque hôte déclaré par le contrat
+- Nicole transporte la valeur, mais n’en connaît pas la représentation
+
+Pourquoi :
+- montre la forme canonique minimale d’un type opaque hôte et de mots `host.*` qui l’utilisent
+
+### Valeur opaque hôte dans `List<T>` et `Map<String,T>`
+
+```nicole
+module @examples_host_file_containers
+  : one-file { file:host.io.FileHandle -- xs:List<host.io.FileHandle> }
+    []:List<host.io.FileHandle>
+    file list.append
+  ;
+
+  : remember-file { name:String file:host.io.FileHandle -- files:Map<String,host.io.FileHandle> }
+    map.empty:Map<String,host.io.FileHandle>
+    name file map.set
+  ;
+end-module
+```
+
+Explication :
+- une valeur opaque hôte peut être stockée dans une liste
+- une valeur opaque hôte peut être stockée comme valeur d’une map
+
+Pourquoi :
+- montre que les conteneurs restent possibles sans autoriser les clés opaques
+
+### Transport d’une valeur opaque hôte dans une quotation
+
+```nicole
+module @examples_host_file_quote
+  : keep-file { file:host.io.FileHandle -- q:Quote<{ file:host.io.FileHandle | -- file2:host.io.FileHandle }> }
+    :[ file:host.io.FileHandle | -- file2:host.io.FileHandle |
+      file
+    ;]
+  ;
+end-module
+```
+
+Explication :
+- la quotation capture et retransmet la valeur opaque
+- elle ne l’inspecte pas et ne la construit pas
+
+Pourquoi :
+- montre le transport Nicole pur d’une valeur opaque hôte
+
 ---
 
 ## 11. `export`
@@ -1293,6 +1399,33 @@ Effet de pile :
 
 Pourquoi :
 - montre un export événementiel minimal
+
+### Export avec type opaque hôte déclaré
+
+Contrat hôte supposé pour cet exemple :
+
+```text
+type:
+host.io.FileHandle
+kind:
+opaque
+```
+
+```nicole
+module @app.host_file
+  : keep-open { file:host.io.FileHandle -- file2:host.io.FileHandle }
+    file
+  ;
+  export : keep-open
+end-module
+```
+
+Explication :
+- le mot exporté utilise un type opaque hôte déjà déclaré par le contrat ABI
+- aucune valeur opaque arbitraire supplémentaire n’est introduite
+
+Pourquoi :
+- montre qu’un export peut exposer un type opaque hôte déclaré
 
 ### Export simple avec entrée et sortie
 

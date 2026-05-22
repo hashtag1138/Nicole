@@ -1155,6 +1155,10 @@ end-module
 
 Le programme peut les appeler, mais ne peut pas les définir.
 
+Le contrat hôte peut aussi déclarer des types opaques hôte sous `host.*`.
+
+Ces types opaques sont des valeurs Nicole dont la représentation concrète est contrôlée par l’hôte.
+
 Exemple :
 
 ```nicole
@@ -1176,9 +1180,16 @@ Règles :
 - la résolution statique traite `host.*` comme des mots connus, avec signatures connues et noms visibles uniques
 - l’effet (`pure`/`dirty`) d’un mot `host.*` est défini par `HOST_ABI.md`
 - le code Nicole source ne déclare jamais l’effet d’un mot `host.*` par une définition locale
+- un type opaque hôte `host.*` peut circuler dans la pile, les locals, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,T>` où `K` reste un type de clé map v1 (`Int`, `String`, `Bool`) ; un type opaque hôte ne peut pas être une clé de map
+- copier une valeur opaque hôte copie seulement la valeur Nicole transportée, pas la ressource hôte sous-jacente
+- plusieurs valeurs Nicole peuvent donc référencer la même ressource hôte sous-jacente
+- le programme Nicole ne peut pas construire une telle valeur directement
+- le programme Nicole ne peut pas inspecter sa représentation ni accéder à des champs
+- l’état ouvert/fermé d’une telle valeur n’est pas un état de type Nicole
+- les opérations sur une valeur fermée relèvent du contrat du mot hôte appelé, typiquement via `Result` lorsque ce contrat choisit de le modéliser explicitement
+- la v1 n’introduit ni ownership, ni destructeur, ni finalisation automatique, ni handle nullable pour ces valeurs
 
-`host.file.open` n’est pas un mot de v1.
-S’il est documenté plus tard, ce sera comme extension future du contrat hôte.
+Un mot comme `host.io.open-file` devient donc cohérent en v1 si, et seulement si, le contrat hôte déclare explicitement les types opaques qu’il expose.
 
 ---
 

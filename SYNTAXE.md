@@ -805,6 +805,26 @@ Le langage connaît leur signature via le contrat d’intégration de l’hôte.
 
 Leur corps est fourni par l’hôte, hors du langage source.
 
+Le même espace canonique `host.*` peut aussi contenir des noms de types opaques hôte lorsqu’un nom apparaît en position de type.
+
+Exemples de noms de types opaques hôte :
+
+```text
+host.FileHandle
+host.io.FileHandle
+host.net.TcpSocket
+```
+
+Ces noms de types ne sont pas déclarés dans le code source Nicole.
+
+Ils sont déclarés par le contrat ABI de l’hôte décrit dans `HOST_ABI.md`.
+
+En v1, un type opaque hôte est nominal :
+
+- son identité dépend de son nom canonique exact
+- `host.io.FileHandle` et `host.net.TcpSocket` sont des types distincts
+- aucun mécanisme de déclaration source Nicole n’est introduit pour ces types
+
 L’effet (`pure` ou `dirty`) d’un mot `host.*` appartient au contrat hôte (`HOST_ABI.md`), pas à la syntaxe source Nicole.
 
 La v1 n’introduit pas de forme source du type `dirty host.foo { ... }`.
@@ -833,14 +853,14 @@ end-module
 
 Ce programme est invalide si le contrat hôte ne déclare pas `host.read-config`.
 
-Exemple conceptuel futur :
+Exemple conceptuel :
 
 ```nicole
-# extension future possible
-# host.file.open { path:String -- r:Result<Handle<File>,HostError> }
+# mot hôte possible si le contrat déclare `host.io.FileHandle`
+# host.io.open-file { path:String mode:String -- r:Result<host.io.FileHandle,String> }
 ```
 
-POINT OUVERT : `host.file.open` suppose encore des types hôte futurs comme `Handle<T>`, `HostError` et un type hôte `File`.
+La déclaration et la disponibilité exactes de ces noms relèvent du contrat hôte, pas de la syntaxe source Nicole.
 
 ---
 
@@ -1071,7 +1091,19 @@ Result<V,E>
 Quote<{ captures | inputs -- outputs }>
 DirtyQuote<{ captures | inputs -- outputs }>
 Unit
+host.*
 ```
+
+`host.*` en position de type désigne un type opaque hôte déclaré par le contrat ABI.
+
+Les noms imbriqués sont autorisés, par exemple `host.io.FileHandle` ou `host.net.TcpSocket`.
+
+Un type opaque hôte :
+
+- est déclaré par l’hôte, pas par le code source Nicole
+- est nominal
+- peut apparaître dans les signatures, les locals, les valeurs de pile, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,V>`
+- ne peut pas être construit, inspecté ni déclaré par une syntaxe source Nicole
 
 Dans `Quote<{ captures | inputs -- outputs }>`, les mots `captures`, `inputs` et `outputs` sont des placeholders descriptifs. Les types concrets doivent utiliser des entrées et sorties nommées, par exemple `Quote<{ | x:Int -- y:Int }>` ou `Quote<{ a:Int | x:Int -- y:Int }>` .
 
@@ -1193,7 +1225,7 @@ Règles :
 - aucune coercion implicite entre `Int` et `Float` n’est autorisée
 - `<`, `<=`, `>`, `>=` sont définis pour `Int Int -> Bool` et `Float Float -> Bool`
 - ces comparaisons ne sont pas définies pour des types mélangés
-- `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`
+- `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`, sauf pour les types opaques hôte `host.*`
 - les opérateurs booléens produisent un `Bool`
 
 Exemples :
@@ -1525,7 +1557,8 @@ Règles :
 - les types de clé définis par l’utilisateur ne sont pas supportés en v1
 - l’extensibilité future des clés est différée
 - cette extensibilité future peut inclure des handles hôte ou des valeurs de type identité, mais v1 ne définit aucun tel mécanisme
-- les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>` et `Map<K,V>`
+- les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>`, `Map<K,V>` et des types opaques hôte `host.*`
+- un type opaque hôte `host.*` peut donc être une valeur de map, mais jamais une clé de map en v1
 - toute opération de mise à jour retourne une nouvelle map
 - `map.empty:Map<K,V>` construit une map vide de type `Map<K,V>`
 - `map.empty` non annoté est invalide, même si un contexte voisin pourrait suggérer un type

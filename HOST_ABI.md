@@ -132,7 +132,9 @@ L’hôte ne voit pas la pile locale interne du mot.
 
 Pour un mot exporté, la conformité du retour relève de la sémantique du langage.
 
-Un mot Nicole défini dans le programme ne peut pas avoir un retour “opaque” pour l’hôte.
+Un mot Nicole défini dans le programme ne peut pas avoir un retour opaque arbitraire pour l’hôte.
+
+En revanche, un mot exporté peut utiliser un type opaque hôte déclaré par le contrat ABI si ce type figure explicitement dans la signature visible à l’ABI.
 
 Sa signature doit être respectée exactement.
 
@@ -258,6 +260,24 @@ Un mot `host.*` doit aussi être vu comme une entité typée.
 
 Le programme n’a pas à connaître l’implémentation du mot hôte, mais il doit connaître son contrat de type.
 
+Le contrat d’intégration peut aussi déclarer des types opaques hôte.
+
+Pour chaque type opaque hôte, le contrat doit fournir au minimum :
+
+- son nom canonique sous `host.*`
+- son genre conceptuel : opaque
+- son identité nominale
+
+Les noms imbriqués sont autorisés :
+
+- `host.FileHandle`
+- `host.io.FileHandle`
+- `host.net.TcpSocket`
+
+Un type opaque hôte n’est jamais déclaré par le code source Nicole.
+
+S’il apparaît dans une signature visible à l’ABI, il doit être déclaré explicitement par le contrat hôte.
+
 Le contrat d’intégration doit donc fournir :
 
 - le nom du mot
@@ -302,6 +322,12 @@ Dans l’espace visible du programme, un nom `host.*` doit désigner un seul mot
 Le contrat hôte ne définit donc pas plusieurs bindings concurrents sous le même nom visible.
 
 La v1 ne définit aucun mécanisme de surcharge dynamique, de fallback implicite ou de sélection à l’exécution entre plusieurs bindings `host.*`.
+
+De même, dans l’espace des types visibles à l’ABI, un nom canonique `host.*` doit désigner un seul type opaque hôte.
+
+L’identité d’un type opaque hôte est nominale : deux noms canoniques distincts désignent deux types distincts.
+
+Aucun mécanisme d’alias de types opaques hôte n’est défini en v1.
 
 ---
 
@@ -394,6 +420,7 @@ Types autorisés à travers l’ABI v1 :
 - `Result<T,E>`
 - `ListError`
 - `MapError`
+- types opaques hôte `host.*` déclarés par le contrat
 
 Règles :
 
@@ -402,6 +429,13 @@ Règles :
 - `Map<K,V>` n’est autorisé que si `K` reste l’un des types de clé valides en v1 : `Int`, `String`, `Bool`
 - `Result<T,E>` n’est autorisé que si `T` et `E` sont eux-mêmes compatibles avec l’ABI v1
 - `ListError` et `MapError` sont eux-mêmes des valeurs ABI v1 autorisées comme types d’erreur fermés du langage
+- un type opaque hôte `host.*` n’est autorisé que s’il est déclaré explicitement par le contrat hôte
+- un type opaque hôte `host.*` peut apparaître récursivement dans `List<T>`, `Map<K,V>` et `Result<T,E>` si les autres contraintes ABI restent satisfaites
+- un type opaque hôte `host.*` peut être une valeur de `Map<K,V>`, mais pas une clé de map en v1
+
+Les types opaques hôte restent des valeurs opaques nominales du point de vue Nicole.
+
+Leur rendu de debug éventuel est laissé à l’implémentation.
 
 Les quotations ne franchissent pas l’ABI hôte en v1.
 
@@ -412,9 +446,17 @@ Autrement dit :
 - un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
 - un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en sortie
 
-Cette limitation garde la frontière ABI simple et purement orientée données.
+Cette limitation garde la frontière ABI simple et orientée données, même lorsque certaines valeurs de données sont opaques et gérées par l’hôte.
 
-Toute extension future de l’ABI vers des callbacks, quotations, handles exécutables ou objets hôte reste explicitement différée.
+Le cycle de vie d’un type opaque hôte reste contrôlé par l’hôte.
+
+En particulier :
+
+- une opération de fermeture explicite reste un mot `host.*` ordinaire
+- aucune finalisation automatique n’est garantie par la v1
+- le comportement d’une valeur déjà fermée relève du contrat du mot hôte utilisé
+
+Toute extension future de l’ABI vers des callbacks, quotations, handles exécutables, objets hôte structurés ou aliases de types opaques hôte reste explicitement différée.
 
 ---
 
@@ -478,6 +520,10 @@ Une fois le programme vérifié, l’exécution consomme ce programme vérifié 
 - un protocole de sérialisation
 - des callbacks hôte basés sur quotations
 - un modèle async/thread
+- un système d’ownership ou de move semantics pour les types opaques hôte
+- des destructeurs ou garanties de finalisation automatique
+- des handles nullables
+- un mécanisme d’alias pour les types opaques hôte
 - des valeurs streamées
 - des itérateurs
 - des générateurs

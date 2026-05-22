@@ -81,7 +81,8 @@ If any derived document diverges from the normative spec files, the normative sp
 - Names live under `host.*`
 - Nested names allowed, e.g. `host.io.FileHandle`
 - Nominal typing
-- Allowed in signatures, locals, stack values, quotations, `List<T>`, `Result<T,E>`, `Map<String,T>`
+- Allowed in signatures, locals, stack values, quotations, `List<T>`, `Result<T,E>`, `Map<K,T>` where `K ∈ {Int,String,Bool}`
+- Host opaque types may appear as map values only
 - Forbidden as `Map` keys
 - Forbidden generic equality
 - Not constructible in Nicole
@@ -389,6 +390,7 @@ Exit criteria:
   - explicit admission of nested names such as `host.io.FileHandle`
   - type-surface integration for host opaque types
   - generic equality exclusion for host opaque types
+  - preserve map key restriction (`Int`, `String`, `Bool`) while allowing host opaque types as map values
 - risk:
   - high
 - phase where modified:
@@ -409,6 +411,7 @@ Exit criteria:
 - expected change:
   - declaration model for host opaque types
   - ABI-valid value family update
+  - recursive container compatibility including `Map<K,T>` values where `K` stays a valid v1 key type
   - export ABI wording update
   - lifetime/close responsibility wording
 - risk:
@@ -499,6 +502,7 @@ These are known residual gaps to monitor during later phases:
 - whether repeated `close` behavior should remain fully host-defined
 - ensuring alias discussion remains deferred and absent from the first patch
 - ensuring no wording drifts into ownership, destructors, or nullable-handle semantics
+- ensuring map wording remains consistent: host opaque types may appear as map values for any valid existing key type (`K ∈ {Int,String,Bool}`), never as map keys
 
 These gaps are not blockers for Phase 1 plan creation.
 
@@ -507,3 +511,4 @@ These gaps are not blockers for Phase 1 plan creation.
 ## 11. Change log
 
 - 2026-05-22: created initial `HOST_OPAQUE_TYPES_PLAN.md`; recorded baseline, accepted design decisions, workflow phases, expected file impact, validation commands, and audit discipline
+- 2026-05-22: corrected host opaque map-value decision: host opaque types may appear as map values for any existing valid key type `K ∈ {Int,String,Bool}`; host opaque types remain forbidden as map keys

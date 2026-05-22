@@ -54,7 +54,11 @@ Références conceptuelles :
 
 Les règles normatives sur `export`, `host.*`, `Result`, les erreurs d’intégration et la disponibilité des mots hôte vivent dans `HOST_ABI.md`.
 
+Les types opaques hôte sont des types nominaux déclarés par ce contrat, sous des noms canoniques `host.*` comme `host.io.FileHandle`.
+
 `HOST_ABI.md` reste une spécification conceptuelle et ne doit pas dériver vers une API C, une ABI binaire, une FFI Rust/Lua, une représentation mémoire concrète, ni des détails de runtime.
+
+Les aliases éventuels pour ces types opaques hôte restent différés.
 
 `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_ABI.md` sont les seules sources normatives de la v1.
 

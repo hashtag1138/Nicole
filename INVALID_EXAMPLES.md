@@ -1253,6 +1253,146 @@ Pourquoi c’est invalide :
 Règle violée :
 - les quotations ne franchissent pas l’ABI hôte en v1
 
+### Déclaration source d’un type opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  opaque type host.io.FileHandle
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- la v1 n’introduit aucune déclaration source de type opaque
+- un type opaque hôte est déclaré par le contrat ABI, pas par Nicole
+
+Règle violée :
+- les types opaques hôte `host.*` sont déclarés uniquement par le contrat hôte
+
+### Déclaration source `external type`
+
+```nicole
+module @invalid.phase6
+
+  external type FileHandle
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- `external type` n’appartient pas à la syntaxe validée
+
+Règle violée :
+- le contrat hôte est décrit conceptuellement dans `HOST_ABI.md`, pas avec une déclaration source `external type`
+
+### Construction directe d’une valeur opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  : make-file { -- file:host.io.FileHandle }
+    host.io.FileHandle
+  ;
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- `host.io.FileHandle` désigne un nom de type, pas un constructeur
+- une valeur opaque hôte ne peut être produite que par un mot hôte déclaré
+
+Règle violée :
+- un type opaque hôte ne peut pas être construit directement dans Nicole
+
+### Accès à un champ d’une valeur opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  : file-path { file:host.io.FileHandle -- path:String }
+    file.path
+  ;
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- une valeur opaque hôte n’expose aucun champ structurel au langage
+
+Règle violée :
+- Nicole ne définit aucun accès aux champs d’un type opaque hôte
+
+### Égalité générique sur valeur opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  : same-file { a:host.io.FileHandle b:host.io.FileHandle -- ok:Bool }
+    a b =
+  ;
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- la v1 n’attribue pas d’égalité générique aux types opaques hôte
+
+Règle violée :
+- `=` et `!=` ne s’appliquent pas aux valeurs de type opaque hôte `host.*`
+
+### Clé de map en type opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  : bad-map { -- m:Map<host.io.FileHandle,String> }
+    map.empty:Map<host.io.FileHandle,String>
+  ;
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- une clé de map v1 doit rester `Int`, `String` ou `Bool`
+
+Règle violée :
+- un type opaque hôte `host.*` peut être une valeur de map, jamais une clé de map en v1
+
+### Type opaque hôte non déclaré dans une signature ABI-visible
+
+```text
+host.io.open-file
+signature:
+{ path:String mode:String -- file:host.io.FileHandle }
+availability:
+required
+effect:
+dirty
+```
+
+Pourquoi c’est invalide :
+- le contrat utilise `host.io.FileHandle` dans une signature visible à l’ABI sans déclarer ce type opaque
+
+Règle violée :
+- tout type opaque hôte utilisé dans une signature ABI-visible doit être déclaré explicitement par le contrat hôte
+
+### Alias de type opaque hôte
+
+```nicole
+module @invalid.phase6
+
+  type alias FH = host.io.FileHandle
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- la v1 ne définit aucun mécanisme d’alias pour les types opaques hôte
+
+Règle violée :
+- les aliases de types opaques hôte sont différés à un RFC ultérieur
+
 ### Mot hôte retournant une quotation
 
 Contrat hôte supposé dans cet exemple :
@@ -1535,6 +1675,18 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - le contrat hôte est décrit conceptuellement dans `HOST_ABI.md`, pas avec `extern`
+
+### `extern type`
+
+```nicole
+extern type host.io.FileHandle
+```
+
+Pourquoi c’est invalide :
+- `extern type` n’appartient pas à la syntaxe validée
+
+Règle violée :
+- le contrat hôte est décrit conceptuellement dans `HOST_ABI.md`, pas avec `extern type`
 
 ### Signature avec `->`
 
