@@ -66,8 +66,8 @@ Current global status:
 | 2 | Mandatory module model | implemented | | Forbid top-level user words; define module containment |
 | 3 | Resolution, imports, and namespaces | implemented | | Define aliases, collisions, reserved roots, import graph |
 | 4 | Export and HOST_ABI rewrite | implemented | | Host-visible names become `@module.word` |
-| 5 | Valid examples rewrite | patching | | Rewrite all valid examples into module form |
-| 6 | Invalid examples rewrite | planned | | Preserve intended invalid reasons under new baseline |
+| 5 | Valid examples rewrite | implemented | | Rewrite all valid examples into module form |
+| 6 | Invalid examples rewrite | pre-audit | | Preserve intended invalid reasons under new baseline |
 | 7 | Final consistency audit and tagging | planned | | Cross-file audit, release readiness, tag proposal |
 
 ## Phase dependencies
@@ -263,10 +263,16 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - `grep -Rni "@[a-zA-Z0-9_-]*\\." EXAMPLES.md`
 - Risks:
 - High-volume edits can introduce accidental semantic regressions in pedagogical examples.
-- Status: `patching`
-- Result commit:
+- Status: `implemented`
+- Result commit: `e38c6d2ab4b60598d8e00fb84cd8a2da9d246b04`
 - Result tag:
 - Notes:
+- EXAMPLES.md valid examples rewritten into module form
+- SYNTAXE.md valid examples rewritten into module form
+- SEMANTIQUE.md valid examples rewritten into module form
+- HOST_ABI.md valid examples updated where needed
+- DESIGN_NOTES.md valid examples rewritten while preserving historical rationale
+- Phase 5 global post-audit passed
 
 ## Phase 6 — Invalid examples rewrite
 
@@ -289,7 +295,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Audit that invalid examples containing `: word` definitions place them inside module blocks unless the intended failure is "top-level definition forbidden".
 - Risks:
 - If not rewritten carefully, invalid examples can silently test the wrong rule.
-- Status: `planned`
+- Status: `pre-audit`
 - Result commit:
 - Result tag:
 - Notes:
@@ -339,6 +345,8 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 | 2026-05-22 | Phase 4 | patching | implemented | Phase 4 post-audit passed |
 | 2026-05-22 | Phase 5 | planned | pre-audit | Next phase opened |
 | 2026-05-22 | Phase 5 | pre-audit | patching | Valid examples rewrite started |
+| 2026-05-22 | Phase 5 | patching | implemented | Phase 5 global post-audit passed |
+| 2026-05-22 | Phase 6 | planned | pre-audit | Next phase opened |
 
 ## Important constraints
 
