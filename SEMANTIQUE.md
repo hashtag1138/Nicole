@@ -35,7 +35,14 @@ Cela couvre notamment :
 - `map.*`
 - `host.*`
 
-Ces noms participent à la résolution visible du programme.
+Ces noms participent à la résolution visible du programme selon leur rôle normatif.
+
+En particulier :
+
+- `list.*`, `map.*` et `result.*` restent des builtins appelables du langage
+- `host.*` ne fait plus partie de la surface d’appel directe du programme
+- `host.*` reste une racine réservée pour la terminologie ABI et les types opaques hôte
+- `@host` reste le module réservé de déclaration ABI hôte
 
 Une définition utilisateur qui tente de réutiliser ou de masquer l’un de ces noms doit être rejetée statiquement.
 
@@ -216,73 +223,99 @@ En revanche, des frames différentes peuvent réutiliser le même nom local sans
 
 La résolution des appels est statique.
 
-Phase 2 établit le modèle obligatoire suivant :
+Le modèle obligatoire est le suivant :
 
 - les définitions de mots utilisateur sont contenues dans des blocs `module @... end-module`
 - une définition utilisateur top-level est rejetée
-- dans un module, un appel peut utiliser un nom court pour viser un mot du même module
+- dans un module utilisateur normal, un appel peut utiliser un nom court pour viser un mot du même module
 - hors module, un mot utilisateur externe est référencé via `@module.word` avec import correspondant
 - dans `module @text`, la forme `@text.word` reste autorisée sans import, mais la forme courte locale est préférée
 - les modules sont des déclarations top-level uniquement
 - un module ne peut pas être imbriqué dans un autre module
-- les noms de modules doivent être uniques dans l’unité de compilation
+- les noms de modules doivent être uniques dans l’unité de compilation, sauf l’exception réservée `@host`
+- `module @host` est réservé aux déclarations ABI hôte
+- `module @host` n’est pas un module utilisateur normal
+- plusieurs fragments `module @host` sont autorisés
+- aucun autre module n’est fragmentable
 - un module peut être vide
 - un module n’est pas un mot exécutable
 
-Phase 3 complète ce modèle :
+La résolution est entièrement statique et contextuelle.
 
-- la résolution est entièrement statique et contextuelle
+Les imports suivent les règles sémantiques suivantes :
+
 - les imports sont des déclarations de compilation uniquement
-- les imports existent uniquement au top-level
-- les imports ne sont pas des mots exécutables
 - les imports n’ont aucun effet de pile
+- les imports ne sont pas des mots exécutables
+- les imports appartiennent au module qui les contient
+- les imports ne créent aucune visibilité hors de ce module
+- les aliases d’import participent aux collisions de noms visibles dans ce module
 - il n’existe ni import dynamique ni lookup namespace runtime
-- les aliases d’import participent aux collisions de noms visibles
 - le graphe d’import doit être acyclique
 
-Phase 4 complète le modèle d’exposition hôte :
+Le modèle d’exposition hôte suit les règles suivantes :
 
 - `export : word` est une déclaration de compilation, pas un mot exécutable
-- `export : word` existe uniquement au top-level interne d’un module (pas dans un sous-mot)
+- `export : word` existe uniquement au top-level interne d’un module normal (pas dans un sous-mot)
 - `export : word` n’a aucun effet de pile
 - `export : word` résout `word` dans le module définissant
 - le mot référencé doit exister dans ce module
 - le nom canonique visible hôte est `@module.word`
 - les aliases d’import n’affectent jamais ce nom canonique
 - les noms canoniques visibles hôte doivent rester uniques
-- sans import, une référence externe `@text.word` reste invalide
-- dans `module @text`, la forme `@text.word` vers le module courant reste valide sans import
+
+Le modèle de consommation hôte suit les règles suivantes :
+
+- le programme ne résout plus de mots appelables `host.*` directement
+- `module @host` déclare un contrat ABI hôte source-visible
+- chaque `require` de `module @host` contribue un symbole de capacité hôte importable
+- un module applicatif ne consomme une capacité hôte qu’au moyen d’un import depuis le contrat consolidé `@host`
 
 Ordre de résolution dans un module :
 
 1. noms locaux dans le scope courant
 2. mots du même module appelés en nom court
-3. aliases d’import visibles
-4. noms qualifiés explicites (`@module.word`) autorisés dans le module courant ou via import externe correspondant
-5. namespaces réservés/builtins (`host.*`, `list.*`, `map.*`, `result.*`)
+3. aliases d’import visibles dans ce module, y compris les aliases qualifiés
+4. noms qualifiés explicites (`@module.word`, `@host.capability.path`) autorisés dans le module courant ou via import correspondant
+5. namespaces réservés/builtins (`list.*`, `map.*`, `result.*`)
 
 Hors module :
 
 - aucun mot utilisateur non qualifié n’est résolu
-- un mot utilisateur externe exige `@module.word` et un import correspondant
-- un alias n’est utilisable que s’il est introduit explicitement par `import`
+- aucune capacité hôte n’est visible par nom court ni par alias
+- un mot utilisateur externe exige `@module.word` et un import correspondant dans le module consommateur
+- une capacité hôte exige un import correspondant depuis `@host` dans le module consommateur
+- un alias n’est utilisable que s’il est introduit explicitement par `import` dans ce même module
 
 Sémantique des imports :
 
-- `import @text` autorise uniquement l’usage qualifié explicite `@text.*` pour les mots publics de `@text`
-- `import @text as t` crée une racine alias `t`, utilisable sous la forme `t.word`
-- `import @text.split` autorise uniquement `@text.split`
-- `import @text.split as split` crée l’alias court `split`
+- `import @text` autorise uniquement l’usage qualifié explicite `@text.*` pour les mots publics de `@text` dans le module courant
+- `import @text as t` crée une racine alias locale `t`, utilisable sous la forme `t.word`
+- `import @text.split` autorise uniquement `@text.split` dans le module courant
+- `import @text.split as split` crée l’alias local simple `split`
+- `import @host.console.log as console.log` crée l’alias qualifié local `console.log`
 - sans alias, `import @text.split` ne rend pas `split` visible
-- sans import, une référence externe `@text.word` est invalide
-- la portée des aliases d’import suit l’unité de compilation après inclusion textuelle
-- les fragments inclus ne créent pas de scope alias séparé
+- sans import, une référence externe `@text.word` ou `@host.console.log` est invalide
+- un alias qualifié reste un nom local, pas une référence de module
+- un alias d’import ne peut ni commencer par `@`, ni occuper une racine réservée
+- la sémantique détaillée de `include` reste différée et ne rétablit pas de portée d’alias à l’échelle de l’unité de compilation
+
+Sémantique de `@host` et des capacités hôte :
+
+- tous les fragments `module @host` contribuent à un contrat hôte consolidé unique
+- l’ordre des fragments `@host` n’affecte pas le sens du contrat consolidé
+- deux déclarations `require` identiques pour le même chemin de capacité sont acceptables
+- deux déclarations `require` divergentes pour le même chemin de capacité sont des erreurs sémantiques
+- `require` introduit un chemin de capacité, une signature de pile, un effet ABI explicite et un symbole importable
+- le contrat consolidé `@host` est la seule source sémantique des capacités hôte importables
+- un module utilisateur normal ne déclare jamais de capacité hôte lui-même
 
 Racines réservées :
 
 - `host`, `list`, `map`, `result` sont réservées comme racines
-- `host.*`, `list.*`, `map.*`, `result.*` restent réservées comme namespaces
-- un module utilisateur ne peut pas être `@host`, `@list`, `@map` ou `@result`
+- `list.*`, `map.*`, `result.*` restent réservées comme namespaces builtins
+- `host.*` reste réservé comme vocabulaire ABI et de types opaques hôte
+- un module utilisateur normal ne peut pas être `@list`, `@map` ou `@result`
 - un alias d’import ne peut pas être `host`, `list`, `map` ou `result`
 - un nom utilisateur ne peut pas occuper une racine réservée
 
@@ -311,11 +344,6 @@ Imports et récursion :
 - la récursion interne à un module est inchangée
 - les cycles d’import sont interdits
 - une récursion mutuelle inter-modules qui dépend d’un cycle d’import est invalide
-
-Note de transition :
-
-- certains exemples plus bas gardent une forme top-level legacy
-- la règle normative de phase 2 prévaut : une définition utilisateur valide est module-contenue
 
 Exemple invalide :
 
@@ -377,7 +405,9 @@ end-module
 
 Nicole est pure par défaut.
 
-La v1 n’introduit pas de mot-clé `pure`.
+La v1 n’introduit pas `pure` comme modificateur général de mot.
+
+`pure` n’existe en source que dans les déclarations ABI `require` de `module @host`.
 
 `dirty` est l’annotation d’effet explicite.
 
@@ -393,7 +423,7 @@ Le checker suit l’ordre suivant :
 1. inférer l’effet sur le graphe d’appels ;
 2. valider l’annotation source contre l’effet inféré.
 
-En v1, seuls les bindings `host.*` peuvent introduire l’impureté directement.
+En v1, l’impureté hôte entre dans le programme par les capacités hôte importées, selon l’effet ABI déclaré par `require`.
 
 Les builtins du langage sont purs en v1, sauf `call` dont l’effet dépend du type de quotation appelée.
 
@@ -1072,7 +1102,7 @@ Elle ne concerne pas les mots Nicole normaux.
 
 Elle concerne surtout :
 
-- les mots hôte `host.*`
+- les capacités hôte déclarées puis importées
 - les primitives fournies par intégration
 - certains cas runtime explicitement dépendants de valeurs observées, comme `list.reduce` sur une liste vide non prouvable statiquement
 
@@ -1082,6 +1112,9 @@ Ce n’est pas une exception implicite métier.
 ## Doit être rejeté à la compilation quand c’est prouvable
 
 - collision de noms visibles dans un même espace de résolution
+- capacité hôte utilisée sans import correspondant
+- import d’une capacité hôte absente du contrat consolidé `@host`
+- déclarations `require` divergentes pour un même chemin de capacité
 - incompatibilité de types d’entrée
 - liste vide sans annotation de type explicite
 - map vide sans annotation de type explicite
@@ -1092,7 +1125,7 @@ Ce n’est pas une exception implicite métier.
 
 ## Peut rester une erreur d’exécution
 
-- appel d’un mot hôte absent de l’environnement d’exécution
+- environnement d’exécution incapable de satisfaire un contrat hôte source déjà déclaré et validé
 - `list.reduce` sur une liste vide si ce vide n’est pas prouvable statiquement
 - autres cas où le type-checker ne peut pas décider, mais où le contrat d’exécution est violé
 
@@ -1117,7 +1150,7 @@ Cette situation constitue une erreur de contrat d’exécution.
 Deux directions officielles existent :
 
 - `export` : déclaration module-locale exposant un mot du programme à l’hôte
-- `host.*` : mot fourni par l’hôte et appelable depuis le programme
+- `module @host` : déclaration source du contrat ABI hôte requis par le programme
 
 ## `export`
 
@@ -1141,19 +1174,27 @@ Règles :
 Exemple :
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : on-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   export : on-message
 end-module
 ```
 
-## `host.*`
+## `module @host` et capacités hôte
 
-`host.*` désigne des mots fournis par l’hôte.
+`module @host` désigne la surface sémantique source-visible des capacités hôte requises par le programme.
 
-Le programme peut les appeler, mais ne peut pas les définir.
+Le programme ne consomme pas ces capacités par appel direct `host.*`.
+
+Il les consomme uniquement par import depuis le contrat consolidé `@host`.
 
 Le contrat hôte peut aussi déclarer des types opaques hôte sous `host.*`.
 
@@ -1162,34 +1203,44 @@ Ces types opaques sont des valeurs Nicole dont la représentation concrète est 
 Exemple :
 
 ```nicole
-module @abi.host_usage
+module @host
+  require console.log { msg:String -- } dirty
+  require text.length { s:String -- n:Int } pure
+end-module
+
+module @app
+  import @host.console.log as console.log
+
   dirty : save-log { msg:String -- }
-    msg host.log
+    msg console.log
   ;
 end-module
 ```
 
 Règles :
 
-- un programme utilisateur ne peut pas définir un mot `host.*`
-- si un mot `host.*` est absent alors que le contrat hôte est connu statiquement, c’est une erreur d’intégration détectable avant exécution
-- si l’environnement hôte est dynamique et que le binding disparaît ou manque à l’exécution, c’est une erreur d’intégration à l’exécution
-- dans les deux cas, l’absence du mot est une erreur de contrat d’exécution observée à la frontière hôte
-- `Result` ne s’applique qu’au contrat de retour d’un mot `host.*` qui existe effectivement
-- le mécanisme de liaison lui-même n’est jamais modélisé comme un `Result`
-- la résolution statique traite `host.*` comme des mots connus, avec signatures connues et noms visibles uniques
-- l’effet (`pure`/`dirty`) d’un mot `host.*` est défini par `HOST_ABI.md`
-- le code Nicole source ne déclare jamais l’effet d’un mot `host.*` par une définition locale
+- `@host` est réservé et n’est pas un module utilisateur normal
+- tous les fragments `module @host` contribuent à un contrat hôte consolidé unique
+- l’ordre des fragments `@host` n’affecte pas le sens du contrat consolidé
+- un `require` identique dupliqué est acceptable
+- un `require` divergent pour un même chemin de capacité est une erreur sémantique
+- un module utilisateur normal ne déclare pas de capacité hôte
+- une capacité hôte n’est utilisable qu’après import depuis le contrat consolidé `@host`
+- l’effet ABI (`pure` ou `dirty`) d’une capacité hôte est défini par la déclaration `require`, puis validé contre le contrat hôte
+- l’absence d’une capacité non déclarée à l’import ou à l’usage est une erreur sémantique
+- si un contrat hôte source valide ne peut pas être satisfait par l’environnement d’exécution, c’est une erreur de contrat d’exécution observée à la frontière hôte
+- `Result` ne s’applique qu’au contrat de retour d’une capacité hôte qui existe effectivement
+- le mécanisme de satisfaction du contrat lui-même n’est jamais modélisé comme un `Result`
 - un type opaque hôte `host.*` peut circuler dans la pile, les locals, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,T>` où `K` reste un type de clé map v1 (`Int`, `String`, `Bool`) ; un type opaque hôte ne peut pas être une clé de map
 - copier une valeur opaque hôte copie seulement la valeur Nicole transportée, pas la ressource hôte sous-jacente
 - plusieurs valeurs Nicole peuvent donc référencer la même ressource hôte sous-jacente
 - le programme Nicole ne peut pas construire une telle valeur directement
 - le programme Nicole ne peut pas inspecter sa représentation ni accéder à des champs
 - l’état ouvert/fermé d’une telle valeur n’est pas un état de type Nicole
-- les opérations sur une valeur fermée relèvent du contrat du mot hôte appelé, typiquement via `Result` lorsque ce contrat choisit de le modéliser explicitement
+- les opérations sur une valeur fermée relèvent du contrat de la capacité hôte appelée, typiquement via `Result` lorsque ce contrat choisit de le modéliser explicitement
 - la v1 n’introduit ni ownership, ni destructeur, ni finalisation automatique, ni handle nullable pour ces valeurs
 
-Un mot comme `host.io.open-file` devient donc cohérent en v1 si, et seulement si, le contrat hôte déclare explicitement les types opaques qu’il expose.
+Une capacité comme `@host.io.open-file`, importée ensuite dans un module applicatif, devient donc cohérente en v1 si, et seulement si, le contrat hôte consolidé déclare explicitement les types opaques qu’elle expose.
 
 ---
 
