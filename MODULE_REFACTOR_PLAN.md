@@ -1,14 +1,19 @@
 # Nicole mandatory modules refactor plan
 
+> Historical note:
+> This plan records the completed mandatory-modules migration.
+> Parts of it predate the later source-visible Host ABI migration and are now superseded where they conflict with the current normative model.
+> Current normative sources of truth are `SYNTAXE.md`, `SEMANTIQUE.md`, and `HOST_ABI.md`.
+
 ## Status
 
 Document status:
 
-`stable`
+`historical`
 
 Current global status:
 
-`implemented`
+`implemented, then superseded in part by the completed Host ABI migration`
 
 ## Status vocabulary
 
@@ -34,7 +39,7 @@ Current global status:
 - Modules cannot be nested.
 - Modules are not executable words.
 - Module names require `@`.
-- Module names must be unique.
+- Ordinary user module names must be unique; the reserved `@host` module is the only fragmentable exception in the current normative model.
 - Empty modules are valid.
 - `export : word` is a declaration only.
 - `export : word` must reference an existing word in the same module.
@@ -47,7 +52,8 @@ Current global status:
 - `include` exists as an explicit syntax form.
 - Detailed include semantics remain deferred in normative docs.
 - Include invalid examples are deferred until include semantics are normatively specified.
-- Import aliases are scoped to the compilation unit after textual inclusion.
+- Historical decision only: this plan used compilation-unit alias scope after textual inclusion.
+- Current normative model: imports and aliases are module-local; see `SYNTAXE.md` and `SEMANTIQUE.md`.
 - Reserved namespace roots are reserved both as roots and namespace forms:
   - `host`, `host.*`
   - `list`, `list.*`
@@ -201,7 +207,7 @@ A phase cannot enter `patching` unless all predecessor phases are `implemented`.
 - Static module-aware resolution defined
 - Import forms and alias semantics defined
 - External `@module.word` references require corresponding imports
-- Alias scope after textual inclusion specified
+- Historical note: this phase recorded alias scope after textual inclusion, but the current normative model uses module-local imports and aliases.
 - Reserved namespace roots added
 - Import cycles forbidden
 - Cross-module recursion through cyclic imports invalid
