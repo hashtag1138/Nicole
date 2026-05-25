@@ -1181,73 +1181,79 @@ Pourquoi :
 
 ---
 
-## 10. `host.*`
+## 10. Capacités hôte déclarées
 
-Contrat hôte supposé dans cette section :
+Contrat ABI déclaré pour cette section :
 
-```text
-host.log
-signature:
-{ msg:String -- }
-availability:
-required
-effect:
-dirty
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 ```
 
 ### Avertir l’hôte
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_host_warn
+  import @host.console.log as console.log
+
   dirty : warn { msg:String -- }
-    msg host.log
+    msg console.log
   ;
 end-module
 ```
 
 Explication :
-- transmet une chaîne à l’hôte
-- `host.log` est ici un mot fourni par le contrat hôte supposé, pas une primitive standard du langage
+- déclare explicitement la capacité hôte requise
+- importe cette capacité dans le module qui l’utilise
+- transmet une chaîne à l’hôte via l’alias local `console.log`
 
 Effet de pile :
 - entrée `"attention"`
 - aucune sortie
 
 Pourquoi :
-- exemple minimal d’appel à un mot fourni par l’hôte
+- exemple minimal d’utilisation d’une capacité hôte source-visible
 
 ### Lecture de configuration depuis l’hôte
 
-Contrat hôte supposé pour cet exemple :
+Contrat ABI déclaré pour cet exemple :
 
-```text
-host.config.get
-signature:
-{ key:String -- r:Result<String,MapError> }
-availability:
-required
-effect:
-pure
+```nicole
+module @host
+  require config.get { key:String -- r:Result<String,MapError> } pure
+end-module
 ```
 
 ```nicole
+module @host
+  require config.get { key:String -- r:Result<String,MapError> } pure
+end-module
+
 module @examples_host_config
+  import @host.config.get as config.get
+
   : read-config { key:String -- r:Result<String,MapError> }
-    key host.config.get
+    key config.get
   ;
 end-module
 ```
 
 Explication :
-- le mot hôte peut lui-même choisir de retourner un `Result`
-- ce `Result` fait partie de la signature déclarée du mot hôte
+- la capacité requise est déclarée `pure` dans `@host`
+- le `Result` fait partie de la signature ABI déclarée
+- le mot utilisateur reste pur parce qu’il consomme une capacité hôte déclarée `pure`
 
 Pourquoi :
 - montre que `Result` à la frontière hôte reste explicite et contractuel
 
 ### Handle de fichier opaque déclaré par l’hôte
 
-Contrat hôte supposé pour cet exemple :
+Contrat ABI supposé pour cet exemple :
 
 ```text
 type:
@@ -1256,58 +1262,59 @@ kind:
 opaque
 ```
 
-```text
-host.io.open-file
-signature:
-{ path:String mode:String -- r:Result<host.io.FileHandle,String> }
-availability:
-required
-effect:
-dirty
-```
+```nicole
+module @host
+  require io.open-file
+    { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+    dirty
 
-```text
-host.io.read-line
-signature:
-{ file:host.io.FileHandle -- r:Result<String,String> }
-availability:
-required
-effect:
-dirty
-```
+  require io.read-line
+    { file:host.io.FileHandle -- r:Result<String,String> }
+    dirty
 
-```text
-host.io.close-file
-signature:
-{ file:host.io.FileHandle -- }
-availability:
-required
-effect:
-dirty
+  require io.close-file { file:host.io.FileHandle -- } dirty
+end-module
 ```
 
 ```nicole
+module @host
+  require io.open-file
+    { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+    dirty
+
+  require io.read-line
+    { file:host.io.FileHandle -- r:Result<String,String> }
+    dirty
+
+  require io.close-file { file:host.io.FileHandle -- } dirty
+end-module
+
 module @examples_host_file
+  import @host.io.open-file as io.open-file
+  import @host.io.read-line as io.read-line
+  import @host.io.close-file as io.close-file
+
   dirty : open-file { path:String mode:String -- r:Result<host.io.FileHandle,String> }
-    path mode host.io.open-file
+    path mode io.open-file
   ;
 
   dirty : read-line { file:host.io.FileHandle -- r:Result<String,String> }
-    file host.io.read-line
+    file io.read-line
   ;
 
   dirty : close-file { file:host.io.FileHandle -- }
-    file host.io.close-file
+    file io.close-file
   ;
 end-module
 ```
 
 Explication :
-- `host.io.FileHandle` est un type opaque hôte déclaré par le contrat
-- Nicole transporte la valeur, mais n’en connaît pas la représentation
+- `host.io.FileHandle` reste un type opaque hôte déclaré par le contrat ABI
+- les capacités d’ouverture, lecture et fermeture sont déclarées par `require`
+- le module applicatif les importe explicitement avec des aliases qualifiés
 
 Pourquoi :
-- montre la forme canonique minimale d’un type opaque hôte et de mots `host.*` qui l’utilisent
+- montre la forme canonique minimale d’un type opaque hôte et de capacités hôte qui l’utilisent
 
 ### Valeur opaque hôte dans `List<T>` et `Map<String,T>`
 
@@ -1358,9 +1365,15 @@ Pourquoi :
 ### Handler de message
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : demo-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   export : demo-message
 end-module
@@ -1368,7 +1381,7 @@ end-module
 
 Explication :
 - expose un mot du programme à l’hôte
-- `host.log` reste ici un mot fourni par le contrat hôte supposé
+- la capacité hôte requise est déclarée dans `@host`
 - l’hôte peut l’appeler comme point d’entrée ou handler
 
 Effet de pile :
@@ -1381,9 +1394,15 @@ Pourquoi :
 ### Handler sans retour
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : tick { -- }
-    "tick" host.log
+    "tick" console.log
   ;
   export : tick
 end-module
@@ -1391,7 +1410,7 @@ end-module
 
 Explication :
 - expose un mot sans entrée ni sortie
-- `host.log` reste ici un mot fourni par le contrat hôte supposé
+- utilise une capacité hôte importée localement
 
 Effet de pile :
 - aucune entrée
@@ -1449,22 +1468,16 @@ Pourquoi :
 
 ## 12. Exemple complet court
 
-Contrat hôte supposé :
-
-```text
-host.log
-signature:
-{ msg:String -- }
-availability:
-required
-effect:
-dirty
-```
-
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : on-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   export : on-message
 
@@ -1476,14 +1489,14 @@ module @app
   ;
 
   dirty : demo { -- }
-    true greeting host.log
+    true greeting console.log
   ;
 end-module
 ```
 
 Explication :
 - `greeting` choisit un message simple
-- `demo` utilise un mot local puis un mot hôte
+- `demo` utilise un mot local puis une capacité hôte importée
 
 Pourquoi :
 - combine les formes de base sans ajouter de complexité inutile
@@ -1510,16 +1523,12 @@ Pourquoi :
 
 ## 14. Pureté et effet `dirty` (v0.14.0)
 
-Contrat hôte supposé dans cette section :
+Contrat ABI déclaré dans cette section :
 
-```text
-host.log
-signature:
-{ msg:String -- }
-availability:
-required
-effect:
-dirty
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 ```
 
 ### Mot pur
@@ -1539,15 +1548,21 @@ Explication :
 ### Mot dirty direct
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_effects_02
+  import @host.console.log as console.log
+
   dirty : log-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
 end-module
 ```
 
 Explication :
-- `host.log` est dirty dans le contrat hôte
+- `console.log` importe une capacité hôte déclarée `dirty`
 - l’annotation `dirty` est donc obligatoire
 
 ### Export pur
@@ -1568,9 +1583,15 @@ Explication :
 ### Export dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : run { -- code:Int }
-    "start" host.log
+    "start" console.log
     0
   ;
   export : run
@@ -1578,17 +1599,23 @@ end-module
 ```
 
 Explication :
-- l’export appelle un binding hôte dirty
+- l’export appelle une capacité hôte importée et déclarée `dirty`
 - il doit donc être annoté `dirty`
 
 ### Sous-mot dirty appelé
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_effects_05
+  import @host.console.log as console.log
+
   dirty : parent { msg:String -- }
 
     dirty : child-log { text:String -- }
-      text host.log
+      text console.log
     ;
 
     msg child-log
@@ -1603,11 +1630,17 @@ Explication :
 ### DirtyQuote construit et appelé dans une frame dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_effects_06
+  import @host.console.log as console.log
+
   dirty : run-dirty-quote { x:Int -- y:Int }
     x
     :[ | n:Int -- m:Int |
-      "trace" host.log
+      "trace" console.log
       n 1 +
     ;]
     call
@@ -1616,17 +1649,23 @@ end-module
 ```
 
 Explication :
-- la quotation appelle `host.log`, elle est donc de type `DirtyQuote<{ | n:Int -- m:Int }>`
+- la quotation appelle une capacité hôte importée et déclarée `dirty`, elle est donc de type `DirtyQuote<{ | n:Int -- m:Int }>`
 - `call` est dirty dans ce cas
 
 ### DirtyQuote passé à `list.map` dans une frame dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_effects_07
+  import @host.console.log as console.log
+
   dirty : map-with-logging { xs:List<Int> -- ys:List<Int> }
     xs
     :[ | x:Int -- y:Int |
-      "item" host.log
+      "item" console.log
       x 1 +
     ;]
     list.map
@@ -1641,9 +1680,15 @@ Explication :
 ### Propagation indirecte transitive
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @examples_effects_08
+  import @host.console.log as console.log
+
   dirty : dirty-leaf { msg:String -- }
-    msg host.log
+    msg console.log
   ;
 
   dirty : dirty-middle { msg:String -- }
@@ -1657,5 +1702,5 @@ end-module
 ```
 
 Explication :
-- `dirty-leaf` est dirty par appel hôte direct
+- `dirty-leaf` est dirty par appel à une capacité hôte importée
 - `dirty-middle` et `dirty-top` deviennent dirty par propagation indirecte
