@@ -7,7 +7,7 @@ Ce document formalise le contrat conceptuel entre un programme Nicole et l’hô
 Il décrit les frontières d’intégration du langage :
 
 - `export` : mot du programme appelable par l’hôte
-- `host.*` : mot de l’hôte appelable par le programme
+- `module @host` / `require` : déclarations source-visibles des capacités hôte requises par le programme
 
 Ce document ne définit pas :
 
@@ -31,17 +31,23 @@ Le niveau visé est celui d’une spécification de langage, pas celui d’une i
 Le contrat hôte sépare deux rôles :
 
 1. le programme Nicole expose certains mots à l’hôte ;
-2. l’hôte expose certains mots au programme Nicole.
+2. le programme Nicole déclare explicitement certaines capacités hôte requises, que l’hôte doit satisfaire.
 
 Ces deux directions sont distinctes.
 
 Un mot `export` appartient au programme Nicole mais peut être invoqué par l’hôte.
 
-Un mot `host.*` appartient au contrat fourni par l’hôte et peut être invoqué par le programme Nicole.
+Une capacité déclarée dans `module @host` appartient au contrat ABI requis par le programme. Elle n’est pas définie comme mot Nicole ordinaire dans le code utilisateur, mais elle devient importable depuis `@host`.
 
-L’effet (`pure` ou `dirty`) d’un mot `host.*` appartient au contrat hôte.
+L’effet (`pure` ou `dirty`) d’une capacité hôte fait partie du contrat ABI déclaré par `require`.
 
-Il n’existe pas de syntaxe source Nicole du type `dirty host.foo { ... }`.
+Dans ce contexte, `pure` appartient uniquement à la surface ABI de `require` ; il ne devient pas un modificateur général des définitions de mots Nicole.
+
+Il n’existe plus de surface source Nicole où le programme appelle directement `host.*` comme des mots normaux.
+
+En revanche, la terminologie `host.*` reste valide pour les types opaques hôte et plus généralement comme vocabulaire ABI/type.
+
+Cette évolution ne modifie pas les builtins `list.*`, `map.*` et `result.*`.
 
 Le contrat hôte ne crée pas de mutation implicite, ne partage pas de pile globale et ne contourne pas les règles de typage ou de retour définies ailleurs dans la documentation.
 
@@ -145,9 +151,15 @@ Le corps du mot exporté doit donc être entièrement vérifié avant toute exé
 Exemple conceptuel :
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : handle-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   export : handle-message
 end-module
@@ -158,82 +170,108 @@ Le mot ne renvoie aucune valeur.
 
 ---
 
-# 3. `host.*` : mots de l’hôte appelables par le programme
+# 3. `module @host` et `require` : contrat ABI déclaré par le programme
 
-`host.*` désigne des mots fournis par l’hôte et appelables depuis le programme Nicole.
+`module @host` est la surface de déclaration ABI réservée du langage.
 
-## Garanties d’un mot `host.*`
+Il ne s’agit pas d’un module utilisateur normal.
 
-Un mot `host.*` garantit :
+Il sert à déclarer les capacités hôte requises par le programme Nicole.
 
-- un nom unique dans le contrat d’intégration
-- une signature connue ou déclarée par le contrat d’intégration
-- des entrées typées
-- des sorties typées si le mot en déclare
-- une sémantique stable du point de vue du programme Nicole
-- une déclaration d’effet explicite (`pure` ou `dirty`)
+## Rôle de `module @host`
 
-Le programme peut appeler un mot `host.*` comme il appelle un mot normal, mais le mot n’est pas défini dans le code Nicole.
+Un bloc `module @host` :
 
-Le contrat de type d’un mot `host.*` fait partie du contrat ABI fourni par l’hôte.
+- déclare des capacités hôte requises
+- contribue au contrat ABI visible en source
+- n’introduit pas de logique exécutable Nicole
+- n’expose pas de mots utilisateur ordinaires
 
-Le contrat d’effet d’un mot `host.*` fait aussi partie de ce contrat ABI.
+Les modules applicatifs consomment ensuite ces capacités uniquement via des imports depuis `@host`.
 
-Forme conceptuelle canonique d’une entrée hôte :
-
-```text
-host.log
-
-signature:
-{ msg:String -- }
-
-availability:
-required
-
-effect:
-dirty
-```
-
-Autre exemple :
-
-```text
-host.timezone
-
-signature:
-{ -- tz:String }
-
-availability:
-required
-
-effect:
-pure
-```
-
-## Appel conceptuel depuis le programme
-
-Le programme appelle le mot `host.*` selon la discipline de pile définie dans `SEMANTIQUE.md`.
-
-Le mot hôte s’exécute selon son contrat et renvoie ses sorties déclarées sur la pile du programme.
-
-Le programme ne doit pas supposer :
-
-- une représentation mémoire précise
-- une stratégie d’allocation
-- une identité de pointeur
-- une structure de fermeture
-- un format de sérialisation particulier
-
-Exemple conceptuel :
+Exemple :
 
 ```nicole
-module @abi.host_usage
-  dirty : save-log { msg:String -- }
-    msg host.log
+module @host
+  require console.log { msg:String -- } dirty
+  require console.read-line { -- line:String } dirty
+end-module
+
+module @app
+  import @host.console.log as console.log
+  import @host.console.read-line as console.read-line
+
+  dirty : main { -- }
+    "hello" console.log
+    console.read-line
+    console.log
   ;
 end-module
 ```
 
-Ici, le programme appelle un mot fourni par l’hôte et lui transmet une chaîne.
+## Rôle de `require`
+
+Un `require` est l’unité normative de déclaration ABI d’une capacité hôte.
+
+Forme canonique :
+
+```nicole
+require console.log { msg:String -- } dirty
+```
+
+Chaque `require` déclare :
+
+- un chemin de capacité
+- une signature
+- un effet ABI explicite (`pure` ou `dirty`)
+- une capacité importable depuis `@host`
+
+Le chemin déclaré après `require` est relatif à `@host`.
+
+Ainsi :
+
+```nicole
+require console.log { msg:String -- } dirty
+```
+
+désigne la capacité importable comme `@host.console.log`.
+
+Cette déclaration fait partie du contrat ABI normatif du programme.
+
+## Contrat consolidé `@host`
+
+`@host` est fragmentable à travers plusieurs fichiers.
+
+Toutes les déclarations `module @host` contribuent à un seul contrat ABI hôte consolidé.
+
+Règles normatives :
+
+- seul `@host` bénéficie de cette fragmentabilité
+- l’ordre des fragments n’affecte pas la signification du contrat consolidé
+- deux déclarations identiques pour le même chemin de capacité sont autorisées
+- deux déclarations divergentes pour le même chemin de capacité constituent une erreur ABI
+
+Dans ce document, “identiques” signifie :
+
+- même chemin de capacité
+- même signature
+- même effet ABI
+
+Exemple conceptuel :
+
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+```
+
+```nicole
+module @host
+  require console.read-line { -- line:String } dirty
+end-module
+```
+
+Le contrat ABI consolidé contient alors les deux capacités requises.
 
 ---
 
@@ -254,11 +292,25 @@ L’hôte ne peut appeler ce mot qu’en respectant :
 - l’ordre des sorties attendues
 - les types des sorties attendues
 
-## Pour `host.*`
+## Pour les capacités déclarées par `require`
 
-Un mot `host.*` doit aussi être vu comme une entité typée.
+Une capacité hôte déclarée par `require` est une entité typée du contrat ABI.
 
-Le programme n’a pas à connaître l’implémentation du mot hôte, mais il doit connaître son contrat de type.
+Le programme n’a pas à connaître l’implémentation concrète de cette capacité, mais il doit connaître son contrat de type.
+
+Chaque `require` fournit donc au minimum :
+
+- le chemin de capacité
+- la signature
+- l’effet ABI (`pure` ou `dirty`)
+
+La déclaration d’effet est obligatoire en v1.
+
+Il n’existe pas de valeur implicite par défaut pour l’effet ABI.
+
+Une capacité déclarée dans le contrat consolidé doit être satisfaite par le runtime si le programme la requiert.
+
+## Types opaques hôte
 
 Le contrat d’intégration peut aussi déclarer des types opaques hôte.
 
@@ -274,54 +326,17 @@ Les noms imbriqués sont autorisés :
 - `host.io.FileHandle`
 - `host.net.TcpSocket`
 
-Un type opaque hôte n’est jamais déclaré par le code source Nicole.
+Un type opaque hôte n’est jamais défini par un mot Nicole utilisateur.
 
 S’il apparaît dans une signature visible à l’ABI, il doit être déclaré explicitement par le contrat hôte.
 
-Le contrat d’intégration doit donc fournir :
+## Unicité des noms ABI
 
-- le nom du mot
-- sa signature
-- le statut de disponibilité du mot
-- son effet (`pure` ou `dirty`)
+Dans le contrat consolidé, un chemin de capacité désigne une seule capacité hôte.
 
-La déclaration d’effet est obligatoire en v1.
+Le contrat ABI ne définit donc pas plusieurs bindings concurrents sous le même chemin visible.
 
-Il n’existe pas de valeur implicite par défaut pour l’effet dans le contrat hôte.
-
-Le statut de disponibilité est conceptuellement l’un des deux suivants :
-
-- requis
-- optionnel
-
-L’effet est indépendant du statut de disponibilité :
-
-- un mot requis peut être `pure` ou `dirty`
-- un mot optionnel peut être `pure` ou `dirty`
-
-Un mot `host.*` requis doit être présent pour que le contrat soit valide.
-
-Son absence constitue une erreur d’intégration.
-
-Un mot `host.*` optionnel peut être absent sans invalider le contrat en lui-même.
-
-En v1, un appel direct à un mot `host.*` dans le code source suppose que ce mot est requis pour le programme considéré.
-
-Le programme ne peut donc pas appeler directement un mot `host.*` optionnel comme s’il était garanti présent.
-
-La v1 ne définit aucun mécanisme standard de test de présence, de fallback ou d’appel conditionnel d’un mot hôte optionnel.
-
-Le statut “optionnel” peut exister dans le contrat d’intégration comme information conceptuelle ou comme base d’extensions futures, mais il n’autorise pas à lui seul un appel direct en Nicole v1.
-
-Si ces informations sont insuffisantes ou ambiguës, le contrat n’est pas valable pour la v1.
-
-## Unicité des noms hôte
-
-Dans l’espace visible du programme, un nom `host.*` doit désigner un seul mot fourni par le contrat hôte.
-
-Le contrat hôte ne définit donc pas plusieurs bindings concurrents sous le même nom visible.
-
-La v1 ne définit aucun mécanisme de surcharge dynamique, de fallback implicite ou de sélection à l’exécution entre plusieurs bindings `host.*`.
+La v1 ne définit aucun mécanisme de surcharge dynamique, de fallback implicite ou de sélection à l’exécution entre plusieurs capacités déclarées sous le même chemin.
 
 De même, dans l’espace des types visibles à l’ABI, un nom canonique `host.*` doit désigner un seul type opaque hôte.
 
@@ -345,25 +360,22 @@ L’hôte doit :
 
 Le programme ne peut pas exiger de l’hôte qu’il accepte des entrées d’un autre type ou qu’il ignore des sorties non déclarées.
 
-## Pour les mots `host.*`
+## Pour les capacités hôte déclarées
 
-Le programme doit :
-
-- appeler le mot avec les types attendus
-- ne pas inventer d’arguments
-- ne pas attendre de sortie non déclarée
+Le programme ne peut consommer une capacité hôte qu’à travers le contrat consolidé déclaré dans `@host`.
 
 L’hôte doit :
 
-- fournir le mot annoncé
-- respecter sa signature
-- signaler toute absence ou tout échec de liaison comme une erreur d’intégration
+- satisfaire chaque capacité requise par ce contrat consolidé
+- respecter la signature déclarée
+- respecter l’effet ABI déclaré
+- signaler toute absence ou tout échec de satisfaction comme une erreur d’intégration
 
 Le contrat hôte n’autorise pas de conversions implicites au niveau de la frontière.
 
 Il n’autorise pas non plus d’inférence de type dynamique au moment de l’appel.
 
-Le binding hôte doit satisfaire une signature déjà connue et déjà vérifiée.
+Le runtime doit satisfaire une signature déjà connue et déjà vérifiée.
 
 La métadonnée d’effet :
 
@@ -381,26 +393,28 @@ Ce n’est ni une erreur normale représentée par `Result`, ni une erreur de si
 
 ## Cas typiques
 
-- un mot `host.*` est absent alors que le contrat hôte le déclare
+- deux `require` divergents déclarent le même chemin de capacité
+- une capacité déclarée par le contrat consolidé `@host` ne peut pas être satisfaite par l’hôte
+- une signature déclarée dans le contrat ABI ne correspond pas à la capacité fournie
 - un mot exporté est demandé par l’hôte mais n’est pas exposé
-- une signature déclarée par le contrat hôte ne correspond pas à la signature attendue
-- l’hôte ne peut pas satisfaire une liaison requise par le programme ou par l’export
 
 ## Erreur statique ou erreur d’exécution
 
-Si le contrat hôte est connu statiquement et qu’un mot manque, l’erreur doit pouvoir être détectée avant exécution.
+Si le contrat ABI déclaré est incohérent en lui-même, l’erreur doit être détectée avant exécution.
 
-Si l’environnement hôte est dynamique et que la liaison disparaît ou n’existe pas au moment de l’appel, l’erreur peut apparaître à l’exécution.
+Si le contrat ABI déclaré est valide mais que l’hôte ne peut pas le satisfaire, l’erreur relève du contrat d’intégration.
 
-Dans les deux cas, il s’agit d’une erreur d’intégration.
+Si l’environnement hôte est dynamique et que la satisfaction disparaît ou n’existe pas au moment de l’exécution, l’erreur peut apparaître à l’exécution.
+
+Dans tous les cas, il s’agit d’une erreur d’intégration.
 
 Lorsqu’elle apparaît à l’exécution, une erreur d’intégration constitue aussi une erreur de contrat d’exécution.
 
 ## Différence avec `Result`
 
-Une erreur d’intégration n’est pas un `Result`, sauf si le mot hôte lui-même a explicitement été défini pour renvoyer un `Result`.
+Une erreur d’intégration n’est pas un `Result`, sauf si la capacité hôte elle-même a explicitement été définie pour renvoyer un `Result`.
 
-Dans ce cas, le `Result` fait partie du contrat du mot, pas du mécanisme de liaison lui-même.
+Dans ce cas, le `Result` fait partie du contrat de la capacité, pas du mécanisme de satisfaction ABI lui-même.
 
 ---
 
@@ -441,8 +455,8 @@ Les quotations ne franchissent pas l’ABI hôte en v1.
 
 Autrement dit :
 
-- un mot `host.*` ne reçoit pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
-- un mot `host.*` ne retourne pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>`
+- une capacité hôte déclarée ne reçoit pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
+- une capacité hôte déclarée ne retourne pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>`
 - un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en entrée
 - un mot `export` n’expose pas de `Quote<{ ... }>` ni de `DirtyQuote<{ ... }>` en sortie
 
@@ -452,9 +466,9 @@ Le cycle de vie d’un type opaque hôte reste contrôlé par l’hôte.
 
 En particulier :
 
-- une opération de fermeture explicite reste un mot `host.*` ordinaire
+- une opération de fermeture explicite reste une capacité hôte déclarée ordinaire
 - aucune finalisation automatique n’est garantie par la v1
-- le comportement d’une valeur déjà fermée relève du contrat du mot hôte utilisé
+- le comportement d’une valeur déjà fermée relève du contrat de la capacité hôte utilisée
 
 Toute extension future de l’ABI vers des callbacks, quotations, handles exécutables, objets hôte structurés ou aliases de types opaques hôte reste explicitement différée.
 
@@ -479,7 +493,7 @@ Une erreur de contrat d’exécution est une violation d’un contrat supposé v
 
 Elle couvre des cas comme :
 
-- `host.*` absent dans un environnement dynamique
+- une capacité hôte déclarée mais non satisfiable au moment de l’appel
 - primitive fournie par intégration mais non satisfaisable au moment de l’appel
 - `list.reduce` sur une liste vide non prouvable statiquement
 
@@ -489,7 +503,7 @@ Ce type d’erreur n’est pas un `Result`.
 
 Une erreur d’intégration est la catégorie spécifique d’erreur liée à la frontière entre le programme Nicole et l’hôte.
 
-Elle peut être détectée avant exécution si le contrat hôte est connu statiquement, ou à l’exécution dans un environnement dynamique.
+Elle peut être détectée avant exécution si le contrat ABI déclaré est incohérent ou si sa satisfaction est connue impossible statiquement, ou à l’exécution dans un environnement dynamique.
 
 Lorsqu’elle apparaît à l’exécution, elle constitue aussi une erreur de contrat d’exécution.
 
@@ -505,7 +519,16 @@ La frontière ABI v1 n’implique donc pas :
 - checking dynamique du programme
 - inférence de type à l’exécution
 
-Le contrat hôte doit satisfaire des signatures déjà connues.
+Le langage vérifie :
+
+- la cohérence des déclarations `require`
+- la visibilité des capacités importées selon les règles statiques du langage
+- la compatibilité ABI des signatures déclarées
+- la distinction entre contrat ABI déclaré et contrat ABI fourni
+
+Le runtime doit satisfaire le contrat ABI consolidé déjà déclaré.
+
+Le runtime reste toutefois trusted : la spécification valide la cohérence déclarée et la compatibilité observable, mais elle ne prouve pas la correction interne de l’implémentation hôte.
 
 Une fois le programme vérifié, l’exécution consomme ce programme vérifié et applique le contrat d’intégration déclaré.
 
