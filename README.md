@@ -50,9 +50,9 @@ Références conceptuelles :
 
 - `SYNTAXE.md` : syntaxe figée de v1
 - `SEMANTIQUE.md` : sémantique figée de la v1 ; référence officielle du comportement du langage
-- `HOST_ABI.md` : priorité actuelle ; contrat conceptuel entre le programme Nicole et l’hôte embarquant (`host.*`, `export`)
+- `HOST_ABI.md` : priorité actuelle ; contrat conceptuel entre le programme Nicole et l’hôte embarquant (`module @host`, `require`, `export`, types opaques hôte)
 
-Les règles normatives sur `export`, `host.*`, `Result`, les erreurs d’intégration et la disponibilité des mots hôte vivent dans `HOST_ABI.md`.
+Les règles normatives sur `export`, `module @host`, `require`, les capacités hôte importables, `Result`, les erreurs d’intégration et la frontière de confiance runtime vivent dans `HOST_ABI.md`.
 
 Les types opaques hôte sont des types nominaux déclarés par ce contrat, sous des noms canoniques `host.*` comme `host.io.FileHandle`.
 
@@ -92,11 +92,12 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - visibilité interne `pub`
 - déclaration d’export module-locale `export : word`
 - noms visibles hôte canoniques `@module.word` (avec `@` conservé)
-- annotation d’effet `dirty` (pas de mot-clé `pure`)
+- annotation d’effet `dirty` pour les mots Nicole ; `pure` n’existe que dans la surface ABI de `require`
 - sous-mots
 - noms qualifiés
 - fondations lexicales/grammaticales pour `@module.word`, `module`, `end-module`, `import`, `include` (sémantique différée)
-- mots fournis par l’hôte via le préfixe réservé `host.`
+- déclaration source-visible des capacités hôte via `module @host` et `require`
+- imports module-locaux de capacités hôte depuis `@host`
 - listes immuables, concaténation et décomposition
 - opérations de liste `list.len`, `list.is-empty`, `list.get`, `list.first`, `list.last`, `list.set`, `list.append`, `list.concat`, `list.reverse`, `list.map`, `list.filter`, `list.fold`, `list.reduce`
 - opérations de map `map.empty`, `map.get`, `map.contains`, `map.set`, `map.remove`, `map.len`, `map.is-empty`, `map.keys`, `map.values`
@@ -125,8 +126,10 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - capture par valeur dans les quotations
 - pureté implicite + effet `dirty` explicite et vérifié statiquement
 - export = programme → hôte via nom canonique `@module.word`
-- host.* = hôte → programme
-- effet des bindings `host.*` défini par contrat hôte explicite
+- capacités hôte = hôte → programme via contrat source-visible déclaré dans `module @host`
+- import des capacités hôte au niveau module, sans visibilité globale implicite
+- effet ABI (`pure` ou `dirty`) déclaré explicitement par `require`
+- runtime de l’hôte considéré comme trusted, mais contraint à satisfaire le contrat ABI déclaré
 
 ### Types
 
