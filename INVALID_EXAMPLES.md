@@ -38,7 +38,13 @@ Règle violée :
 ### Import wildcard interdit
 
 ```nicole
-import @text.*
+module @demo
+  import @text.*
+
+  : run { input:String -- out:List<String> }
+    input @text.split
+  ;
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -47,11 +53,25 @@ Pourquoi c’est invalide :
 Règle violée :
 - wildcard imports do not exist in v1
 
+### Import top-level interdit
+
+```nicole
+import @host.console.log as console.log
+```
+
+Pourquoi c’est invalide :
+- les imports ne sont autorisés qu’à l’intérieur d’un module
+
+Règle violée :
+- un import top-level est interdit en v1
+
 ### Collision d’alias d’import
 
 ```nicole
-import @text as util
-import @tools as util
+module @demo
+  import @text as util
+  import @tools as util
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -60,12 +80,28 @@ Pourquoi c’est invalide :
 Règle violée :
 - les aliases participent aux collisions de noms visibles
 
+### Import dans le corps d’un mot interdit
+
+```nicole
+module @demo
+  : run { -- }
+    import @host.console.log as console.log
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- les imports n’apparaissent jamais dans le corps d’un mot
+
+Règle violée :
+- un import dans le corps d’un mot est interdit
+
 ### Import sans alias n’expose pas le nom court
 
 ```nicole
-import @text.split
-
 module @demo
+  import @text.split
+
   : run { input:String -- out:List<String> }
     input split
   ;
@@ -78,6 +114,23 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - sans alias, un import ciblé n’injecte pas de nom court
+
+### Import après une définition de mot
+
+```nicole
+module @demo
+  : run { -- }
+  ;
+
+  import @host.console.log as console.log
+end-module
+```
+
+Pourquoi c’est invalide :
+- les imports doivent apparaître avant toute définition de mot dans le module
+
+Règle violée :
+- un import ne peut pas apparaître après une définition de mot dans le même module
 
 ### Référence externe qualifiée sans import
 
@@ -96,23 +149,12 @@ Pourquoi c’est invalide :
 Règle violée :
 - sans import, une référence externe `@text.word` est invalide
 
-### Module sur racine réservée
-
-```nicole
-module @host
-end-module
-```
-
-Pourquoi c’est invalide :
-- `host` est une racine réservée (reserved root)
-
-Règle violée :
-- un module utilisateur ne peut pas occuper une racine réservée
-
 ### Alias sur racine réservée
 
 ```nicole
-import @text as host
+module @demo
+  import @text as host
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -121,24 +163,81 @@ Pourquoi c’est invalide :
 Règle violée :
 - un alias d’import ne peut pas occuper une racine réservée
 
-### Cycle d’import interdit
+### Alias importé utilisé hors du module importateur
 
 ```text
 # a.nic
-import @b
-
 module @a
-  : ping { n:Int -- n2:Int }
-    n @b.pong
+  import @host.console.log as console.log
+
+  dirty : local-log { msg:String -- }
+    msg console.log
   ;
 end-module
 
 # b.nic
-import @a
-
 module @b
+  dirty : leaked-log { msg:String -- }
+    msg console.log
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- l’alias `console.log` est introduit dans `@a` seulement
+- `@b` tente de l’utiliser sans l’avoir importé dans son propre module
+
+Règle violée :
+- les aliases d’import sont module-locaux
+- un alias ne fuit pas vers les autres modules
+
+### Alias qualifié commençant par `@`
+
+```nicole
+module @demo
+  import @host.console.log as @console.log
+end-module
+```
+
+Pourquoi c’est invalide :
+- un alias d’import ne peut pas commencer par `@`
+
+Règle violée :
+- un alias simple ou qualifié ne peut pas commencer par `@`
+
+### Alias qualifié occupant la racine réservée `host`
+
+```nicole
+module @demo
+  import @host.console.log as host.log
+end-module
+```
+
+Pourquoi c’est invalide :
+- `host` est une racine réservée
+- un alias qualifié reste un nom local et ne peut pas occuper cette racine
+
+Règle violée :
+- un alias simple ou qualifié ne peut pas occuper une racine réservée
+
+### Cycle d’import interdit
+
+```text
+# a.nic
+module @a
+  import @b as b
+
+  : ping { n:Int -- n2:Int }
+    n b.pong
+  ;
+end-module
+
+# b.nic
+module @b
+  import @a as a
+
   : pong { n:Int -- n2:Int }
-    n @a.ping
+    n a.ping
   ;
 end-module
 ```
@@ -368,11 +467,16 @@ Règle violée :
 ### Garde conditionnelle dirty interdite
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @invalid.phase6
+  import @host.console.log as console.log
 
   : bad-case-guard { r:Result<Int,MapError> -- text:String }
     r case
-      Ok(v) when "trace" host.log true => "ok"
+      Ok(v) when "trace" console.log true => "ok"
       Err(MissingKey) => "missing"
     end
   ;
@@ -381,8 +485,8 @@ end-module
 ```
 
 Pourquoi c’est invalide :
-- la branche gardée utilise `host.log` dans le guard
-- `host.log` est dirty
+- la branche gardée utilise `console.log` dans le guard
+- `console.log` importe une capacité hôte déclarée `dirty`
 - un guard doit rester pur
 
 Règle violée :
@@ -1165,9 +1269,9 @@ Règle violée :
 
 ---
 
-## 7. `host.*`
+## 7. Contrat ABI hôte et capacités invalides
 
-### Mot hôte absent du contrat
+### Appel source direct d’une capacité `host.*`
 
 ```nicole
 module @invalid.phase6
@@ -1180,11 +1284,30 @@ end-module
 ```
 
 Pourquoi c’est invalide :
-- le contrat hôte supposé ne déclare pas `host.read-config`
-- l’appel est donc invalide dans cet environnement d’intégration
+- les appels source directs `host.*` ne font plus partie de la surface valide du langage
+- une capacité hôte doit être déclarée dans `module @host`, puis importée dans le module consommateur
 
 Règle violée :
-- un mot `host.*` doit être connu ou déclaré par le contrat d’intégration
+- un appel source direct `host.*` est interdit en v1
+
+### Import d’une capacité hôte absente du contrat consolidé
+
+```nicole
+module @invalid.phase6
+  import @host.config.get as config.get
+
+  : read-config { key:String -- r:Result<String,MapError> }
+    key config.get
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `config.get` est importé depuis `@host`
+- aucune déclaration `require config.get ...` n’existe dans le contrat consolidé `@host`
+
+Règle violée :
+- une capacité hôte importée doit être déclarée explicitement par le contrat consolidé `@host`
 
 ### Définition directe d’un mot `host.*`
 
@@ -1199,56 +1322,161 @@ end-module
 
 Pourquoi c’est invalide :
 - un programme utilisateur ne peut pas définir un mot `host.*`
+- `host.*` reste réservé à la terminologie ABI et aux types opaques hôte, pas à des mots Nicole définis par l’utilisateur
 
 Règle violée :
-- `host.*` est réservé aux mots fournis par l’hôte
+- un mot utilisateur ne peut pas utiliser la racine réservée `host.*`
 
-### Mot hôte absent mais traité comme un `Result`
+### `module @host` contenant un mot ordinaire
 
 ```nicole
-module @invalid.phase6
+module @host
 
-  : try-read-config { key:String -- r:Result<String,MapError> }
-    key host.read-config
+  : log-message { msg:String -- }
+    msg drop
   ;
 
 end-module
 ```
 
 Pourquoi c’est invalide :
-- le contrat hôte supposé ne déclare pas `host.read-config`
-- l’absence de binding hôte ne devient pas automatiquement `Err(...)`
+- `module @host` n’est pas un module utilisateur normal
+- son corps est réservé aux déclarations ABI `require`
 
 Règle violée :
-- l’absence d’un mot `host.*` est une erreur d’intégration
-- le mécanisme de liaison hôte n’est pas modélisé comme un `Result`
+- `module @host` ne peut pas contenir de définition de mot
 
-### Mot hôte recevant une quotation
+### `module @host` contenant un `import`
 
-Contrat hôte supposé dans cet exemple :
+```nicole
+module @host
+  import @text as t
+end-module
+```
+
+Pourquoi c’est invalide :
+- `module @host` n’est pas une surface d’import
+- les imports sont interdits dans `module @host`
+
+Règle violée :
+- `module @host` ne peut pas contenir d’import
+
+### `module @host` contenant un `export`
+
+```nicole
+module @host
+  export : run
+end-module
+```
+
+Pourquoi c’est invalide :
+- la présence même de `export` dans `module @host` est interdite
+- `module @host` n’exporte pas de mots Nicole utilisateurs
+- son rôle est limité à la déclaration du contrat ABI requis
+
+Règle violée :
+- `module @host` ne peut pas contenir d’`export`
+
+### `require` hors `module @host`
+
+```nicole
+module @invalid.phase6
+  require console.log { msg:String -- } dirty
+end-module
+```
+
+Pourquoi c’est invalide :
+- `require` n’est légal que dans `module @host`
+
+Règle violée :
+- une déclaration `require` hors `module @host` est invalide
+
+### `require` sans effet ABI explicite
+
+```nicole
+module @host
+  require console.log { msg:String -- }
+end-module
+```
+
+Pourquoi c’est invalide :
+- chaque `require` doit déclarer explicitement `pure` ou `dirty`
+
+Règle violée :
+- un `require` sans effet ABI explicite est invalide
+
+### Utilisation de `pure` comme modificateur de mot
+
+```nicole
+module @invalid.phase6
+
+  pure : bad-pure-modifier { -- n:Int }
+    1
+  ;
+
+end-module
+```
+
+Pourquoi c’est invalide :
+- `pure` n’est pas un modificateur général de définition de mot en v1
+- `pure` n’existe en source que dans la surface ABI de `require`
+
+Règle violée :
+- `pure` hors déclaration ABI `require` est invalide
+
+### Déclarations divergentes d’une même capacité hôte par signature
 
 ```text
-host.run-later
-signature:
-{ q:Quote<{ | x:Int -- y:Int }> -- }
-availability:
-required
-effect:
-dirty
-```
+# host-a.nic
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 
-```nicole
-module @invalid.phase6
-
-  : send-callback { q:Quote<{ | x:Int -- y:Int }> -- }
-    q host.run-later
-  ;
-
+# host-b.nic
+module @host
+  require console.log { msg:String level:Int -- } dirty
 end-module
 ```
 
 Pourquoi c’est invalide :
-- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur d’entrée d’un mot `host.*`
+- les deux fragments `@host` déclarent le même chemin de capacité
+- leurs signatures ABI divergent
+
+Règle violée :
+- dans le contrat consolidé `@host`, un chemin de capacité doit désigner une seule capacité cohérente
+
+### Déclarations divergentes d’une même capacité hôte par effet
+
+```text
+# host-a.nic
+module @host
+  require config.get { key:String -- r:Result<String,MapError> } pure
+end-module
+
+# host-b.nic
+module @host
+  require config.get { key:String -- r:Result<String,MapError> } dirty
+end-module
+```
+
+Pourquoi c’est invalide :
+- les deux fragments `@host` déclarent le même chemin de capacité avec deux effets ABI incompatibles
+
+Règle violée :
+- dans le contrat consolidé `@host`, un chemin de capacité doit avoir un seul effet ABI cohérent
+
+### Capacité hôte recevant une quotation
+
+```nicole
+module @host
+  require callbacks.run-later
+    { q:Quote<{ | x:Int -- y:Int }> -- }
+    dirty
+end-module
+```
+
+Pourquoi c’est invalide :
+- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur d’entrée d’une capacité hôte
 
 Règle violée :
 - les quotations ne franchissent pas l’ABI hôte en v1
@@ -1361,14 +1589,12 @@ Règle violée :
 
 ### Type opaque hôte non déclaré dans une signature ABI-visible
 
-```text
-host.io.open-file
-signature:
-{ path:String mode:String -- file:host.io.FileHandle }
-availability:
-required
-effect:
-dirty
+```nicole
+module @host
+  require io.open-file
+    { path:String mode:String -- file:host.io.FileHandle }
+    dirty
+end-module
 ```
 
 Pourquoi c’est invalide :
@@ -1395,30 +1621,16 @@ Règle violée :
 
 ### Mot hôte retournant une quotation
 
-Contrat hôte supposé dans cet exemple :
-
-```text
-host.make-callback
-signature:
-{ -- q:Quote<{ | x:Int -- y:Int }> }
-availability:
-required
-effect:
-dirty
-```
-
 ```nicole
-module @invalid.phase6
-
-  : fetch-callback { -- q:Quote<{ | x:Int -- y:Int }> }
-    host.make-callback
-  ;
-
+module @host
+  require callbacks.make-callback
+    { -- q:Quote<{ | x:Int -- y:Int }> }
+    dirty
 end-module
 ```
 
 Pourquoi c’est invalide :
-- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur de retour d’un mot `host.*`
+- l’ABI hôte v1 n’autorise pas `Quote<{ ... }>` comme valeur de retour d’une capacité hôte
 
 Règle violée :
 - les quotations ne franchissent pas l’ABI hôte en v1
@@ -1707,32 +1919,31 @@ Règle violée :
 
 ## 10. Pureté et effet `dirty` invalides (v0.14.0)
 
-Contrat hôte supposé dans cette section :
-
 ```text
-host.log
-signature:
-{ msg:String -- }
-availability:
-required
-effect:
-dirty
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 ```
 
 ### Annotation `dirty` manquante sur appel hôte dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @invalid.phase6
+  import @host.console.log as console.log
 
   : bad-pure-host-call { -- }
-    "hello" host.log
+    "hello" console.log
   ;
 
 end-module
 ```
 
 Pourquoi c’est invalide :
-- `host.log` est dirty dans le contrat hôte
+- `console.log` importe une capacité hôte déclarée `dirty`
 - le mot est inféré dirty mais n’est pas annoté `dirty`
 
 Règle violée :
@@ -1741,10 +1952,15 @@ Règle violée :
 ### Mot pur appelant un mot Nicole dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @invalid.phase6
+  import @host.console.log as console.log
 
   dirty : log-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   
   : bad-pure-calls-dirty { -- }
@@ -1764,9 +1980,15 @@ Règle violée :
 ### Export pur appelant du code dirty
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   : bad-pure-export { -- code:Int }
-    "start" host.log
+    "start" console.log
     0
   ;
   export : bad-pure-export
@@ -1886,11 +2108,16 @@ Règle violée :
 ### Construction de `DirtyQuote` dans une frame pure
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @invalid.phase6
+  import @host.console.log as console.log
 
   : bad-construct-dirty-quote { -- q:DirtyQuote<{ | x:Int -- y:Int }> }
     :[ | x:Int -- y:Int |
-      "item" host.log
+      "item" console.log
       x
     ;]
   ;
@@ -1899,7 +2126,7 @@ end-module
 ```
 
 Pourquoi c’est invalide :
-- la quotation est dirty car elle appelle `host.log`
+- la quotation est dirty car elle appelle `console.log`
 - la frame de construction est pure
 
 Règle violée :
