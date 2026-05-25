@@ -83,7 +83,9 @@ Les formes suivantes sont réservées par le langage et ne peuvent pas être dé
 - `end-module`
 - `import`
 - `include`
+- `require`
 - `dirty`
+- `pure`
 - `call`
 - `?`
 - `Ok!`
@@ -108,12 +110,20 @@ Toute collision entre une définition utilisateur et une forme réservée, une v
 
 Règles associées :
 
-- un module utilisateur ne peut pas s’appeler `@host`, `@list`, `@map` ou `@result`
-- un alias d’import ne peut pas s’appeler `host`, `list`, `map` ou `result`
+- `module @host` est une forme réservée du langage pour les déclarations ABI hôte
+- un module utilisateur normal ne peut pas s’appeler `@list`, `@map` ou `@result`
+- un alias d’import ne peut pas occuper une racine réservée (`host`, `list`, `map`, `result`)
+- un alias d’import ne peut pas commencer par `@`
+- un alias qualifié (`a.b`) reste un nom d’alias local, pas une référence de module
 - un nom utilisateur ne peut pas occuper une racine réservée
-- les formes qualifiées builtin existantes (`host.*`, `list.*`, `map.*`, `result.*`) restent valides
+- les formes qualifiées builtin existantes (`list.*`, `map.*`, `result.*`) restent valides
+- les appels source directs `host.*` ne font plus partie des formes valides du langage
 
 `dirty` est réservé comme identifiant exact en v1.
+
+`pure` est réservé pour la surface ABI de `require`.
+
+`pure` n’est pas un modificateur général de définition de mot Nicole en v1.
 
 Cette réservation s’applique à :
 
@@ -156,7 +166,7 @@ Les identifiants suivants restent autorisés :
 
 ---
 
-# 2. Visibilité interne, export et contrats hôte
+# 2. Visibilité interne, export et déclarations hôte
 
 Sans modificateur, un mot défini dans un module est privé à ce module.
 
@@ -164,20 +174,28 @@ Phase 2 établit le modèle obligatoire suivant :
 
 - tous les mots définis par l’utilisateur sont contenus dans un bloc `module @... end-module`
 - une définition utilisateur top-level est invalide
-- dans un module, la définition d’un mot utilise la syntaxe normale `: word { ... }`
+- dans un module utilisateur normal, la définition d’un mot utilise la syntaxe normale `: word { ... }`
 - dans un module, les appels courts vers des mots du même module sont autorisés
-- hors module, une référence utilisateur externe exige la forme `@module.word` avec import correspondant
+- les imports sont des déclarations module-locales
+- les imports apparaissent avant toute définition de mot dans le module
+- un import top-level est invalide
+- un import dans le corps d’un mot est invalide
+- dans un module utilisateur normal, une référence externe exige un import correspondant et utilise ensuite soit une forme qualifiée autorisée, soit un alias local
 - dans `module @text`, la forme `@text.word` reste autorisée sans import, même si la forme courte locale est préférée
 - les modules sont des déclarations top-level uniquement
 - un module ne peut pas être imbriqué dans un autre module
-- les noms de modules doivent être uniques dans l’unité de compilation
-- un module peut être vide
+- les noms de modules doivent être uniques dans l’unité de compilation, sauf l’exception réservée `@host`
+- `module @host` est réservé aux déclarations ABI hôte
+- `module @host` n’est pas un module utilisateur normal
+- plusieurs fragments `module @host` sont autorisés
+- aucun autre module n’est fragmentable
+- un module peut être vide, y compris `module @host`
 - un module n’est pas un mot exécutable
 
 En v1, le programme reste analysé comme une seule unité de compilation.
 
-Les formes `module`, `import` et `include` existent en syntaxe comme fondations grammaticales.
-La phase 3 fixe la résolution statique, la visibilité des imports, les aliases, les collisions associées et l’acyclicité du graphe d’import.
+Les formes `module`, `import`, `include` et `require` existent en syntaxe comme fondations grammaticales.
+La phase 3 fixe la résolution statique, la visibilité module-locale des imports, les aliases module-locaux, les collisions associées et l’acyclicité du graphe d’import.
 La sémantique détaillée de `include` (mapping fichiers/paths) reste différée.
 
 `pub` expose uniquement des chemins qualifiés ; il n’injecte pas de nom court hors du module.
@@ -287,8 +305,6 @@ module @demo
   ;
 
 end-module
-
-@demo.shared-helper
 ```
 
 ## Fondations grammaticales modules/imports/includes (Phases 1-3)
@@ -300,21 +316,28 @@ Reste différé :
 - la sémantique détaillée de `include` (mapping fichiers/paths)
 - les conventions de packaging
 
-Forme `module` :
+Formes `module` :
 
 ```nicole
 module @name
   ...
 end-module
+
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 ```
 
-Formes `import` :
+Formes `import` dans un module utilisateur normal :
 
 ```nicole
-import @name
-import @name as alias
-import @name.word
-import @name.word as alias
+module @app
+  import @name
+  import @name as alias
+  import @name.word
+  import @name.word as alias
+  import @host.console.log as console.log
+end-module
 ```
 
 Forme `include` :
@@ -325,22 +348,46 @@ include "path.nic"
 
 Règles normatives d’import :
 
-- les imports existent uniquement au top-level
+- les imports existent uniquement dans un module
+- les imports apparaissent avant toute définition de mot dans ce module
+- les imports n’apparaissent jamais dans le corps d’un mot
+- les imports ne sont pas autorisés dans `module @host`
 - les imports n’injectent jamais de noms implicitement
 - les wildcard imports n’existent pas en v1
-- les aliases créent des noms visibles dans l’unité de compilation importatrice
-- les aliases participent aux règles de collision de noms visibles
-- la portée des aliases d’import est l’unité de compilation après inclusion textuelle
-- un fragment inclus ne crée pas de scope alias séparé
+- les aliases créent des noms visibles uniquement dans le module importateur
+- les aliases participent aux règles de collision de noms visibles dans ce module
+- la sémantique détaillée de `include` reste différée ; elle ne change pas la règle syntaxique selon laquelle un import appartient au module qui le contient
+
+Exemples invalides :
+
+```nicole
+import @text
+```
+
+```nicole
+module @app
+  : run { -- }
+    import @text
+  ;
+end-module
+```
+
+Ces formes sont invalides respectivement parce que :
+
+- un import top-level n’est pas autorisé
+- un import dans le corps d’un mot n’est pas autorisé
 
 Sémantique des formes d’import :
 
-- `import @text` rend `@text.*` disponible en usage qualifié explicite uniquement pour les mots publics de `@text`
-- `import @text as t` crée une racine alias `t`, utilisable sous la forme `t.word`
-- `import @text.split` rend uniquement `@text.split` disponible explicitement
-- `import @text.split as split` crée l’alias court `split`
+- `import @text` rend `@text.*` disponible en usage qualifié explicite uniquement pour les mots publics de `@text` à l’intérieur du module courant
+- `import @text as t` crée une racine alias locale `t`, utilisable sous la forme `t.word`
+- `import @text.split` rend uniquement `@text.split` disponible explicitement dans le module courant
+- `import @text.split as split` crée l’alias local simple `split`
+- `import @host.console.log as console.log` crée l’alias qualifié local `console.log`
 - sans alias, `import @text.split` ne rend pas `split` visible
-- sans import, une référence externe `@text.word` est invalide
+- un alias simple ou qualifié ne peut ni commencer par `@`, ni occuper une racine réservée
+- un alias qualifié reste un nom local, pas une référence de module
+- sans import, une référence externe `@text.word` ou `@host.console.log` est invalide
 
 Modèle de résolution statique (phase 3) :
 
@@ -349,14 +396,14 @@ Dans un module, la résolution se fait dans cet ordre :
 1. noms locaux dans le scope courant (mot/sous-mot)
 2. mots définis dans le même module via nom court
 3. aliases d’import visibles
-4. noms qualifiés explicites (`@module.word`) autorisés dans le module courant ou via import externe correspondant
-5. namespaces réservés/builtins (`host.*`, `list.*`, `map.*`, `result.*`)
+4. noms qualifiés explicites (`@module.word`, `@host.capability.path`) autorisés dans le module courant ou via import correspondant
+5. namespaces réservés/builtins (`list.*`, `map.*`, `result.*`)
 
 Hors module :
 
-- les références utilisateur non qualifiées sont invalides
-- une référence utilisateur exige `@module.word` avec import externe correspondant
-- un alias ne peut être utilisé que s’il est introduit par un import
+- les références utilisateur et hôte ne font pas partie des formes d’usage normales
+- une référence externe exige un import correspondant dans le module consommateur
+- un alias ne peut être utilisé que s’il est introduit par un import dans ce même module
 
 Exemple invalide (Phase 2) :
 
@@ -371,11 +418,6 @@ Cette définition est invalide :
 
 - les mots définis par l’utilisateur doivent être contenus dans `module @... end-module`
 - un mot utilisateur top-level est rejeté en phase 2
-
-Note de transition :
-
-- certains exemples plus loin dans ce document utilisent encore une forme top-level legacy
-- en cas de conflit, la règle normative de phase 2 prévaut : les définitions utilisateur sont module-contenues
 
 Cycles d’import :
 
@@ -785,82 +827,111 @@ Mais deux mots exportés ne peuvent jamais partager le même nom canonique visib
 Deux directions coexistent :
 
 - `export` : déclaration module-locale qui expose un mot Nicole vers l’hôte
-- `host.*` : mot fourni par l’hôte, appelable par le programme
+- `module @host` : déclaration source du contrat ABI hôte requis par le programme
 
-Tout mot dont le nom commence par `host.` est réservé à l’hôte.
+Forme canonique :
 
-Exemple abrégé de noms hôte :
-
-```text
-host.log
-host.time
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+  require console.read-line { -- line:String } dirty
+end-module
 ```
 
-Ces noms abrégés ne constituent pas le format canonique du contrat.
-Le format canonique `signature` / `availability` / `effect` est défini dans `HOST_ABI.md`.
+`module @host` est réservé par le langage.
 
-Ces mots ne sont pas définis dans le code source du programme.
+`@host` n’est pas un module utilisateur normal.
 
-Le langage connaît leur signature via le contrat d’intégration de l’hôte.
+Il contient uniquement des déclarations `require`.
 
-Leur corps est fourni par l’hôte, hors du langage source.
+Un `require` déclare :
 
-Le même espace canonique `host.*` peut aussi contenir des noms de types opaques hôte lorsqu’un nom apparaît en position de type.
+- un chemin de capacité relatif à `@host`
+- une signature de pile
+- un effet ABI explicite `pure` ou `dirty`
 
-Exemples de noms de types opaques hôte :
+Formes valides :
 
-```text
-host.FileHandle
-host.io.FileHandle
-host.net.TcpSocket
+```nicole
+require console.log { msg:String -- } dirty
 ```
 
-Ces noms de types ne sont pas déclarés dans le code source Nicole.
+ou :
 
-Ils sont déclarés par le contrat ABI de l’hôte décrit dans `HOST_ABI.md`.
-
-En v1, un type opaque hôte est nominal :
-
-- son identité dépend de son nom canonique exact
-- `host.io.FileHandle` et `host.net.TcpSocket` sont des types distincts
-- aucun mécanisme de déclaration source Nicole n’est introduit pour ces types
-
-L’effet (`pure` ou `dirty`) d’un mot `host.*` appartient au contrat hôte (`HOST_ABI.md`), pas à la syntaxe source Nicole.
-
-La v1 n’introduit pas de forme source du type `dirty host.foo { ... }`.
+```nicole
+require console.log
+  { msg:String -- }
+  dirty
+```
 
 Règles :
 
-- un programme utilisateur ne peut pas définir un mot `host.*`
-- tout mot `host.*` appelé directement par le programme est requis pour ce programme en v1
-- si un mot `host.*` appelé directement est absent du contrat d’intégration, cela constitue une erreur d’intégration statique avant exécution lorsque le contrat est connu
-- si l’environnement hôte est dynamique et que cette liaison requise n’est pas disponible au moment de l’appel, cela constitue une erreur d’intégration à l’exécution
-- la résolution statique traite `host.*` comme des mots connus du même espace nominal ; chaque nom visible doit désigner une seule définition fournie par le contrat hôte
+- `require` n’est valide que dans `module @host`
+- le chemin après `require` est relatif à `@host`
+- `require @host.console.log { msg:String -- } dirty` n’est pas la forme canonique
+- chaque `require` doit déclarer explicitement `pure` ou `dirty`
+- `pure` n’est légal que dans cette surface ABI
+- `module @host` ne peut contenir ni `import`, ni `export`, ni définition de mot, ni logique exécutable, ni constante, ni variable
+- plusieurs fragments `module @host` sont syntaxiquement autorisés
+- cette fragmentabilité est réservée à `@host`
+- les règles de fusion ABI relèvent de `HOST_ABI.md` et de la sémantique, pas de cette section de syntaxe
 
-En v1, il n’existe aucun mécanisme standard de test de présence, de fallback ou d’appel conditionnel pour un mot `host.*` optionnel.
+Les capacités déclarées dans `@host` sont importées explicitement dans les modules applicatifs.
 
-Par conséquent, un programme ne peut pas appeler directement un mot `host.*` comme s’il était requis tout en admettant qu’il pourrait être absent.
-
-Exemple invalide :
+Exemple :
 
 ```nicole
-module @invalid.phase6
-  : show-config { key:String -- value:String }
-    key host.read-config
+module @host
+  require console.log { msg:String -- } dirty
+  require console.read-line { -- line:String } dirty
+end-module
+
+module @app
+  import @host.console.log as console.log
+  import @host.console.read-line as console.read-line
+
+  dirty : main { -- }
+    "Name?" console.log
+    console.read-line
+    console.log
   ;
 end-module
 ```
 
-Ce programme est invalide si le contrat hôte ne déclare pas `host.read-config`.
+Règles complémentaires :
 
-Exemple conceptuel :
+- un appel source direct `host.*` n’est plus une forme valide du langage
+- une capacité hôte n’est pas visible sans import dans le module consommateur
+- un alias d’import de capacité hôte reste local au module qui le déclare
+- les types opaques hôte `host.*` en position de type restent définis par le contrat ABI de l’hôte
+
+Exemple invalide :
 
 ```nicole
-# mot hôte possible si le contrat déclare `host.io.FileHandle`
-# host.io.open-file { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+module @app
+  require console.log { msg:String -- } dirty
+end-module
 ```
 
-La déclaration et la disponibilité exactes de ces noms relèvent du contrat hôte, pas de la syntaxe source Nicole.
+```nicole
+module @host
+  import @text as t
+end-module
+```
+
+```nicole
+module @app
+  dirty : run { -- }
+    "start" host.log
+  ;
+end-module
+```
+
+Ces formes sont invalides respectivement parce que :
+
+- `require` n’est pas autorisé hors de `module @host`
+- `module @host` ne peut pas contenir d’import
+- un appel source direct `host.*` n’est plus autorisé
 
 ---
 
@@ -1922,14 +1993,16 @@ Exemples :
 
 La forme explicite est la seule forme canonique en v1.
 
-Exemples explicites liés à l’hôte :
+Exemple explicite lié à une capacité hôte importée :
 
 ```nicole
-:[ | msg:String -- | msg host.log ;]
-```
+module @quotes.host
+  import @host.console.log as console.log
 
-```nicole
-"hello" :[ msg:String | -- | msg host.log ;]
+  : make-logger { -- q:DirtyQuote<{ | msg:String -- }> }
+    :[ | msg:String -- | msg console.log ;]
+  ;
+end-module
 ```
 
 ## Sémantique de construction
@@ -2289,7 +2362,13 @@ La syntaxe canonique provisoire est :
 Les variantes de visibilité sont :
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @demo
+  import @host.console.log as console.log
+
   : private-word { x:Int -- y:Int }
     x
   ;
@@ -2312,7 +2391,7 @@ module @demo
   export : event
 
   dirty : run { -- code:Int }
-    "start" host.log
+    "start" console.log
     0
   ;
   export : run
@@ -2324,14 +2403,9 @@ end-module
 # 28. Exemple complet valide
 
 ```nicole
-# Contrat hôte supposé :
-# host.log
-# signature:
-# { msg:String -- }
-# availability:
-# required
-# effect:
-# dirty
+module @host
+  require console.log { msg:String -- } dirty
+end-module
 
 module @syntax.locals
   : square { x:Int -- y:Int }
@@ -2352,12 +2426,15 @@ module @syntax.locals
 end-module
 
 module @app
+  import @host.console.log as console.log
+
   dirty : on-message { msg:String -- }
-    msg host.log
+    msg console.log
   ;
   export : on-message
 
   : run { args:List<String> -- code:Int }
+    "ready" console.log
     0
   ;
   export : run
@@ -2422,12 +2499,27 @@ end-module
 Mot exporté dirty :
 
 ```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
 module @app
+  import @host.console.log as console.log
+
   dirty : run { -- code:Int }
-    "start" host.log
+    "start" console.log
     0
   ;
   export : run
+end-module
+```
+
+Déclaration ABI hôte :
+
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+  require text.length { s:String -- n:Int } pure
 end-module
 ```
 
@@ -2514,7 +2606,7 @@ Cette syntaxe de surface gagnera probablement à être séparée plus tard en tr
 
 - `SYNTAXE.md` : syntaxe de surface
 - `SEMANTIQUE.md` : typage, piles, frames, `call`, `case`, `if`, quotations
-- `HOST_ABI.md` : intégration hôte, `host.*`, événements, exports
+- `HOST_ABI.md` : contrat ABI hôte, capacités déclarées via `module @host`, types opaques hôte, événements, exports
 
 Pour l’instant, les informations restent regroupées ici.
 
