@@ -70,7 +70,9 @@ Chaînes :
 
 ## Formes réservées v1
 
-Les formes suivantes sont réservées par le langage et ne peuvent pas être définies comme mots utilisateur :
+Les formes suivantes sont réservées par le langage et ne peuvent pas être définies comme mots utilisateur.
+
+Formes syntaxiques / mots-clés réservés :
 
 - `if`
 - `else`
@@ -84,18 +86,27 @@ Les formes suivantes sont réservées par le langage et ne peuvent pas être dé
 - `import`
 - `include`
 - `require`
+- `opaque`
 - `dirty`
 - `pure`
 - `call`
 - `?`
+
+Constructeurs postfixes / builtins réservés :
+
 - `Ok!`
 - `Err!`
 
 Dans `case`, les motifs `Ok(v)` et `Err(e)` sont des formes de pattern de `Result`, pas des noms de mots définissables par l’utilisateur.
 
-Les variantes fermées `MissingKey` et `OutOfBounds` sont réservées en v1 comme variantes d’erreur du langage et ne peuvent pas être redéfinies comme mots utilisateur.
+Variantes fermées d’erreur réservées :
 
-Les racines de namespace suivantes sont réservées, à la fois comme racines et comme formes namespace :
+- `MissingKey`
+- `OutOfBounds`
+
+Ces variantes sont réservées en v1 comme variantes d’erreur du langage et ne peuvent pas être redéfinies comme mots utilisateur.
+
+Racines de namespace réservées :
 
 - `host`, `host.*`
 - `list`, `list.*`
@@ -337,6 +348,16 @@ module @app
   import @name.word
   import @name.word as alias
   import @host.console.log as console.log
+  import @host.io.FileHandle as io.FileHandle
+  import @host.io.{
+    open-file
+    close-file
+    FileHandle
+  } as io
+  import @host.console.{
+    log
+    read-line
+  } as *
 end-module
 ```
 
@@ -353,6 +374,11 @@ Règles normatives d’import :
 - les imports n’apparaissent jamais dans le corps d’un mot
 - les imports ne sont pas autorisés dans `module @host`
 - les imports n’injectent jamais de noms implicitement
+- les imports groupés sont une forme générale d’import en v1 ; ils ne sont pas limités aux symboles issus de `@host`
+- les imports depuis `@host` utilisent la même forme syntaxique pour les capacités hôte et les types opaques hôte
+- il n’existe pas de syntaxe d’import séparée pour les types opaques hôte
+- un import groupé est un sucre de surface pour une suite d’imports explicites
+- `as *` sur un import groupé désigne uniquement un ensemble explicitement sélectionné de symboles
 - les wildcard imports n’existent pas en v1
 - les aliases créent des noms visibles uniquement dans le module importateur
 - les aliases participent aux règles de collision de noms visibles dans ce module
@@ -384,6 +410,10 @@ Sémantique des formes d’import :
 - `import @text.split` rend uniquement `@text.split` disponible explicitement dans le module courant
 - `import @text.split as split` crée l’alias local simple `split`
 - `import @host.console.log as console.log` crée l’alias qualifié local `console.log`
+- `import @host.io.FileHandle as io.FileHandle` crée l’alias qualifié local `io.FileHandle`
+- les formes groupées relèvent de la surface générale des imports v1 ; les exemples ci-dessous se concentrent sur `@host` parce que cette section introduit aussi le contrat ABI hôte
+- `import @host.io.{ open-file close-file FileHandle } as io` est une écriture abrégée pour une suite d’imports explicites sous le préfixe local `io`
+- `import @host.console.{ log read-line } as *` est une écriture abrégée pour une suite d’imports explicites de noms courts, et non un wildcard import
 - sans alias, `import @text.split` ne rend pas `split` visible
 - un alias simple ou qualifié ne peut ni commencer par `@`, ni occuper une racine réservée
 - un alias qualifié reste un nom local, pas une référence de module
@@ -842,13 +872,19 @@ end-module
 
 `@host` n’est pas un module utilisateur normal.
 
-Il contient uniquement des déclarations `require`.
+Il contient uniquement des déclarations ABI hôte, sous forme de `require` et `opaque`.
 
 Un `require` déclare :
 
 - un chemin de capacité relatif à `@host`
 - une signature de pile
 - un effet ABI explicite `pure` ou `dirty`
+
+Un `opaque` déclare :
+
+- un chemin de type opaque relatif à `@host`
+- un type opaque hôte nominal
+- un nom canonique sous `@host.*`
 
 Formes valides :
 
@@ -864,24 +900,34 @@ require console.log
   dirty
 ```
 
+```nicole
+opaque io.FileHandle
+```
+
 Règles :
 
 - `require` n’est valide que dans `module @host`
+- `opaque` n’est valide que dans `module @host`
 - le chemin après `require` est relatif à `@host`
+- le chemin après `opaque` est relatif à `@host`
 - `require @host.console.log { msg:String -- } dirty` n’est pas la forme canonique
+- `opaque io.FileHandle` désigne le type opaque canonique `@host.io.FileHandle`
 - chaque `require` doit déclarer explicitement `pure` ou `dirty`
 - `pure` n’est légal que dans cette surface ABI
+- il n’existe pas de syntaxe `type opaque`
+- un `opaque` ne définit aucun constructeur source Nicole
 - `module @host` ne peut contenir ni `import`, ni `export`, ni définition de mot, ni logique exécutable, ni constante, ni variable
 - plusieurs fragments `module @host` sont syntaxiquement autorisés
 - cette fragmentabilité est réservée à `@host`
 - les règles de fusion ABI relèvent de `HOST_ABI.md` et de la sémantique, pas de cette section de syntaxe
 
-Les capacités déclarées dans `@host` sont importées explicitement dans les modules applicatifs.
+Les symboles déclarés dans `@host` sont importés explicitement dans les modules applicatifs.
 
 Exemple :
 
 ```nicole
 module @host
+  opaque io.FileHandle
   require console.log { msg:String -- } dirty
   require console.read-line { -- line:String } dirty
 end-module
@@ -889,6 +935,7 @@ end-module
 module @app
   import @host.console.log as console.log
   import @host.console.read-line as console.read-line
+  import @host.io.FileHandle as io.FileHandle
 
   dirty : main { -- }
     "Name?" console.log
@@ -903,7 +950,9 @@ Règles complémentaires :
 - un appel source direct `host.*` n’est plus une forme valide du langage
 - une capacité hôte n’est pas visible sans import dans le module consommateur
 - un alias d’import de capacité hôte reste local au module qui le déclare
-- les types opaques hôte `host.*` en position de type restent définis par le contrat ABI de l’hôte
+- un type opaque hôte `@host.*` en position de type reste défini par le contrat ABI de l’hôte
+- un type opaque hôte importé suit la forme d’import ordinaire et n’utilise pas une syntaxe spéciale distincte
+- les imports groupés préservent la visibilité module-locale et ne rétablissent aucun wildcard import
 
 Exemple invalide :
 
@@ -921,6 +970,30 @@ end-module
 
 ```nicole
 module @app
+  opaque io.FileHandle
+end-module
+```
+
+```nicole
+module @host
+  type opaque io.FileHandle
+end-module
+```
+
+```nicole
+module @app
+  import @host.io.*
+end-module
+```
+
+```nicole
+module @app
+  import @host.io.* as *
+end-module
+```
+
+```nicole
+module @app
   dirty : run { -- }
     "start" host.log
   ;
@@ -931,6 +1004,10 @@ Ces formes sont invalides respectivement parce que :
 
 - `require` n’est pas autorisé hors de `module @host`
 - `module @host` ne peut pas contenir d’import
+- `opaque` n’est pas autorisé hors de `module @host`
+- `type opaque` n’est pas une forme syntaxique valide
+- les wildcard imports n’existent pas en v1
+- les wildcard imports n’existent pas en v1, y compris avec `as *`
 - un appel source direct `host.*` n’est plus autorisé
 
 ---
@@ -1162,19 +1239,21 @@ Result<V,E>
 Quote<{ captures | inputs -- outputs }>
 DirtyQuote<{ captures | inputs -- outputs }>
 Unit
-host.*
+@host.*
 ```
 
-`host.*` en position de type désigne un type opaque hôte déclaré par le contrat ABI.
+`@host.*` en position de type désigne un type opaque hôte déclaré par le contrat ABI.
 
-Les noms imbriqués sont autorisés, par exemple `host.io.FileHandle` ou `host.net.TcpSocket`.
+Les noms imbriqués sont autorisés, par exemple `@host.io.FileHandle` ou `@host.net.TcpSocket`.
 
 Un type opaque hôte :
 
-- est déclaré par l’hôte, pas par le code source Nicole
+- est déclaré dans `module @host` par la forme `opaque path`
 - est nominal
+- possède un nom canonique sous `@host.*`
 - peut apparaître dans les signatures, les locals, les valeurs de pile, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,V>`
-- ne peut pas être construit, inspecté ni déclaré par une syntaxe source Nicole
+- ne peut pas être construit ni inspecté par une syntaxe source Nicole ordinaire
+- ne peut pas être déclaré hors de `module @host`
 
 Dans `Quote<{ captures | inputs -- outputs }>`, les mots `captures`, `inputs` et `outputs` sont des placeholders descriptifs. Les types concrets doivent utiliser des entrées et sorties nommées, par exemple `Quote<{ | x:Int -- y:Int }>` ou `Quote<{ a:Int | x:Int -- y:Int }>` .
 
@@ -1296,7 +1375,7 @@ Règles :
 - aucune coercion implicite entre `Int` et `Float` n’est autorisée
 - `<`, `<=`, `>`, `>=` sont définis pour `Int Int -> Bool` et `Float Float -> Bool`
 - ces comparaisons ne sont pas définies pour des types mélangés
-- `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`, sauf pour les types opaques hôte `host.*`
+- `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`, sauf pour les types opaques hôte `@host.*`
 - les opérateurs booléens produisent un `Bool`
 
 Exemples :
@@ -1628,8 +1707,8 @@ Règles :
 - les types de clé définis par l’utilisateur ne sont pas supportés en v1
 - l’extensibilité future des clés est différée
 - cette extensibilité future peut inclure des handles hôte ou des valeurs de type identité, mais v1 ne définit aucun tel mécanisme
-- les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>`, `Map<K,V>` et des types opaques hôte `host.*`
-- un type opaque hôte `host.*` peut donc être une valeur de map, mais jamais une clé de map en v1
+- les valeurs peuvent être de n’importe quel type supporté, y compris `Quote`, `List<T>`, `Map<K,V>` et des types opaques hôte `@host.*`
+- un type opaque hôte `@host.*` peut donc être une valeur de map, mais jamais une clé de map en v1
 - toute opération de mise à jour retourne une nouvelle map
 - `map.empty:Map<K,V>` construit une map vide de type `Map<K,V>`
 - `map.empty` non annoté est invalide, même si un contexte voisin pourrait suggérer un type

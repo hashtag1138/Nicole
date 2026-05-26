@@ -7,7 +7,7 @@ Ce document formalise le contrat conceptuel entre un programme Nicole et l’hô
 Il décrit les frontières d’intégration du langage :
 
 - `export` : mot du programme appelable par l’hôte
-- `module @host` / `require` : déclarations source-visibles des capacités hôte requises par le programme
+- `module @host` / `require` / `opaque` : déclarations source-visibles du contrat hôte requis par le programme
 
 Ce document ne définit pas :
 
@@ -39,13 +39,17 @@ Un mot `export` appartient au programme Nicole mais peut être invoqué par l’
 
 Une capacité déclarée dans `module @host` appartient au contrat ABI requis par le programme. Elle n’est pas définie comme mot Nicole ordinaire dans le code utilisateur, mais elle devient importable depuis `@host`.
 
+Un type opaque déclaré dans `module @host` appartient lui aussi à ce contrat ABI requis. Il ne définit ni constructeur source Nicole, ni représentation structurelle observable, mais un symbole de type importable depuis `@host`.
+
 L’effet (`pure` ou `dirty`) d’une capacité hôte fait partie du contrat ABI déclaré par `require`.
 
 Dans ce contexte, `pure` appartient uniquement à la surface ABI de `require` ; il ne devient pas un modificateur général des définitions de mots Nicole.
 
 Il n’existe plus de surface source Nicole où le programme appelle directement `host.*` comme des mots normaux.
 
-En revanche, la terminologie `host.*` reste valide pour les types opaques hôte et plus généralement comme vocabulaire ABI/type.
+En revanche, les types opaques hôte utilisent désormais des noms canoniques sous `@host.*`.
+
+L’ancienne terminologie `host.*` pour ces types opaques devient un vocabulaire hérité obsolète, non canonique.
 
 Cette évolution ne modifie pas les builtins `list.*`, `map.*` et `result.*`.
 
@@ -170,24 +174,25 @@ Le mot ne renvoie aucune valeur.
 
 ---
 
-# 3. `module @host` et `require` : contrat ABI déclaré par le programme
+# 3. `module @host`, `require` et `opaque` : contrat ABI déclaré par le programme
 
 `module @host` est la surface de déclaration ABI réservée du langage.
 
 Il ne s’agit pas d’un module utilisateur normal.
 
-Il sert à déclarer les capacités hôte requises par le programme Nicole.
+Il sert à déclarer les capacités hôte requises et les types opaques hôte requis par le programme Nicole.
 
 ## Rôle de `module @host`
 
 Un bloc `module @host` :
 
 - déclare des capacités hôte requises
+- déclare des types opaques hôte
 - contribue au contrat ABI visible en source
 - n’introduit pas de logique exécutable Nicole
 - n’expose pas de mots utilisateur ordinaires
 
-Les modules applicatifs consomment ensuite ces capacités uniquement via des imports depuis `@host`.
+Les modules applicatifs consomment ensuite ces symboles uniquement via des imports explicites depuis `@host`.
 
 Exemple :
 
@@ -238,6 +243,143 @@ désigne la capacité importable comme `@host.console.log`.
 
 Cette déclaration fait partie du contrat ABI normatif du programme.
 
+## Rôle de `opaque`
+
+`opaque` est l’unité normative de déclaration ABI d’un type opaque hôte.
+
+Forme canonique :
+
+```nicole
+module @host
+  opaque io.FileHandle
+end-module
+```
+
+Chaque `opaque` déclare :
+
+- un chemin de type opaque relatif à `@host`
+- un type opaque hôte nominal
+- un symbole de type importable depuis `@host`
+
+Ainsi :
+
+```nicole
+opaque io.FileHandle
+```
+
+désigne le type opaque canonique `@host.io.FileHandle`.
+
+Règles normatives :
+
+- `opaque` n’est valide que dans `module @host`
+- `opaque` déclare un type opaque hôte appartenant au contrat ABI consolidé
+- il n’existe pas de syntaxe `type opaque`
+- Nicole ne définit aucun constructeur source pour une valeur de type opaque hôte
+- Nicole ne définit aucune inspection structurelle source pour une valeur de type opaque hôte
+- la représentation runtime de la valeur opaque reste entièrement contrôlée par l’hôte
+
+## Imports explicites depuis `@host`
+
+Les capacités hôte et les types opaques hôte utilisent le même mécanisme d’import explicite.
+
+Formes canoniques :
+
+```nicole
+import @host.console.log as console.log
+import @host.io.FileHandle as io.FileHandle
+```
+
+Règles normatives :
+
+- il n’existe pas de syntaxe d’import séparée pour les types opaques hôte
+- un import depuis `@host` reste module-local
+- un alias d’import depuis `@host` reste module-local
+- les règles ordinaires de collision d’alias restent inchangées
+- un symbole importé conserve sa catégorie d’origine
+- une capacité hôte importée est un symbole importé appelable, utilisable selon sa signature et son effet déclarés
+- son import ne la transforme pas, à lui seul, en valeur de première classe en v1
+- un type opaque hôte importé est utilisable uniquement en position de type ou de signature
+- l’usage d’un type opaque importé en position appelable ou d’expression doit être rejeté statiquement
+- l’usage d’une capacité importée comme nom de type doit être rejeté statiquement
+
+## Imports groupés depuis `@host`
+
+Les imports groupés sont un sucre de surface pour une suite d’imports explicites distincts.
+
+### Imports groupés avec alias préfixe
+
+Forme canonique :
+
+```nicole
+module @app
+  import @host.io.{
+    open-file
+    close-file
+    FileHandle
+  } as io
+end-module
+```
+
+Équivalence normative :
+
+```nicole
+import @host.io.open-file as io.open-file
+import @host.io.close-file as io.close-file
+import @host.io.FileHandle as io.FileHandle
+```
+
+Règles normatives :
+
+- l’import groupé avec alias préfixe est un sucre seulement
+- il n’introduit pas de catégorie d’import distincte
+- chaque symbole importé conserve sa catégorie d’origine
+- la visibilité reste module-locale
+- les règles de collision restent inchangées
+
+### Imports groupés avec `as *`
+
+Forme canonique :
+
+```nicole
+module @app
+  import @host.console.{
+    log
+    read-line
+  } as *
+end-module
+```
+
+Équivalence normative :
+
+```nicole
+import @host.console.log as log
+import @host.console.read-line as read-line
+```
+
+Règles normatives :
+
+- `as *` n’importe qu’un ensemble explicitement énuméré de symboles
+- `as *` n’est pas un wildcard import
+- la visibilité reste module-locale
+- les collisions restent des erreurs
+- les symboles importés gardent leurs catégories d’origine
+- `as *` est moins auditable que les alias préfixés et ne constitue pas le style préféré pour les exemples normatifs lourds en dépendances
+
+### Wildcard imports invalides
+
+Les formes suivantes restent invalides :
+
+```nicole
+import @host.io.*
+import @host.io.* as *
+```
+
+Règles normatives :
+
+- les wildcard imports restent invalides
+- les imports groupés ne changent pas cette règle
+- une sélection explicite de symboles et un wildcard import restent deux concepts distincts
+
 ## Contrat consolidé `@host`
 
 `@host` est fragmentable à travers plusieurs fichiers.
@@ -250,12 +392,22 @@ Règles normatives :
 - l’ordre des fragments n’affecte pas la signification du contrat consolidé
 - deux déclarations identiques pour le même chemin de capacité sont autorisées
 - deux déclarations divergentes pour le même chemin de capacité constituent une erreur ABI
+- deux déclarations `opaque` identiques pour le même chemin canonique sont autorisées
+- une déclaration `opaque` et une autre déclaration ABI incompatible pour le même nom canonique constituent une erreur ABI
+- le contrat consolidé `@host` reste déterministe : chaque symbole visible y possède une seule catégorie et une seule signification
 
 Dans ce document, “identiques” signifie :
 
 - même chemin de capacité
 - même signature
 - même effet ABI
+
+Pour les types opaques hôte, “identiques” signifie exactement en v1 :
+
+- même nom canonique sous `@host.*`
+- même catégorie de symbole : type opaque hôte
+
+La v1 ne définit aucun autre critère d’égalité, de représentation ou de compatibilité pour ces déclarations `opaque`.
 
 Exemple conceptuel :
 
@@ -312,23 +464,43 @@ Une capacité déclarée dans le contrat consolidé doit être satisfaite par le
 
 ## Types opaques hôte
 
-Le contrat d’intégration peut aussi déclarer des types opaques hôte.
+Le contrat d’intégration peut aussi déclarer des types opaques hôte dans `module @host`.
+
+Forme canonique :
+
+```nicole
+module @host
+  opaque io.FileHandle
+end-module
+```
 
 Pour chaque type opaque hôte, le contrat doit fournir au minimum :
 
-- son nom canonique sous `host.*`
+- son nom canonique sous `@host.*`
 - son genre conceptuel : opaque
 - son identité nominale
 
 Les noms imbriqués sont autorisés :
 
-- `host.FileHandle`
-- `host.io.FileHandle`
-- `host.net.TcpSocket`
+- `@host.FileHandle`
+- `@host.io.FileHandle`
+- `@host.net.TcpSocket`
 
 Un type opaque hôte n’est jamais défini par un mot Nicole utilisateur.
 
-S’il apparaît dans une signature visible à l’ABI, il doit être déclaré explicitement par le contrat hôte.
+Un type opaque hôte n’est jamais construit directement par une forme source Nicole.
+
+Sa représentation runtime reste propriété de l’hôte.
+
+S’il apparaît dans une signature visible à l’ABI, il doit être déclaré explicitement par le contrat hôte consolidé.
+
+Il peut ensuite être importé explicitement par la forme ordinaire :
+
+```nicole
+import @host.io.FileHandle as io.FileHandle
+```
+
+Cette importation ne crée pas un nouveau type ; elle rend visible, localement au module importateur, le type opaque déjà déclaré dans le contrat ABI.
 
 ## Unicité des noms ABI
 
@@ -338,7 +510,7 @@ Le contrat ABI ne définit donc pas plusieurs bindings concurrents sous le même
 
 La v1 ne définit aucun mécanisme de surcharge dynamique, de fallback implicite ou de sélection à l’exécution entre plusieurs capacités déclarées sous le même chemin.
 
-De même, dans l’espace des types visibles à l’ABI, un nom canonique `host.*` doit désigner un seul type opaque hôte.
+De même, dans l’espace des types visibles à l’ABI, un nom canonique `@host.*` doit désigner un seul type opaque hôte.
 
 L’identité d’un type opaque hôte est nominale : deux noms canoniques distincts désignent deux types distincts.
 
@@ -410,6 +582,10 @@ Dans tous les cas, il s’agit d’une erreur d’intégration.
 
 Lorsqu’elle apparaît à l’exécution, une erreur d’intégration constitue aussi une erreur de contrat d’exécution.
 
+Le moment exact où cette impossibilité est observée peut dépendre du modèle d’intégration de l’hôte ou du runtime embarquant.
+
+Cette variation de moment d’observation ne modifie toutefois ni la catégorie de l’erreur, ni la sémantique statique du langage, ni l’absence d’inférence de type à l’exécution.
+
 ## Différence avec `Result`
 
 Une erreur d’intégration n’est pas un `Result`, sauf si la capacité hôte elle-même a explicitement été définie pour renvoyer un `Result`.
@@ -434,7 +610,7 @@ Types autorisés à travers l’ABI v1 :
 - `Result<T,E>`
 - `ListError`
 - `MapError`
-- types opaques hôte `host.*` déclarés par le contrat
+- types opaques hôte `@host.*` déclarés par le contrat
 
 Règles :
 
@@ -443,13 +619,15 @@ Règles :
 - `Map<K,V>` n’est autorisé que si `K` reste l’un des types de clé valides en v1 : `Int`, `String`, `Bool`
 - `Result<T,E>` n’est autorisé que si `T` et `E` sont eux-mêmes compatibles avec l’ABI v1
 - `ListError` et `MapError` sont eux-mêmes des valeurs ABI v1 autorisées comme types d’erreur fermés du langage
-- un type opaque hôte `host.*` n’est autorisé que s’il est déclaré explicitement par le contrat hôte
-- un type opaque hôte `host.*` peut apparaître récursivement dans `List<T>`, `Map<K,V>` et `Result<T,E>` si les autres contraintes ABI restent satisfaites
-- un type opaque hôte `host.*` peut être une valeur de `Map<K,V>`, mais pas une clé de map en v1
+- un type opaque hôte `@host.*` n’est autorisé que s’il est déclaré explicitement par le contrat hôte consolidé
+- un type opaque hôte `@host.*` peut apparaître récursivement dans `List<T>`, `Map<K,V>` et `Result<T,E>` si les autres contraintes ABI restent satisfaites
+- un type opaque hôte `@host.*` peut être une valeur de `Map<K,V>`, mais pas une clé de map en v1
 
 Les types opaques hôte restent des valeurs opaques nominales du point de vue Nicole.
 
 Leur rendu de debug éventuel est laissé à l’implémentation.
+
+Le programme ne les consomme jamais par appel direct `host.*` ; une capacité hôte reste déclarée dans `@host`, puis importée explicitement dans le module consommateur.
 
 Les quotations ne franchissent pas l’ABI hôte en v1.
 
@@ -522,8 +700,11 @@ La frontière ABI v1 n’implique donc pas :
 Le langage vérifie :
 
 - la cohérence des déclarations `require`
+- la cohérence des déclarations `opaque`
 - la visibilité des capacités importées selon les règles statiques du langage
+- la visibilité des types opaques importés selon les règles statiques du langage
 - la compatibilité ABI des signatures déclarées
+- la séparation des catégories de symboles importés
 - la distinction entre contrat ABI déclaré et contrat ABI fourni
 
 Le runtime doit satisfaire le contrat ABI consolidé déjà déclaré.

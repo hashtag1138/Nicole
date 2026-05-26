@@ -102,7 +102,7 @@ Le langage visé est :
 - sans capture lexicale implicite
 - sans pile globale partagée
 - uniquement embarqué
-- avec contrat ABI hôte source-visible réservé via `module @host` et `require`
+- avec contrat ABI hôte source-visible réservé via `module @host`, `require` et `opaque`
 - pensé autour d’une cible conceptuelle bytecode
 - JIT éventuellement plus tard, sans en faire une promesse de v1
 
@@ -114,7 +114,15 @@ La priorité de travail devient :
 
 `HOST_ABI.md` doit décrire le contrat conceptuel entre le programme Nicole et l’hôte embarquant. Il ne doit pas définir une API C, Rust, Lua, LLVM, ni une représentation mémoire concrète.
 
-Les règles normatives sur `export`, `module @host`, `require`, `Result`, les erreurs d’intégration, les capacités hôte importables et le vocabulaire de types opaques hôte vivent dans `HOST_ABI.md`.
+Les règles normatives sur `export`, `module @host`, `require`, `opaque`, `Result`, les erreurs d’intégration, les capacités hôte importables et le vocabulaire de types opaques hôte vivent dans `HOST_ABI.md`.
+
+`module @host` déclare les capacités hôte via `require` et les types opaques hôte via `opaque`.
+
+Les noms canoniques des types opaques hôte vivent sous `@host.*`.
+
+Les appels source directs `host.*` restent interdits.
+
+L’implémentation doit suivre la spécification active, pas d’anciens plans de migration désormais obsolètes.
 
 `SYNTAXE.md` est figé.
 `SEMANTIQUE.md` est considéré comme figé pour la v1, sauf contradiction réelle ou bug sémantique évident.

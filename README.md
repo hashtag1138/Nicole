@@ -50,11 +50,27 @@ Références conceptuelles :
 
 - `SYNTAXE.md` : syntaxe figée de v1
 - `SEMANTIQUE.md` : sémantique figée de la v1 ; référence officielle du comportement du langage
-- `HOST_ABI.md` : priorité actuelle ; contrat conceptuel entre le programme Nicole et l’hôte embarquant (`module @host`, `require`, `export`, types opaques hôte)
+- `HOST_ABI.md` : priorité actuelle ; contrat conceptuel entre le programme Nicole et l’hôte embarquant (`module @host`, `require`, `opaque`, `export`, types opaques hôte)
 
-Les règles normatives sur `export`, `module @host`, `require`, les capacités hôte importables, `Result`, les erreurs d’intégration et la frontière de confiance runtime vivent dans `HOST_ABI.md`.
+Les règles normatives sur `export`, `module @host`, `require`, `opaque`, les capacités hôte importables, les types opaques hôte importables, `Result`, les erreurs d’intégration et la frontière de confiance runtime vivent dans `HOST_ABI.md`.
 
-Les types opaques hôte sont des types nominaux déclarés par ce contrat, sous des noms canoniques `host.*` comme `host.io.FileHandle`.
+Les types opaques hôte sont des types nominaux déclarés source-visiblement dans ce contrat, sous des noms canoniques `@host.*` comme `@host.io.FileHandle`.
+
+Forme minimale :
+
+```nicole
+module @host
+  opaque io.FileHandle
+end-module
+```
+
+Un type opaque hôte importable utilise ensuite la même forme d’import explicite que les capacités hôte :
+
+```nicole
+import @host.io.FileHandle as io.FileHandle
+```
+
+Il n’existe pas de syntaxe d’import séparée pour les types opaques hôte.
 
 `HOST_ABI.md` reste une spécification conceptuelle et ne doit pas dériver vers une API C, une ABI binaire, une FFI Rust/Lua, une représentation mémoire concrète, ni des détails de runtime.
 
@@ -97,7 +113,28 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - noms qualifiés
 - fondations lexicales/grammaticales pour `@module.word`, `module`, `end-module`, `import`, `include` (sémantique différée)
 - déclaration source-visible des capacités hôte via `module @host` et `require`
-- imports module-locaux de capacités hôte depuis `@host`
+- déclaration source-visible des types opaques hôte via `module @host` et `opaque`
+- imports module-locaux explicites depuis `@host` pour les capacités et les types opaques hôte
+- imports groupés comme sucre de surface seulement, par exemple :
+
+```nicole
+import @host.io.{
+  open-file
+  close-file
+  FileHandle
+} as io
+```
+
+- imports groupés `as *` autorisés seulement pour une sélection explicite de symboles, par exemple :
+
+```nicole
+import @host.console.{
+  log
+  read-line
+} as *
+```
+
+- `as *` n’introduit pas de sémantique de wildcard import et reste moins auditable qu’un alias préfixé
 - listes immuables, concaténation et décomposition
 - opérations de liste `list.len`, `list.is-empty`, `list.get`, `list.first`, `list.last`, `list.set`, `list.append`, `list.concat`, `list.reverse`, `list.map`, `list.filter`, `list.fold`, `list.reduce`
 - opérations de map `map.empty`, `map.get`, `map.contains`, `map.set`, `map.remove`, `map.len`, `map.is-empty`, `map.keys`, `map.values`
@@ -127,7 +164,10 @@ En cas de divergence, ce sont toujours `SYNTAXE.md`, `SEMANTIQUE.md` et `HOST_AB
 - pureté implicite + effet `dirty` explicite et vérifié statiquement
 - export = programme → hôte via nom canonique `@module.word`
 - capacités hôte = hôte → programme via contrat source-visible déclaré dans `module @host`
-- import des capacités hôte au niveau module, sans visibilité globale implicite
+- types opaques hôte = types nominaux ABI sous noms canoniques `@host.*`, déclarés dans `module @host`
+- aucune surface d’appel directe `host.*` en source ; l’interaction hôte passe par `module @host`, puis par des imports explicites et des aliases module-locaux
+- import des symboles hôte au niveau module, sans visibilité globale implicite
+- imports groupés = désignation explicite de dépendances, sans injection de namespace implicite
 - effet ABI (`pure` ou `dirty`) déclaré explicitement par `require`
 - runtime de l’hôte considéré comme trusted, mais contraint à satisfaire le contrat ABI déclaré
 

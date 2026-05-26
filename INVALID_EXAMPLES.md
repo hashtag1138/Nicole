@@ -1309,6 +1309,27 @@ Pourquoi c’est invalide :
 Règle violée :
 - une capacité hôte importée doit être déclarée explicitement par le contrat consolidé `@host`
 
+### Import wildcard hôte interdit
+
+```nicole
+module @invalid.phase6
+  import @host.io.*
+end-module
+```
+
+```nicole
+module @invalid.phase6
+  import @host.io.* as *
+end-module
+```
+
+Pourquoi c’est invalide :
+- les wildcard imports n’existent pas en v1
+- `as *` ne vaut que pour une sélection explicite de symboles, pas pour un wildcard import
+
+Règle violée :
+- les wildcard imports hôte n’ont aucune forme valide en v1
+
 ### Définition directe d’un mot `host.*`
 
 ```nicole
@@ -1322,7 +1343,7 @@ end-module
 
 Pourquoi c’est invalide :
 - un programme utilisateur ne peut pas définir un mot `host.*`
-- `host.*` reste réservé à la terminologie ABI et aux types opaques hôte, pas à des mots Nicole définis par l’utilisateur
+- `host.*` reste réservé pour les appels source hôte interdits et comme vocabulaire historique obsolète, pas à des mots Nicole définis par l’utilisateur
 
 Règle violée :
 - un mot utilisateur ne peut pas utiliser la racine réservée `host.*`
@@ -1341,7 +1362,7 @@ end-module
 
 Pourquoi c’est invalide :
 - `module @host` n’est pas un module utilisateur normal
-- son corps est réservé aux déclarations ABI `require`
+- son corps est réservé aux déclarations ABI `require` et `opaque`
 
 Règle violée :
 - `module @host` ne peut pas contenir de définition de mot
@@ -1481,22 +1502,34 @@ Pourquoi c’est invalide :
 Règle violée :
 - les quotations ne franchissent pas l’ABI hôte en v1
 
-### Déclaration source d’un type opaque hôte
+### `opaque` hors `module @host`
 
 ```nicole
-module @invalid.phase6
-
-  opaque type host.io.FileHandle
-
+module @app
+  opaque io.FileHandle
 end-module
 ```
 
 Pourquoi c’est invalide :
-- la v1 n’introduit aucune déclaration source de type opaque
-- un type opaque hôte est déclaré par le contrat ABI, pas par Nicole
+- `opaque` n’est valide que dans `module @host`
 
 Règle violée :
-- les types opaques hôte `host.*` sont déclarés uniquement par le contrat hôte
+- un type opaque hôte source-visible se déclare uniquement dans le contrat consolidé `@host`
+
+### `type opaque`
+
+```nicole
+module @host
+  type opaque io.FileHandle
+end-module
+```
+
+Pourquoi c’est invalide :
+- `type opaque` n’appartient pas à la syntaxe Nicole validée
+- un type opaque hôte se déclare avec la forme `opaque path`
+
+Règle violée :
+- les types opaques hôte source-visibles utilisent la forme `opaque io.FileHandle`
 
 ### Déclaration source `external type`
 
@@ -1517,28 +1550,38 @@ Règle violée :
 ### Construction directe d’une valeur opaque hôte
 
 ```nicole
-module @invalid.phase6
+module @host
+  opaque io.FileHandle
+end-module
 
-  : make-file { -- file:host.io.FileHandle }
-    host.io.FileHandle
+module @invalid.phase6
+  import @host.io.FileHandle as io.FileHandle
+
+  : make-file { -- }
+    io.FileHandle
   ;
 
 end-module
 ```
 
 Pourquoi c’est invalide :
-- `host.io.FileHandle` désigne un nom de type, pas un constructeur
-- une valeur opaque hôte ne peut être produite que par un mot hôte déclaré
+- `io.FileHandle` désigne ici un symbole de type importé, pas un constructeur ni une expression appelable
+- une valeur opaque hôte ne peut être produite que par une capacité hôte déclarée
 
 Règle violée :
-- un type opaque hôte ne peut pas être construit directement dans Nicole
+- un type opaque hôte importé n’est valide qu’en position de type ou de signature
 
 ### Accès à un champ d’une valeur opaque hôte
 
 ```nicole
-module @invalid.phase6
+module @host
+  opaque io.FileHandle
+end-module
 
-  : file-path { file:host.io.FileHandle -- path:String }
+module @invalid.phase6
+  import @host.io.FileHandle as io.FileHandle
+
+  : file-path { file:io.FileHandle -- path:String }
     file.path
   ;
 
@@ -1554,9 +1597,14 @@ Règle violée :
 ### Égalité générique sur valeur opaque hôte
 
 ```nicole
-module @invalid.phase6
+module @host
+  opaque io.FileHandle
+end-module
 
-  : same-file { a:host.io.FileHandle b:host.io.FileHandle -- ok:Bool }
+module @invalid.phase6
+  import @host.io.FileHandle as io.FileHandle
+
+  : same-file { a:io.FileHandle b:io.FileHandle -- ok:Bool }
     a b =
   ;
 
@@ -1567,15 +1615,20 @@ Pourquoi c’est invalide :
 - la v1 n’attribue pas d’égalité générique aux types opaques hôte
 
 Règle violée :
-- `=` et `!=` ne s’appliquent pas aux valeurs de type opaque hôte `host.*`
+- `=` et `!=` ne s’appliquent pas aux valeurs de type opaque hôte `@host.*`
 
 ### Clé de map en type opaque hôte
 
 ```nicole
-module @invalid.phase6
+module @host
+  opaque io.FileHandle
+end-module
 
-  : bad-map { -- m:Map<host.io.FileHandle,String> }
-    map.empty:Map<host.io.FileHandle,String>
+module @invalid.phase6
+  import @host.io.FileHandle as io.FileHandle
+
+  : bad-map { -- m:Map<io.FileHandle,String> }
+    map.empty:Map<io.FileHandle,String>
   ;
 
 end-module
@@ -1585,30 +1638,45 @@ Pourquoi c’est invalide :
 - une clé de map v1 doit rester `Int`, `String` ou `Bool`
 
 Règle violée :
-- un type opaque hôte `host.*` peut être une valeur de map, jamais une clé de map en v1
+- un type opaque hôte `@host.*` peut être une valeur de map, jamais une clé de map en v1
 
 ### Type opaque hôte non déclaré dans une signature ABI-visible
 
 ```nicole
 module @host
-  require io.open-file
-    { path:String mode:String -- file:host.io.FileHandle }
+  require io.close-file
+    { file:@host.io.FileHandle -- }
     dirty
 end-module
 ```
 
 Pourquoi c’est invalide :
-- le contrat utilise `host.io.FileHandle` dans une signature visible à l’ABI sans déclarer ce type opaque
+- le contrat utilise `@host.io.FileHandle` dans une signature visible à l’ABI sans déclarer `opaque io.FileHandle`
 
 Règle violée :
 - tout type opaque hôte utilisé dans une signature ABI-visible doit être déclaré explicitement par le contrat hôte
+
+### Conflit de catégorie pour un symbole `@host`
+
+```nicole
+module @host
+  opaque io.FileHandle
+  require io.FileHandle { -- } dirty
+end-module
+```
+
+Pourquoi c’est invalide :
+- le même nom canonique `@host.io.FileHandle` ne peut pas désigner à la fois un type opaque hôte et une capacité hôte
+
+Règle violée :
+- chaque symbole du contrat consolidé `@host` possède une seule catégorie
 
 ### Alias de type opaque hôte
 
 ```nicole
 module @invalid.phase6
 
-  type alias FH = host.io.FileHandle
+  type alias FH = @host.io.FileHandle
 
 end-module
 ```
@@ -1618,6 +1686,29 @@ Pourquoi c’est invalide :
 
 Règle violée :
 - les aliases de types opaques hôte sont différés à un RFC ultérieur
+
+### Capacité hôte utilisée comme nom de type
+
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
+module @app
+  import @host.console.log as console.log
+
+  : bad { x:console.log -- }
+    x drop
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `console.log` désigne ici une capacité hôte importée
+- une capacité hôte importée est un symbole appelable/valeur, pas un symbole de type
+
+Règle violée :
+- une capacité hôte importée ne peut pas être utilisée comme nom de type
 
 ### Mot hôte retournant une quotation
 
@@ -1891,7 +1982,7 @@ Règle violée :
 ### `extern type`
 
 ```nicole
-extern type host.io.FileHandle
+extern type @host.io.FileHandle
 ```
 
 Pourquoi c’est invalide :

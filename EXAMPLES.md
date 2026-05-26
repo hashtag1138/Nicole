@@ -1251,82 +1251,136 @@ Explication :
 Pourquoi :
 - montre que `Result` à la frontière hôte reste explicite et contractuel
 
-### Handle de fichier opaque déclaré par l’hôte
-
-Contrat ABI supposé pour cet exemple :
-
-```text
-type:
-host.io.FileHandle
-kind:
-opaque
-```
+### Handle de fichier opaque déclaré dans `@host`
 
 ```nicole
 module @host
+  opaque io.FileHandle
+
   require io.open-file
-    { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+    { path:String mode:String -- r:Result<@host.io.FileHandle,String> }
     dirty
 
   require io.read-line
-    { file:host.io.FileHandle -- r:Result<String,String> }
+    { file:@host.io.FileHandle -- r:Result<String,String> }
     dirty
 
-  require io.close-file { file:host.io.FileHandle -- } dirty
-end-module
-```
-
-```nicole
-module @host
-  require io.open-file
-    { path:String mode:String -- r:Result<host.io.FileHandle,String> }
-    dirty
-
-  require io.read-line
-    { file:host.io.FileHandle -- r:Result<String,String> }
-    dirty
-
-  require io.close-file { file:host.io.FileHandle -- } dirty
+  require io.close-file { file:@host.io.FileHandle -- } dirty
 end-module
 
 module @examples_host_file
+  import @host.io.FileHandle as io.FileHandle
   import @host.io.open-file as io.open-file
   import @host.io.read-line as io.read-line
   import @host.io.close-file as io.close-file
 
-  dirty : open-file { path:String mode:String -- r:Result<host.io.FileHandle,String> }
+  dirty : open-file { path:String mode:String -- r:Result<io.FileHandle,String> }
     path mode io.open-file
   ;
 
-  dirty : read-line { file:host.io.FileHandle -- r:Result<String,String> }
+  dirty : read-line { file:io.FileHandle -- r:Result<String,String> }
     file io.read-line
   ;
 
-  dirty : close-file { file:host.io.FileHandle -- }
+  dirty : close-file { file:io.FileHandle -- }
     file io.close-file
   ;
 end-module
 ```
 
 Explication :
-- `host.io.FileHandle` reste un type opaque hôte déclaré par le contrat ABI
+- `opaque io.FileHandle` déclare le type opaque hôte canonique `@host.io.FileHandle`
 - les capacités d’ouverture, lecture et fermeture sont déclarées par `require`
-- le module applicatif les importe explicitement avec des aliases qualifiés
+- le module applicatif importe explicitement le type opaque et les capacités qu’il utilise
 
 Pourquoi :
-- montre la forme canonique minimale d’un type opaque hôte et de capacités hôte qui l’utilisent
+- montre ensemble la frontière ABI visible, le type opaque nominal et les imports module-locaux ordinaires
+
+### Même contrat avec import groupé préfixé
+
+```nicole
+module @host
+  opaque io.FileHandle
+  require io.open-file { path:String mode:String -- r:Result<@host.io.FileHandle,String> } dirty
+  require io.close-file { file:@host.io.FileHandle -- } dirty
+end-module
+
+module @examples_host_file_grouped
+  import @host.io.{
+    open-file
+    close-file
+    FileHandle
+  } as io
+
+  dirty : open-then-close { path:String mode:String -- r:Result<io.FileHandle,String> }
+    path mode io.open-file
+  ;
+end-module
+```
+
+Équivalent à :
+
+```nicole
+module @examples_host_file_grouped
+  import @host.io.open-file as io.open-file
+  import @host.io.close-file as io.close-file
+  import @host.io.FileHandle as io.FileHandle
+
+  dirty : open-then-close { path:String mode:String -- r:Result<io.FileHandle,String> }
+    path mode io.open-file
+  ;
+end-module
+```
+
+Explication :
+- l’import groupé est présenté ici comme un simple sucre pour plusieurs imports explicites
+- le préfixe local `io` garde l’origine des dépendances visible
+
+Pourquoi :
+- montre la forme groupée approuvée sans introduire de nouvelle sémantique
+
+### Import direct sélectionné avec `as *`
+
+```nicole
+module @host
+  require console.log { msg:String -- } dirty
+  require console.read-line { -- line:String } dirty
+end-module
+
+module @examples_host_console_short
+  import @host.console.{
+    log
+    read-line
+  } as *
+
+  dirty : ask-name { -- line:String }
+    "Name?" log
+    read-line
+  ;
+end-module
+```
+
+Explication :
+- `as *` expose uniquement les symboles explicitement sélectionnés
+- il ne s’agit pas d’un wildcard import
+- ce style reste plus compact mais moins lisible qu’un alias préfixé quand un module accumule beaucoup de dépendances
+
+Pourquoi :
+- montre une petite forme abrégée valide tout en gardant la préférence générale pour les alias préfixés dans les exemples plus chargés
 
 ### Valeur opaque hôte dans `List<T>` et `Map<String,T>`
 
 ```nicole
 module @examples_host_file_containers
-  : one-file { file:host.io.FileHandle -- xs:List<host.io.FileHandle> }
-    []:List<host.io.FileHandle>
+  import @host.io.FileHandle as io.FileHandle
+
+  : one-file { file:io.FileHandle -- xs:List<io.FileHandle> }
+    []:List<io.FileHandle>
     file list.append
   ;
 
-  : remember-file { name:String file:host.io.FileHandle -- files:Map<String,host.io.FileHandle> }
-    map.empty:Map<String,host.io.FileHandle>
+  : remember-file { name:String file:io.FileHandle -- files:Map<String,io.FileHandle> }
+    map.empty:Map<String,io.FileHandle>
     name file map.set
   ;
 end-module
@@ -1343,8 +1397,10 @@ Pourquoi :
 
 ```nicole
 module @examples_host_file_quote
-  : keep-file { file:host.io.FileHandle -- q:Quote<{ file:host.io.FileHandle | -- file2:host.io.FileHandle }> }
-    :[ file:host.io.FileHandle | -- file2:host.io.FileHandle |
+  import @host.io.FileHandle as io.FileHandle
+
+  : keep-file { file:io.FileHandle -- q:Quote<{ file:io.FileHandle | -- file2:io.FileHandle }> }
+    :[ file:io.FileHandle | -- file2:io.FileHandle |
       file
     ;]
   ;
@@ -1421,18 +1477,15 @@ Pourquoi :
 
 ### Export avec type opaque hôte déclaré
 
-Contrat hôte supposé pour cet exemple :
-
-```text
-type:
-host.io.FileHandle
-kind:
-opaque
-```
-
 ```nicole
+module @host
+  opaque io.FileHandle
+end-module
+
 module @app.host_file
-  : keep-open { file:host.io.FileHandle -- file2:host.io.FileHandle }
+  import @host.io.FileHandle as io.FileHandle
+
+  : keep-open { file:io.FileHandle -- file2:io.FileHandle }
     file
   ;
   export : keep-open

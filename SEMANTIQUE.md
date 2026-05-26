@@ -41,7 +41,8 @@ En particulier :
 
 - `list.*`, `map.*` et `result.*` restent des builtins appelables du langage
 - `host.*` ne fait plus partie de la surface d’appel directe du programme
-- `host.*` reste une racine réservée pour la terminologie ABI et les types opaques hôte
+- `host.*` reste une racine réservée pour les appels source hôte interdits et comme terminologie historique obsolète
+- les types opaques hôte utilisent des noms canoniques sous `@host.*`
 - `@host` reste le module réservé de déclaration ABI hôte
 
 Une définition utilisateur qui tente de réutiliser ou de masquer l’un de ces noms doit être rejetée statiquement.
@@ -269,7 +270,8 @@ Le modèle de consommation hôte suit les règles suivantes :
 - le programme ne résout plus de mots appelables `host.*` directement
 - `module @host` déclare un contrat ABI hôte source-visible
 - chaque `require` de `module @host` contribue un symbole de capacité hôte importable
-- un module applicatif ne consomme une capacité hôte qu’au moyen d’un import depuis le contrat consolidé `@host`
+- chaque `opaque` de `module @host` contribue un symbole de type opaque hôte importable
+- un module applicatif ne consomme un symbole hôte qu’au moyen d’un import depuis le contrat consolidé `@host`
 
 Ordre de résolution dans un module :
 
@@ -294,27 +296,51 @@ Sémantique des imports :
 - `import @text.split` autorise uniquement `@text.split` dans le module courant
 - `import @text.split as split` crée l’alias local simple `split`
 - `import @host.console.log as console.log` crée l’alias qualifié local `console.log`
+- `import @host.io.FileHandle as io.FileHandle` crée l’alias qualifié local `io.FileHandle`
+- les capacités hôte déclarées par `require` et les types opaques hôte déclarés par `opaque` utilisent le même mécanisme d’import explicite
+- un symbole importé conserve sa catégorie d’origine
+- les catégories pertinentes ici incluent au minimum : capacité hôte et type opaque hôte
+- une capacité hôte importée est un symbole importé appelable, utilisable selon sa signature et son effet déclarés
+- son import ne la transforme pas, à lui seul, en valeur de première classe en v1
+- un type opaque hôte importé est utilisable uniquement en position de type ou de signature
+- l’usage d’un type opaque importé comme expression ou cible d’appel est une erreur statique de catégorie
+- l’usage d’une capacité hôte importée comme nom de type est une erreur statique de catégorie
+- lorsqu’un symbole importé est connu mais utilisé dans une position incompatible avec sa catégorie, l’erreur ne doit pas être rabattue silencieusement sur une absence d’import
+- les imports groupés sont une forme générale d’import en v1 ; ils ne sont pas limités aux symboles issus de `@host`
+- `import @host.io.{ open-file close-file FileHandle } as io` est un pur sucre de désucrage vers trois imports explicites distincts
+- `import @host.console.{ log read-line } as *` est un pur sucre de désucrage vers deux imports explicites de noms courts
+- le désucrage d’un import groupé préserve la visibilité module-locale, la catégorie de chaque symbole et les règles de collision ordinaires
+- l’ordre des éléments d’un import groupé ne change pas le sens du programme, hors diagnostics déterministes associés à l’ordre d’analyse
+- les imports groupés ne créent aucun comportement de wildcard import
 - sans alias, `import @text.split` ne rend pas `split` visible
 - sans import, une référence externe `@text.word` ou `@host.console.log` est invalide
 - un alias qualifié reste un nom local, pas une référence de module
 - un alias d’import ne peut ni commencer par `@`, ni occuper une racine réservée
 - la sémantique détaillée de `include` reste différée et ne rétablit pas de portée d’alias à l’échelle de l’unité de compilation
 
-Sémantique de `@host` et des capacités hôte :
+Sémantique de `@host`, des capacités hôte et des types opaques hôte :
 
 - tous les fragments `module @host` contribuent à un contrat hôte consolidé unique
 - l’ordre des fragments `@host` n’affecte pas le sens du contrat consolidé
 - deux déclarations `require` identiques pour le même chemin de capacité sont acceptables
 - deux déclarations `require` divergentes pour le même chemin de capacité sont des erreurs sémantiques
-- `require` introduit un chemin de capacité, une signature de pile, un effet ABI explicite et un symbole importable
-- le contrat consolidé `@host` est la seule source sémantique des capacités hôte importables
+- deux déclarations `opaque` identiques pour le même nom canonique sont acceptables
+- une déclaration `opaque` incompatible avec une autre déclaration ABI sous le même nom canonique est une erreur ABI
+- `require` introduit un chemin de capacité, une signature de pile, un effet ABI explicite et un symbole importable de catégorie capacité hôte
+- `opaque` introduit un type opaque hôte nominal, sans constructeur source ni inspection structurelle source, et un symbole importable de catégorie type opaque hôte
+- le nom canonique d’un type opaque déclaré par `opaque io.FileHandle` est `@host.io.FileHandle`
+- le contrat consolidé `@host` est la seule source sémantique des capacités hôte importables et des types opaques hôte importables
+- chaque symbole du contrat consolidé `@host` possède un seul nom canonique et une seule catégorie
 - un module utilisateur normal ne déclare jamais de capacité hôte lui-même
+- un module utilisateur normal ne déclare jamais de type opaque hôte lui-même
+- les formes `import @host.io.*` et `import @host.io.* as *` restent invalides et ne reçoivent aucune interprétation sémantique
 
 Racines réservées :
 
 - `host`, `list`, `map`, `result` sont réservées comme racines
 - `list.*`, `map.*`, `result.*` restent réservées comme namespaces builtins
-- `host.*` reste réservé comme vocabulaire ABI et de types opaques hôte
+- `host.*` reste réservé comme racine interdite pour les appels source directs et comme vocabulaire historique obsolète
+- les types opaques hôte canoniques vivent sous `@host.*`
 - un module utilisateur normal ne peut pas être `@list`, `@map` ou `@result`
 - un alias d’import ne peut pas être `host`, `list`, `map` ou `result`
 - un nom utilisateur ne peut pas occuper une racine réservée
@@ -1129,6 +1155,10 @@ Ce n’est pas une exception implicite métier.
 - `list.reduce` sur une liste vide si ce vide n’est pas prouvable statiquement
 - autres cas où le type-checker ne peut pas décider, mais où le contrat d’exécution est violé
 
+Le moment exact où un contrat hôte source valide mais insatisfaisable est observé peut dépendre du modèle d’intégration ou du runtime embarquant.
+
+Cette variabilité ne change ni la catégorie de l’erreur, ni la sémantique statique du langage, ni l’absence de lookup dynamique ou d’inférence de type à l’exécution.
+
 Exemple :
 
 ```nicole
@@ -1188,28 +1218,30 @@ module @app
 end-module
 ```
 
-## `module @host` et capacités hôte
+## `module @host`, capacités hôte et types opaques hôte
 
-`module @host` désigne la surface sémantique source-visible des capacités hôte requises par le programme.
+`module @host` désigne la surface sémantique source-visible des capacités hôte et des types opaques hôte requis par le programme.
 
 Le programme ne consomme pas ces capacités par appel direct `host.*`.
 
 Il les consomme uniquement par import depuis le contrat consolidé `@host`.
 
-Le contrat hôte peut aussi déclarer des types opaques hôte sous `host.*`.
+Le contrat hôte peut aussi déclarer des types opaques hôte dans `module @host` par `opaque path`.
 
-Ces types opaques sont des valeurs Nicole dont la représentation concrète est contrôlée par l’hôte.
+Ces types opaques sont des valeurs Nicole nominales dont la représentation concrète reste contrôlée par l’hôte.
 
 Exemple :
 
 ```nicole
 module @host
+  opaque io.FileHandle
   require console.log { msg:String -- } dirty
   require text.length { s:String -- n:Int } pure
 end-module
 
 module @app
   import @host.console.log as console.log
+  import @host.io.FileHandle as io.FileHandle
 
   dirty : save-log { msg:String -- }
     msg console.log
@@ -1224,14 +1256,21 @@ Règles :
 - l’ordre des fragments `@host` n’affecte pas le sens du contrat consolidé
 - un `require` identique dupliqué est acceptable
 - un `require` divergent pour un même chemin de capacité est une erreur sémantique
+- un `opaque` identique dupliqué pour le même nom canonique est acceptable
+- un conflit de catégorie ou de déclaration ABI sous un même nom canonique est une erreur ABI
+- en v1, deux déclarations `opaque` sont identiques si, et seulement si, elles désignent le même nom canonique sous `@host.*` avec la même catégorie de symbole : type opaque hôte
 - un module utilisateur normal ne déclare pas de capacité hôte
+- un module utilisateur normal ne déclare pas de type opaque hôte
 - une capacité hôte n’est utilisable qu’après import depuis le contrat consolidé `@host`
+- un type opaque hôte n’est utilisable dans un module applicatif qu’après import explicite depuis le contrat consolidé `@host`
 - l’effet ABI (`pure` ou `dirty`) d’une capacité hôte est défini par la déclaration `require`, puis validé contre le contrat hôte
 - l’absence d’une capacité non déclarée à l’import ou à l’usage est une erreur sémantique
+- l’absence d’un type opaque non déclaré à l’import ou à l’usage en position de type est une erreur sémantique
+- l’usage d’un symbole connu dans une position incompatible avec sa catégorie doit produire une erreur statique de catégorie, pas une pseudo-erreur d’import manquant
 - si un contrat hôte source valide ne peut pas être satisfait par l’environnement d’exécution, c’est une erreur de contrat d’exécution observée à la frontière hôte
 - `Result` ne s’applique qu’au contrat de retour d’une capacité hôte qui existe effectivement
 - le mécanisme de satisfaction du contrat lui-même n’est jamais modélisé comme un `Result`
-- un type opaque hôte `host.*` peut circuler dans la pile, les locals, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,T>` où `K` reste un type de clé map v1 (`Int`, `String`, `Bool`) ; un type opaque hôte ne peut pas être une clé de map
+- un type opaque hôte `@host.*` peut circuler dans la pile, les locals, les quotations, `List<T>`, `Result<T,E>` et comme valeur de `Map<K,T>` où `K` reste un type de clé map v1 (`Int`, `String`, `Bool`) ; un type opaque hôte ne peut pas être une clé de map
 - copier une valeur opaque hôte copie seulement la valeur Nicole transportée, pas la ressource hôte sous-jacente
 - plusieurs valeurs Nicole peuvent donc référencer la même ressource hôte sous-jacente
 - le programme Nicole ne peut pas construire une telle valeur directement
@@ -1239,6 +1278,10 @@ Règles :
 - l’état ouvert/fermé d’une telle valeur n’est pas un état de type Nicole
 - les opérations sur une valeur fermée relèvent du contrat de la capacité hôte appelée, typiquement via `Result` lorsque ce contrat choisit de le modéliser explicitement
 - la v1 n’introduit ni ownership, ni destructeur, ni finalisation automatique, ni handle nullable pour ces valeurs
+- les imports groupés, y compris lorsqu’ils visent `@host`, se désucrent en imports explicites répétés, puis sont validés exactement comme eux
+- les collisions d’alias issues d’un désucrage d’import groupé restent des erreurs
+- `as *` dans un import groupé n’introduit pas de wildcard ; il expose seulement les symboles explicitement sélectionnés
+- la visibilité de tous ces symboles reste strictement locale au module importateur
 
 Une capacité comme `@host.io.open-file`, importée ensuite dans un module applicatif, devient donc cohérente en v1 si, et seulement si, le contrat hôte consolidé déclare explicitement les types opaques qu’elle expose.
 

@@ -8,7 +8,7 @@ Document status:
 
 Current global status:
 
-`planned`
+`implemented in active specification`
 
 ## Scope
 
@@ -20,7 +20,7 @@ Supersession note:
 - the old plan froze the previous model in which Nicole source could not declare opaque host types and canonical opaque host type names remained under `host.*`
 - this freeze replaces that model with source declarations such as `opaque io.FileHandle` inside `module @host` and canonical opaque host type names under `@host.*`
 
-It records the frozen architecture decisions for the next Nicole specification refinement concerning:
+It records the frozen architecture decisions now integrated into the active Nicole specification concerning:
 
 - host opaque type declarations inside `module @host`
 - canonical opaque host type names under `@host.*`
@@ -89,6 +89,7 @@ Frozen rules:
 - type aliases created this way are module-local
 - the same import mechanism is used for capabilities and opaque host types
 - there is no separate type-import syntax
+- grouped import syntax remains part of the general import surface, not a host-only special case
 
 ### 4. Grouped imports with prefix alias
 
@@ -215,14 +216,11 @@ This freeze does not:
 
 ## Compatibility impact
 
-- Current normative text still uses `host.*` as the active opaque host type vocabulary and will require coordinated migration.
-- Existing valid and invalid examples using `host.io.FileHandle` will require later migration to `@host.io.FileHandle`.
-- Existing invalid examples that reject source-level opaque declarations will require inversion or replacement.
-- Grouped import syntax is additive at the source level, but it affects syntax, semantics, ABI wording, examples, and diagnostics together.
+- The coordinated migration to canonical `@host.*` opaque type names has been applied in the active normative specification.
+- Active valid and invalid examples now align with source-visible `opaque` declarations inside `module @host`.
+- Grouped import syntax is now integrated into the active syntax and semantics as explicit sugar only.
 
-## Files expected to change later
-
-At minimum:
+## Files changed by this freeze wave
 
 - `SYNTAXE.md`
 - `SEMANTIQUE.md`
@@ -230,12 +228,8 @@ At minimum:
 - `EXAMPLES.md`
 - `INVALID_EXAMPLES.md`
 - `README.md`
-- `AGENTS.md`
 
-Likely supporting tracking/historical updates later:
-
-- `HOST_ABI_REFACTOR_PLAN.md`
-- `MODULE_REFACTOR_PLAN.md`
+Historical supporting tracking documents may remain archived separately.
 
 ## Risks
 
@@ -245,11 +239,11 @@ Likely supporting tracking/historical updates later:
 - later user-defined type work could inflate grouped import complexity if category rules are not kept uniform
 - legacy wording may survive in examples or invalid examples unless migration is audited globally first
 
-## Open questions
+## Historical notes after integration
 
-- Should grouped imports be allowed to mix words, capabilities, opaque host types, and future struct names in a single group without restriction?
-- Should future normative examples impose a stronger style preference against `as *` outside very small modules?
-- During migration, should obsolete legacy `host.*` opaque type wording be removed aggressively, or retained briefly with explicit historical annotation for reader continuity?
+- Grouped imports are now integrated as a general import surface form in v1, not restricted to `@host`.
+- Prefix alias style remains the preferred normative style when dependency origin visibility matters.
+- Obsolete legacy `host.*` opaque type wording remains appropriate only as explicit historical contrast in archival material such as this freeze.
 
 ## Recommendation
 
