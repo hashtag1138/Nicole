@@ -1,0 +1,41 @@
+module @examples.config_loader
+  : defaults { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "timeout" 30 map.set
+    "retries" 3 map.set
+  ;
+
+  : require-threshold { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg "threshold" map.get ?
+    Ok!
+  ;
+
+  : timeout-or-default { cfg:Map<String,Int> -- timeout:Int }
+    cfg "timeout" map.get 30 result.unwrap-or
+  ;
+
+  : retries-or-default { cfg:Map<String,Int> -- retries:Int }
+    cfg "retries" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 3
+    end
+  ;
+
+  : normalize { cfg:Map<String,Int> -- normalized:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "timeout" cfg timeout-or-default map.set
+    "retries" cfg retries-or-default map.set
+  ;
+
+  : with-threshold { cfg:Map<String,Int> -- r:Result<Map<String,Int>,MapError> }
+    map.empty:Map<String,Int>
+    "timeout" cfg timeout-or-default map.set
+    "retries" cfg retries-or-default map.set
+    "threshold"
+    cfg require-threshold ?
+    map.set
+    Ok!
+  ;
+
+  export : normalize
+end-module

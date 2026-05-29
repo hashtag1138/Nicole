@@ -1,0 +1,56 @@
+module @examples.collections
+  : sample-scores { -- xs:List<Int> }
+    [7, 12, 5]
+  ;
+
+  : first-or-zero { xs:List<Int> -- n:Int }
+    xs list.first case
+      Ok(v) => v
+      Err(OutOfBounds) => 0
+    end
+  ;
+
+  : set-first-or-keep { xs:List<Int> value:Int -- ys:List<Int> }
+    xs 0 value list.set case
+      Ok(updated) => updated
+      Err(OutOfBounds) => xs
+    end
+  ;
+
+  : sample-config { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "timeout" 30 map.set
+    "retries" 3 map.set
+    "threshold" 50 map.set
+  ;
+
+  : timeout-or-zero { cfg:Map<String,Int> -- n:Int }
+    cfg "timeout" map.get case
+      Ok(v) => v
+      Err(MissingKey) => 0
+    end
+  ;
+
+  : remove-retries { cfg:Map<String,Int> -- pruned:Map<String,Int> }
+    cfg "retries" map.remove case
+      Ok(next) => next
+      Err(MissingKey) => cfg
+    end
+  ;
+
+  : keys-after-reinsert { -- keys:List<String> }
+    sample-config
+    "timeout" 99 map.set
+    remove-retries
+    "retries" 5 map.set
+    map.keys
+  ;
+
+  : values-after-reinsert { -- values:List<Int> }
+    sample-config
+    "timeout" 99 map.set
+    remove-retries
+    "retries" 5 map.set
+    map.values
+  ;
+end-module

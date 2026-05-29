@@ -1,0 +1,57 @@
+module @examples.score_processor.data
+  pub : demo-scores { -- xs:List<Int> }
+    [10, 5, 20, 0, 7]
+  ;
+
+  pub : demo-config { -- cfg:Map<String,Int> }
+    map.empty:Map<String,Int>
+    "bonus" 5 map.set
+  ;
+end-module
+
+module @examples.score_processor.transforms
+  pub : add-bonus { xs:List<Int> bonus:Int -- ys:List<Int> }
+    xs
+    bonus
+    :[ captured-bonus:Int | score:Int -- updated:Int |
+      score captured-bonus +
+    ;]
+    list.map
+  ;
+
+  pub : keep-positive { xs:List<Int> -- ys:List<Int> }
+    xs :[ | score:Int -- keep:Bool | score 0 > ;] list.filter
+  ;
+
+  pub : total { xs:List<Int> -- total:Int }
+    xs 0 :[ | acc:Int score:Int -- out:Int | acc score + ;] list.fold
+  ;
+end-module
+
+module @examples.score_processor.app
+  import @examples.score_processor.data.demo-scores as demo-scores
+  import @examples.score_processor.data.demo-config as demo-config
+  import @examples.score_processor.transforms.add-bonus as add-bonus
+  import @examples.score_processor.transforms.keep-positive as keep-positive
+  import @examples.score_processor.transforms.total as total
+
+  : require-bonus { cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    cfg "bonus" map.get ?
+    Ok!
+  ;
+
+  : process-total { xs:List<Int> cfg:Map<String,Int> -- r:Result<Int,MapError> }
+    xs
+    cfg require-bonus ?
+    add-bonus
+    keep-positive
+    total
+    Ok!
+  ;
+
+  : run { -- r:Result<Int,MapError> }
+    demo-scores demo-config process-total
+  ;
+
+  export : run
+end-module

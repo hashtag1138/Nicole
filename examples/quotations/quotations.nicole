@@ -1,0 +1,31 @@
+module @examples.quotations
+  : plus-one { x:Int -- y:Int }
+    x
+    :[ | n:Int -- out:Int | n 1 + ;]
+    call
+  ;
+
+  : add-offset { x:Int offset:Int -- y:Int }
+    x
+    offset
+    :[ captured-offset:Int | n:Int -- out:Int |
+      n captured-offset +
+    ;]
+    call
+  ;
+
+  : add-offset-all { xs:List<Int> offset:Int -- ys:List<Int> }
+    xs
+    offset
+    :[ captured-offset:Int | x:Int -- y:Int |
+      x captured-offset +
+    ;]
+    list.map
+  ;
+
+  : make-incrementer { -- q:Quote<{ | x:Int -- y:Int }> }
+    :[ | x:Int -- y:Int | x 1 + ;]
+  ;
+
+  export : add-offset-all
+end-module

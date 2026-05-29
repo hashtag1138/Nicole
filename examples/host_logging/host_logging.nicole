@@ -1,0 +1,29 @@
+module @host
+  require console.log { msg:String -- } dirty
+end-module
+
+module @examples.host_logging.core
+  pub : score-count { xs:List<Int> -- count:Int }
+    xs list.len
+  ;
+
+  pub : count-label { count:Int -- msg:String }
+    count 0 > if
+      "scores available"
+    else
+      "scores empty"
+    end
+  ;
+end-module
+
+module @examples.host_logging.app
+  import @host.console.log as console.log
+  import @examples.host_logging.core.score-count as score-count
+  import @examples.host_logging.core.count-label as count-label
+
+  dirty : announce { xs:List<Int> -- }
+    xs score-count count-label console.log
+  ;
+
+  export : announce
+end-module
