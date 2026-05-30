@@ -2006,6 +2006,75 @@ Pourquoi c’est invalide :
 Règle violée :
 - `SYNTAXE.md` définit les signatures avec la forme `{ ... -- ... }`
 
+### Littéral signé avec `+`
+
+```nicole
+module @invalid.syntax
+  : bad-plus-int { -- n:Int }
+    +5
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `+5` n’est pas un littéral numérique valide en v1
+- la v1 ne définit pas de préfixe `+` pour les littéraux numériques
+
+Règle violée :
+- les littéraux numériques v1 autorisent seulement un signe `-` collé
+
+### Littéral flottant sans chiffre avant le point
+
+```nicole
+module @invalid.syntax
+  : bad-short-float { -- x:Float }
+    -.5
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `-.5` n’est pas un littéral numérique valide en v1
+- cette forme ne satisfait pas la grammaire des flottants
+
+Règle violée :
+- un littéral `Float` v1 requiert des chiffres avant et après le point
+
+### Littéral flottant sans chiffre après le point
+
+```nicole
+module @invalid.syntax
+  : bad-trailing-dot { -- x:Float }
+    5.
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `5.` n’est pas un littéral numérique valide en v1
+- cette forme ne satisfait pas la grammaire des flottants
+
+Règle violée :
+- un littéral `Float` v1 requiert des chiffres avant et après le point
+
+### Tentative de littéral signé non collé
+
+```nicole
+module @invalid.syntax
+  : bad-spaced-negative { -- n:Int }
+    - 5
+  ;
+end-module
+```
+
+Pourquoi c’est invalide :
+- `- 5` n’est pas un littéral numérique signé collé
+- cette écriture produit deux tokens séparés, pas un littéral `Int`
+- dans ce contexte, `-` reste l’opérateur binaire et le mot échoue faute d’opérandes suffisants
+
+Règle violée :
+- un littéral numérique négatif v1 doit être écrit de manière collée, par exemple `-5`
+
 ---
 
 ## 10. Pureté et effet `dirty` invalides (v0.14.0)

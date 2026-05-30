@@ -61,6 +61,28 @@ Formes lexicales introduites :
 - `module_ref` : `@identifier`
 - `module_qualified_name` : `@identifier ("." identifier)+`
 
+Littéraux numériques :
+
+- `int_literal ::= "-"? [0-9]+`
+- `float_literal ::= "-"? [0-9]+\.[0-9]+`
+- le signe `-` fait partie d’un littéral numérique uniquement s’il est immédiatement suivi d’un chiffre
+- un littéral flottant signé exige au moins un chiffre avant et après le point décimal
+- `-5` est un littéral `Int`
+- `-3.5` est un littéral `Float`
+- `- 5` n’est pas un littéral signé : ce sont deux tokens séparés
+- `+5` n’est pas un littéral valide en v1
+- `-.5` n’est pas un littéral valide en v1
+- `5.` n’est pas un littéral valide en v1
+- par conséquent, `-.` reste reconnu comme opérateur binaire de soustraction flottante
+- `-` et `-.` restent des opérateurs binaires lorsqu’ils sont tokenisés comme opérateurs
+- cette règle n’affecte pas les identifiants contenant `-`, comme `add-one`, qui continuent de suivre les règles lexicales des identifiants
+
+Limites des littéraux numériques v1 :
+
+- les séparateurs numériques comme `1_000` ne sont pas autorisés
+- la notation scientifique comme `1e6` ou `-1e6` n’est pas autorisée
+- les bases alternatives comme `0xFF` ne sont pas autorisées
+
 Chaînes :
 
 - une chaîne est délimitée par `"`
@@ -1114,6 +1136,8 @@ OutOfBounds
 _
 ```
 
+Dans ces patterns, les littéraux `Int` incluent les entiers négatifs lexicalement valides, par exemple `-1`.
+
 Règles de liaison :
 
 - `Ok(v)` crée un binding local `v`
@@ -1378,6 +1402,8 @@ Règles :
 - `=` et `!=` sont définis pour deux valeurs de même type exact `A A -> Bool`, sauf pour les types opaques hôte `@host.*`
 - les opérateurs booléens produisent un `Bool`
 
+Un littéral négatif collé comme `-5` ou `-3.5` est un littéral numérique selon le lexique ; ce n’est pas une application de l’opérateur `-` ou `-.`.
+
 Exemples :
 
 ```nicole
@@ -1444,6 +1470,7 @@ Littéraux de liste :
 []:List<Int>
 [1]
 [1, 2, 3]
+[1, -2, 3]
 ["a", "b"]
 [1, [2, 3]]
 ```

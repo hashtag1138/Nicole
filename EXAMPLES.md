@@ -386,6 +386,48 @@ Effet de pile :
 Pourquoi :
 - montre la forme minimale d’un `if`
 
+### Littéral entier négatif
+
+```nicole
+module @examples_literals_01
+  : debt { -- n:Int }
+    -5
+  ;
+end-module
+```
+
+Explication :
+- montre un littéral `Int` négatif collé
+- ce n’est pas une application de l’opérateur `-`
+
+Effet de pile :
+- entrée vide
+- sortie `-5`
+
+Pourquoi :
+- fixe explicitement la forme source d’un entier négatif en v1
+
+### Littéral flottant négatif
+
+```nicole
+module @examples_literals_02
+  : offset { -- x:Float }
+    -3.5
+  ;
+end-module
+```
+
+Explication :
+- montre un littéral `Float` négatif collé
+- `-.5` et `5.` ne sont pas des formes valides v1
+
+Effet de pile :
+- entrée vide
+- sortie `-3.5`
+
+Pourquoi :
+- fixe explicitement la forme source d’un flottant négatif en v1
+
 ---
 
 ## 7. `case`
@@ -413,6 +455,26 @@ Effet de pile :
 
 Pourquoi :
 - montre un `case` idiomatique sur `Result`
+
+### `case` sur entier négatif
+
+```nicole
+module @examples_case_01b
+  : sign-label { n:Int -- text:String }
+    n case
+      -1 => "minus one"
+      0 => "zero"
+      _ => "other"
+    end
+  ;
+end-module
+```
+
+Explication :
+- montre qu’un pattern `Int` peut matcher un entier négatif lexicalement valide
+
+Pourquoi :
+- relie directement la règle lexicale et la surface `case`
 
 ### Helpers `Result`
 
@@ -919,6 +981,27 @@ Effet de pile :
 
 Pourquoi :
 - montre la forme de base de `list.filter`
+
+### Liste avec entiers négatifs
+
+```nicole
+module @examples_collections_21b
+  : temperatures { -- xs:List<Int> }
+    [1, -2, 3]
+  ;
+end-module
+```
+
+Explication :
+- montre qu’un littéral de liste peut contenir des entiers négatifs
+- il n’existe pas de règle spéciale pour les listes : elles acceptent ici des littéraux ordinaires
+
+Effet de pile :
+- entrée vide
+- sortie `[1, -2, 3]`
+
+Pourquoi :
+- rend explicite en code une forme auparavant seulement suggérée par les annotations d’effet de pile
 
 ### Réduction simple
 

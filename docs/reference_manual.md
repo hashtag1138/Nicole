@@ -690,6 +690,7 @@ Ce qu'il faut retenir :
 - la condition est consommee ;
 - la branche choisie s'execute dans la meme frame ;
 - les deux branches doivent laisser la meme forme de pile.
+- un negatif calcule comme `0 x -` reste une expression ordinaire ; ce n'est pas la meme chose qu'un litteral lexical comme `-5`.
 
 ### `case`
 
@@ -716,6 +717,8 @@ Patterns confirmes en v1 :
 - `MissingKey`
 - `OutOfBounds`
 - `_`
+
+Les patterns `Int` incluent les entiers negatifs lexicalement valides, par exemple `-1`.
 
 Les guards sont autorises :
 
@@ -1622,10 +1625,23 @@ Cette section sert d'aide-memoire compacte. Pour le detail normatif et les cas l
 
 | Famille | Patterns |
 | --- | --- |
-| litteraux | `Int`, `String`, `Bool` |
+| litteraux | `Int` dont `-1`, `String`, `Bool` |
 | `Result` | `Ok(v)`, `Err(e)` |
 | erreurs fermees | `MissingKey`, `OutOfBounds`, `Err(MissingKey)`, `Err(OutOfBounds)` |
 | joker | `_` |
+
+### Rappels lexicaux utiles
+
+| Forme | Statut v1 |
+| --- | --- |
+| `-5` | littéral `Int` valide |
+| `-3.5` | littéral `Float` valide |
+| `- 5` | deux tokens separes, pas un littéral signe |
+| `+5` | invalide |
+| `-.5` | invalide |
+| `5.` | invalide |
+| `-` | operateur binaire de soustraction |
+| `-.` | operateur binaire de soustraction flottante |
 
 ### Types standards
 

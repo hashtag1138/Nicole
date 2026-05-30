@@ -605,6 +605,13 @@ Patterns v1 retenus :
 - `OutOfBounds`
 - `_`
 
+Les littéraux numériques signés lexicalement valides sont des valeurs ordinaires :
+
+- `-5` a directement la valeur entière `-5`
+- `-3.5` a directement la valeur flottante `-3.5`
+- ces formes lexicales ne sont pas des applications d’une soustraction unaire générale
+- dans les patterns, les littéraux `Int` peuvent donc matcher des entiers négatifs lexicalement valides, par exemple `-1`
+
 Règles de liaison :
 
 - `Ok(v)` crée un binding local `v`
